@@ -5,7 +5,7 @@ import { CRMShell } from "@/components/layout/crm-shell";
 import { renderSessionGate } from "@/components/shared/session-gate";
 import { useRealtimeRefresh } from "@/hooks/use-realtime-refresh";
 import { useSession } from "@/hooks/use-session";
-import { apiGet, apiPost, apiPostForm, apiPut } from "@/lib/api";
+import { apiDelete, apiGet, apiPost, apiPostForm, apiPut } from "@/lib/api";
 import type { BulkUserUploadResult, CRMUser, Department, UserRole } from "@/types/crm";
 
 type PaginatedResponse<T> = { items: T[]; total: number; hasMore: boolean; nextOffset: number };
@@ -91,8 +91,17 @@ export default function EmployeesPage() {
   const [updatingId, setUpdatingId] = useState("");
   const [emailDrafts, setEmailDrafts] = useState<Record<string, string>>({});
   const [emailUpdatingId, setEmailUpdatingId] = useState("");
+  const [deletingId, setDeletingId] = useState("");
   const availableRoles: UserRole[] =
     user?.role === "SUPERADMIN" ? ["SUPERADMIN", ...baseRoles] : baseRoles;
+  const createRoleOptions: UserRole[] =
+    user?.role === "SUPERADMIN"
+      ? ["SUPERADMIN", ...baseRoles]
+      : user?.role === "MANAGER"
+        ? ["EMPLOYEE", "INTERN"]
+        : baseRoles;
+  const directoryRoleOptions: UserRole[] =
+    user?.role === "MANAGER" ? ["EMPLOYEE", "INTERN"] : availableRoles;
 
   const fieldStyle = {
     borderColor: "var(--border)",
@@ -267,6 +276,24 @@ export default function EmployeesPage() {
     }
   };
 
+  const deleteEmployee = async (member: CRMUser) => {
+    if (!window.confirm(`Remove ${member.name} from the organisation? This cannot be undone.`)) {
+      return;
+    }
+    try {
+      setDeletingId(member.id);
+      setError("");
+      setNotice("");
+      await apiDelete(`/users/${member.id}`);
+      setNotice("Team member removed.");
+      await loadTeam(false);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to delete team member");
+    } finally {
+      setDeletingId("");
+    }
+  };
+
   const managers = allUsers.filter((member) =>
     ["SUPERADMIN", "ADMIN", "MANAGER"].includes(member.role)
   );
@@ -287,8 +314,33 @@ export default function EmployeesPage() {
     return member.manager?.role === "ADMIN" || member.manager?.role === "MANAGER";
   };
 
-  const canEditDirectory = user?.role === "SUPERADMIN" || user?.role === "ADMIN";
-  const canCreateUsers = user?.role === "SUPERADMIN" || user?.role === "ADMIN";
+  const canBulkUpload = user?.role === "SUPERADMIN" || user?.role === "ADMIN";
+
+  const canManageMemberRow = (member: CRMUser) => {
+    if (!user) {
+      return false;
+    }
+    if (user.role === "SUPERADMIN" || user.role === "ADMIN") {
+      return true;
+    }
+    return member.manager?.id === user.id;
+  };
+
+  const canEditMemberEmail = (member: CRMUser) =>
+    canManageMemberRow(member) && !(member.role === "SUPERADMIN" && user?.role !== "SUPERADMIN");
+
+  const canDeleteMember = (member: CRMUser) => {
+    if (!user || member.id === user.id) {
+      return false;
+    }
+    if (member.role === "SUPERADMIN" && user.role !== "SUPERADMIN") {
+      return false;
+    }
+    if (user.role === "MANAGER") {
+      return Boolean(member.manager?.id === user.id && ["EMPLOYEE", "INTERN"].includes(member.role));
+    }
+    return user.role === "SUPERADMIN" || user.role === "ADMIN";
+  };
 
   const sessionGate = renderSessionGate({
     loading: sessionLoading,
@@ -353,7 +405,7 @@ export default function EmployeesPage() {
         {error ? <StatusBanner variant="error" message={error} /> : null}
         {notice ? <StatusBanner variant="success" message={notice} /> : null}
 
-        <div className="grid gap-5 xl:grid-cols-[minmax(0,380px)_minmax(0,1fr)] xl:items-start xl:gap-6">
+        <div className="grid gap-4 xl:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)] xl:items-start">
           <div className="flex min-w-0 flex-col gap-5 xl:sticky xl:top-4">
             <Surface>
               <div className="flex flex-wrap items-start justify-between gap-2">
@@ -365,30 +417,15 @@ export default function EmployeesPage() {
                     Add employee or intern
                   </h2>
                 </div>
-                {canCreateUsers ? (
-                  <span
-                    className="shrink-0 rounded-full px-2.5 py-1 text-[10px] font-semibold text-white sm:text-xs"
-                    style={{ background: "var(--accent-strong)" }}
-                  >
-                    Admin only
-                  </span>
-                ) : null}
+                <span
+                  className="shrink-0 rounded-full px-2.5 py-1 text-[10px] font-semibold text-white sm:text-xs"
+                  style={{ background: "var(--accent-strong)" }}
+                >
+                  {canBulkUpload ? "Admin bulk" : "Manager create"}
+                </span>
               </div>
 
-              {user.role === "MANAGER" ? (
-                <div
-                  className="mt-5 rounded-2xl border border-dashed p-4 text-sm leading-relaxed"
-                  style={{
-                    borderColor: "var(--border)",
-                    background: "var(--surface-soft)",
-                    color: "var(--text-soft)",
-                  }}
-                >
-                  Managers can view their team here. Only admins and the CEO can create accounts or run bulk
-                  import.
-                </div>
-              ) : (
-                <div className="mt-5 flex flex-col gap-3">
+              <div className="mt-5 flex flex-col gap-3">
                   <input
                     className="h-11 w-full min-w-0 rounded-xl border px-3 text-sm outline-none sm:h-12 sm:rounded-2xl sm:px-4"
                     style={fieldStyle}
@@ -418,7 +455,7 @@ export default function EmployeesPage() {
                       setForm((current) => ({ ...current, role: event.target.value as UserRole }))
                     }
                   >
-                    {availableRoles.map((role) => (
+                    {createRoleOptions.map((role) => (
                       <option key={role} value={role}>
                         {role}
                       </option>
@@ -474,105 +511,106 @@ export default function EmployeesPage() {
                     {creating ? "Creating…" : "Create team member"}
                   </button>
 
-                  <div
-                    className="mt-2 rounded-2xl border p-4 sm:rounded-3xl sm:p-5"
-                    style={{ borderColor: "var(--border)", background: "var(--surface-soft)" }}
-                  >
-                    <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                      <div className="min-w-0">
-                        <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[var(--text-faint)]">
-                          Bulk upload
-                        </p>
-                        <h3 className="mt-1 text-base font-semibold text-[var(--text-main)] sm:text-lg">
-                          Import from CSV
-                        </h3>
-                        <p className="mt-2 text-xs leading-relaxed text-[var(--text-soft)] sm:text-sm">
-                          Roles in CSV must be <code className="rounded bg-black/5 px-1">EMPLOYEE</code> or{" "}
-                          <code className="rounded bg-black/5 px-1">INTERN</code>.
-                        </p>
+                  {canBulkUpload ? (
+                    <div
+                      className="mt-2 rounded-2xl border p-4 sm:rounded-3xl sm:p-5"
+                      style={{ borderColor: "var(--border)", background: "var(--surface-soft)" }}
+                    >
+                      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                        <div className="min-w-0">
+                          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[var(--text-faint)]">
+                            Bulk upload
+                          </p>
+                          <h3 className="mt-1 text-base font-semibold text-[var(--text-main)] sm:text-lg">
+                            Import from CSV
+                          </h3>
+                          <p className="mt-2 text-xs leading-relaxed text-[var(--text-soft)] sm:text-sm">
+                            Roles in CSV must be <code className="rounded bg-black/5 px-1">EMPLOYEE</code> or{" "}
+                            <code className="rounded bg-black/5 px-1">INTERN</code>.
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={downloadBulkTemplate}
+                          className="shrink-0 rounded-xl border px-3 py-2 text-xs font-semibold sm:text-sm"
+                          style={{ borderColor: "var(--border)", color: "var(--text-main)" }}
+                        >
+                          Sample CSV
+                        </button>
                       </div>
+
+                      <details className="mt-3">
+                        <summary className="cursor-pointer text-xs font-semibold text-[var(--accent-strong)]">
+                          View column format
+                        </summary>
+                        <pre className="mt-2 max-h-40 overflow-auto rounded-xl border p-3 text-[10px] leading-relaxed text-[var(--text-soft)] sm:text-xs">
+                          {bulkUploadTemplate}
+                        </pre>
+                      </details>
+
+                      <label
+                        className="mt-4 flex cursor-pointer flex-col gap-2 rounded-xl border-2 border-dashed px-4 py-6 text-center transition hover:border-blue-400/50 sm:rounded-2xl"
+                        onDragOver={(event) => {
+                          event.preventDefault();
+                          event.stopPropagation();
+                        }}
+                        onDrop={(event) => {
+                          event.preventDefault();
+                          event.stopPropagation();
+                          const file = event.dataTransfer.files?.[0];
+                          if (file && (file.type === "text/csv" || file.name.toLowerCase().endsWith(".csv"))) {
+                            setBulkFile(file);
+                          } else if (event.dataTransfer.files?.[0]) {
+                            setError("Please drop a .csv file.");
+                          }
+                        }}
+                      >
+                        <span className="text-sm font-semibold text-[var(--text-main)]">Drop a file or browse</span>
+                        <span className="text-xs text-[var(--text-soft)]">
+                          {bulkFile ? bulkFile.name : "No file selected — .csv up to 2MB"}
+                        </span>
+                        <input
+                          ref={bulkInputRef}
+                          type="file"
+                          accept=".csv,text/csv"
+                          className="sr-only"
+                          onChange={(event) => setBulkFile(event.target.files?.[0] ?? null)}
+                        />
+                      </label>
+
                       <button
                         type="button"
-                        onClick={downloadBulkTemplate}
-                        className="shrink-0 rounded-xl border px-3 py-2 text-xs font-semibold sm:text-sm"
-                        style={{ borderColor: "var(--border)", color: "var(--text-main)" }}
+                        disabled={bulkUploading || !bulkFile}
+                        onClick={() => void uploadBulkUsers()}
+                        className="mt-3 h-11 w-full rounded-xl text-sm font-semibold text-white transition disabled:cursor-not-allowed disabled:opacity-50 sm:rounded-2xl"
+                        style={{ background: "var(--accent-strong)" }}
                       >
-                        Sample CSV
+                        {bulkUploading ? "Uploading…" : "Upload CSV"}
                       </button>
+
+                      {bulkResult ? (
+                        <div
+                          className="mt-4 rounded-xl border p-3 text-sm"
+                          style={{ borderColor: "var(--border)", background: "var(--surface)" }}
+                        >
+                          <p className="font-semibold text-[var(--text-main)]">
+                            {bulkResult.createdCount} created · {bulkResult.failedCount} failed
+                          </p>
+                          {bulkResult.errors.length ? (
+                            <ul className="mt-2 max-h-36 list-inside list-disc space-y-1 overflow-y-auto text-xs text-rose-600">
+                              {bulkResult.errors.slice(0, 8).map((item) => (
+                                <li key={`${item.row}-${item.email ?? "row"}`}>
+                                  Row {item.row}
+                                  {item.email ? ` (${item.email})` : ""}: {item.message}
+                                </li>
+                              ))}
+                            </ul>
+                          ) : null}
+                        </div>
+                      ) : null}
                     </div>
-
-                    <details className="mt-3">
-                      <summary className="cursor-pointer text-xs font-semibold text-[var(--accent-strong)]">
-                        View column format
-                      </summary>
-                      <pre className="mt-2 max-h-40 overflow-auto rounded-xl border p-3 text-[10px] leading-relaxed text-[var(--text-soft)] sm:text-xs">
-                        {bulkUploadTemplate}
-                      </pre>
-                    </details>
-
-                    <label
-                      className="mt-4 flex cursor-pointer flex-col gap-2 rounded-xl border-2 border-dashed px-4 py-6 text-center transition hover:border-blue-400/50 sm:rounded-2xl"
-                      onDragOver={(event) => {
-                        event.preventDefault();
-                        event.stopPropagation();
-                      }}
-                      onDrop={(event) => {
-                        event.preventDefault();
-                        event.stopPropagation();
-                        const file = event.dataTransfer.files?.[0];
-                        if (file && (file.type === "text/csv" || file.name.toLowerCase().endsWith(".csv"))) {
-                          setBulkFile(file);
-                        } else if (event.dataTransfer.files?.[0]) {
-                          setError("Please drop a .csv file.");
-                        }
-                      }}
-                    >
-                      <span className="text-sm font-semibold text-[var(--text-main)]">Drop a file or browse</span>
-                      <span className="text-xs text-[var(--text-soft)]">
-                        {bulkFile ? bulkFile.name : "No file selected — .csv up to 2MB"}
-                      </span>
-                      <input
-                        ref={bulkInputRef}
-                        type="file"
-                        accept=".csv,text/csv"
-                        className="sr-only"
-                        onChange={(event) => setBulkFile(event.target.files?.[0] ?? null)}
-                      />
-                    </label>
-
-                    <button
-                      type="button"
-                      disabled={bulkUploading || !bulkFile}
-                      onClick={() => void uploadBulkUsers()}
-                      className="mt-3 h-11 w-full rounded-xl text-sm font-semibold text-white transition disabled:cursor-not-allowed disabled:opacity-50 sm:rounded-2xl"
-                      style={{ background: "var(--accent-strong)" }}
-                    >
-                      {bulkUploading ? "Uploading…" : "Upload CSV"}
-                    </button>
-
-                    {bulkResult ? (
-                      <div
-                        className="mt-4 rounded-xl border p-3 text-sm"
-                        style={{ borderColor: "var(--border)", background: "var(--surface)" }}
-                      >
-                        <p className="font-semibold text-[var(--text-main)]">
-                          {bulkResult.createdCount} created · {bulkResult.failedCount} failed
-                        </p>
-                        {bulkResult.errors.length ? (
-                          <ul className="mt-2 max-h-36 list-inside list-disc space-y-1 overflow-y-auto text-xs text-rose-600">
-                            {bulkResult.errors.slice(0, 8).map((item) => (
-                              <li key={`${item.row}-${item.email ?? "row"}`}>
-                                Row {item.row}
-                                {item.email ? ` (${item.email})` : ""}: {item.message}
-                              </li>
-                            ))}
-                          </ul>
-                        ) : null}
-                      </div>
-                    ) : null}
-                  </div>
+                  ) : null}
                 </div>
-              )}
             </Surface>
           </div>
 
@@ -584,7 +622,7 @@ export default function EmployeesPage() {
                 </p>
                 <h2 className="mt-1 text-lg font-semibold text-[var(--text-main)] sm:text-xl">Current team</h2>
               </div>
-              <span className="text-sm text-[var(--text-soft)]">{users.length} shown</span>
+              <span className="text-sm text-[var(--text-soft)]">{users.length} members</span>
             </div>
 
             {dataLoading ? (
@@ -594,168 +632,196 @@ export default function EmployeesPage() {
                 No team members yet.
               </p>
             ) : (
-              <ul className="mt-5 grid list-none gap-4 p-0 sm:grid-cols-1">
-                {users.map((member) => (
-                  <li
-                    key={member.id}
-                    className="rounded-2xl border p-4 sm:p-5"
-                    style={{
-                      borderColor: "var(--border)",
-                      background: "var(--surface-strong)",
-                      boxShadow: "0 1px 0 color-mix(in srgb, var(--border) 60%, transparent)",
-                    }}
-                  >
-                    <div className="flex flex-wrap items-start justify-between gap-3">
-                      <div className="min-w-0">
-                        <p className="font-semibold text-[var(--text-main)]">{member.name}</p>
-                        <p className="mt-0.5 text-xs text-[var(--text-faint)]">
-                          {member.designation?.trim() || "No designation"}
-                        </p>
-                      </div>
-                      {user.role === "MANAGER" || member.role === "SUPERADMIN" ? (
-                        <span
-                          className="shrink-0 rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide sm:text-xs"
-                          style={{ background: "var(--surface-soft)", color: "var(--text-soft)" }}
+              <div
+                className="mt-6 w-full min-w-0 overflow-x-auto rounded-[20px] border"
+                style={{ borderColor: "var(--border)" }}
+              >
+                <table className="min-w-[920px] w-full text-left text-sm">
+                  <thead style={{ background: "var(--surface-soft)" }}>
+                    <tr className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--text-faint)]">
+                      <th className="whitespace-nowrap px-4 py-3 sm:px-5">Name</th>
+                      <th className="min-w-[220px] whitespace-nowrap px-4 py-3 sm:px-5">Email</th>
+                      <th className="whitespace-nowrap px-4 py-3 sm:px-5">Role</th>
+                      <th className="whitespace-nowrap px-4 py-3 sm:px-5">Department</th>
+                      <th className="whitespace-nowrap px-4 py-3 sm:px-5">Manager</th>
+                      <th className="whitespace-nowrap px-4 py-3 sm:px-5">Meet</th>
+                      <th className="whitespace-nowrap px-4 py-3 sm:px-5">Drive</th>
+                      <th className="whitespace-nowrap px-4 py-3 text-right sm:px-5">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody style={{ background: "var(--surface-strong)", color: "var(--text-soft)" }}>
+                    {users.map((member) => {
+                      const assignmentLocked =
+                        !canManageMemberRow(member) ||
+                        (member.role === "SUPERADMIN" && user.role !== "SUPERADMIN");
+                      return (
+                        <tr
+                          key={member.id}
+                          className="border-t"
+                          style={{ borderColor: "var(--border)" }}
                         >
-                          {member.role}
-                        </span>
-                      ) : (
-                        <select
-                          className="min-w-[8rem] max-w-full rounded-xl border px-2 py-1.5 text-xs font-semibold sm:min-w-[9rem]"
-                          style={fieldStyle}
-                          value={member.role}
-                          disabled={updatingId === member.id}
-                          onChange={(event) => void assignEmployee(member, "role", event.target.value)}
-                        >
-                          {availableRoles.map((role) => (
-                            <option key={role} value={role}>
-                              {role}
-                            </option>
-                          ))}
-                        </select>
-                      )}
-                    </div>
-
-                    <div className="mt-4 space-y-3">
-                      <div>
-                        <label className="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-[var(--text-faint)]">
-                          Email
-                        </label>
-                        {canEditDirectory ? (
-                          <div className="flex flex-col gap-2 sm:flex-row sm:items-stretch">
-                            <input
-                              className="min-h-11 min-w-0 flex-1 rounded-xl border px-3 text-sm outline-none"
-                              style={fieldStyle}
-                              value={emailDrafts[member.id] ?? member.email}
-                              disabled={
-                                emailUpdatingId === member.id ||
-                                (member.role === "SUPERADMIN" && user.role !== "SUPERADMIN")
-                              }
-                              onChange={(event) =>
-                                setEmailDrafts((current) => ({
-                                  ...current,
-                                  [member.id]: event.target.value,
-                                }))
-                              }
-                            />
-                            <button
-                              type="button"
-                              className="h-11 shrink-0 rounded-xl px-4 text-sm font-semibold text-white disabled:opacity-50 sm:w-auto"
-                              style={{ background: "var(--accent-strong)" }}
-                              disabled={
-                                emailUpdatingId === member.id ||
-                                (member.role === "SUPERADMIN" && user.role !== "SUPERADMIN") ||
-                                (emailDrafts[member.id] ?? member.email).trim() === member.email
-                              }
-                              onClick={() => void updateMemberEmail(member)}
-                            >
-                              {emailUpdatingId === member.id ? "Saving…" : "Save email"}
-                            </button>
-                          </div>
-                        ) : (
-                          <p className="text-sm text-[var(--text-soft)]">{member.email}</p>
-                        )}
-                      </div>
-
-                      <div className="grid gap-3 sm:grid-cols-2">
-                        <div>
-                          <label className="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-[var(--text-faint)]">
-                            Department
-                          </label>
-                          {user.role === "MANAGER" ? (
-                            <p className="text-sm text-[var(--text-soft)]">{member.department?.name || "—"}</p>
-                          ) : (
-                            <select
-                              className="h-11 w-full min-w-0 rounded-xl border px-3 text-sm outline-none"
-                              style={fieldStyle}
-                              value={member.department?.id ?? ""}
-                              disabled={updatingId === member.id || member.role === "SUPERADMIN"}
-                              onChange={(event) =>
-                                void assignEmployee(member, "departmentId", event.target.value)
-                              }
-                            >
-                              <option value="">Unassigned</option>
-                              {departments.map((department) => (
-                                <option key={department.id} value={department.id}>
-                                  {department.name}
-                                </option>
-                              ))}
-                            </select>
-                          )}
-                        </div>
-                        <div>
-                          <label className="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-[var(--text-faint)]">
-                            Manager
-                          </label>
-                          {user.role === "MANAGER" ? (
-                            <p className="text-sm text-[var(--text-soft)]">{member.manager?.name || "—"}</p>
-                          ) : (
-                            <select
-                              className="h-11 w-full min-w-0 rounded-xl border px-3 text-sm outline-none"
-                              style={fieldStyle}
-                              value={member.manager?.id ?? ""}
-                              disabled={updatingId === member.id || member.role === "SUPERADMIN"}
-                              onChange={(event) =>
-                                void assignEmployee(member, "managerId", event.target.value)
-                              }
-                            >
-                              <option value="">Unassigned</option>
-                              {managers
-                                .filter((manager) => manager.id !== member.id)
-                                .map((manager) => (
-                                  <option key={manager.id} value={manager.id}>
-                                    {manager.name}
+                          <td className="px-4 py-3 align-top sm:px-5 sm:py-4">
+                            <div className="font-medium text-[var(--text-main)]">{member.name}</div>
+                            <div className="mt-1 text-xs font-medium text-[var(--text-faint)]">
+                              {member.designation?.trim() || "No designation"}
+                            </div>
+                          </td>
+                          <td className="px-4 py-3 align-top sm:px-5 sm:py-4">
+                            {canEditMemberEmail(member) ? (
+                              <div className="flex min-w-[200px] max-w-[min(100%,360px)] flex-wrap items-center gap-2">
+                                <input
+                                  className="h-9 min-w-0 flex-1 rounded-lg border px-2 text-xs outline-none sm:rounded-xl sm:px-3"
+                                  style={fieldStyle}
+                                  value={emailDrafts[member.id] ?? member.email}
+                                  disabled={
+                                    emailUpdatingId === member.id ||
+                                    (member.role === "SUPERADMIN" && user.role !== "SUPERADMIN")
+                                  }
+                                  onChange={(event) =>
+                                    setEmailDrafts((current) => ({
+                                      ...current,
+                                      [member.id]: event.target.value,
+                                    }))
+                                  }
+                                />
+                                <button
+                                  type="button"
+                                  className="h-9 shrink-0 rounded-lg px-3 text-xs font-semibold text-white disabled:opacity-50 sm:rounded-xl"
+                                  style={{ background: "var(--accent-strong)" }}
+                                  disabled={
+                                    emailUpdatingId === member.id ||
+                                    (member.role === "SUPERADMIN" && user.role !== "SUPERADMIN") ||
+                                    (emailDrafts[member.id] ?? member.email).trim() === member.email
+                                  }
+                                  onClick={() => void updateMemberEmail(member)}
+                                >
+                                  {emailUpdatingId === member.id ? "…" : "Update"}
+                                </button>
+                              </div>
+                            ) : (
+                              <span className="text-xs sm:text-sm">{member.email}</span>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 align-top sm:px-5 sm:py-4">
+                            {assignmentLocked ? (
+                              <span
+                                className="inline-block rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase sm:text-xs"
+                                style={{ background: "var(--surface-soft)", color: "var(--text-soft)" }}
+                              >
+                                {member.role}
+                              </span>
+                            ) : (
+                              <select
+                                className="max-w-[9.5rem] rounded-xl border px-2 py-1.5 text-xs font-semibold"
+                                style={fieldStyle}
+                                value={member.role}
+                                disabled={updatingId === member.id}
+                                onChange={(event) => void assignEmployee(member, "role", event.target.value)}
+                              >
+                                {directoryRoleOptions.map((role) => (
+                                  <option key={role} value={role}>
+                                    {role}
                                   </option>
                                 ))}
-                            </select>
-                          )}
-                        </div>
-                      </div>
-
-                      {hasAssignedLeadershipLinks(member) ? (
-                        <div className="flex flex-wrap gap-3 border-t pt-3 text-xs font-semibold" style={{ borderColor: "var(--border)" }}>
-                          <a
-                            href="https://meet.google.com/"
-                            target="_blank"
-                            rel="noreferrer"
-                            className="text-[var(--accent-strong)] underline-offset-2 hover:underline"
-                          >
-                            Google Meet
-                          </a>
-                          <a
-                            href="https://drive.google.com/"
-                            target="_blank"
-                            rel="noreferrer"
-                            className="text-[var(--accent-strong)] underline-offset-2 hover:underline"
-                          >
-                            Google Drive
-                          </a>
-                        </div>
-                      ) : null}
-                    </div>
-                  </li>
-                ))}
-              </ul>
+                              </select>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 align-top sm:px-5 sm:py-4">
+                            {assignmentLocked ? (
+                              <span className="text-xs">{member.department?.name || "—"}</span>
+                            ) : (
+                              <select
+                                className="max-w-[10rem] rounded-xl border px-2 py-1.5 text-xs"
+                                style={fieldStyle}
+                                value={member.department?.id ?? ""}
+                                disabled={updatingId === member.id}
+                                onChange={(event) =>
+                                  void assignEmployee(member, "departmentId", event.target.value)
+                                }
+                              >
+                                <option value="">Unassigned</option>
+                                {departments.map((department) => (
+                                  <option key={department.id} value={department.id}>
+                                    {department.name}
+                                  </option>
+                                ))}
+                              </select>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 align-top sm:px-5 sm:py-4">
+                            {assignmentLocked ? (
+                              <span className="text-xs">{member.manager?.name || "—"}</span>
+                            ) : (
+                              <select
+                                className="max-w-[10rem] rounded-xl border px-2 py-1.5 text-xs"
+                                style={fieldStyle}
+                                value={member.manager?.id ?? ""}
+                                disabled={updatingId === member.id}
+                                onChange={(event) =>
+                                  void assignEmployee(member, "managerId", event.target.value)
+                                }
+                              >
+                                <option value="">Unassigned</option>
+                                {managers
+                                  .filter((mgr) => mgr.id !== member.id)
+                                  .map((mgr) => (
+                                    <option key={mgr.id} value={mgr.id}>
+                                      {mgr.name}
+                                    </option>
+                                  ))}
+                              </select>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 align-top sm:px-5 sm:py-4">
+                            {hasAssignedLeadershipLinks(member) ? (
+                              <a
+                                href="https://meet.google.com/"
+                                target="_blank"
+                                rel="noreferrer"
+                                className="text-xs font-semibold underline underline-offset-2"
+                                style={{ color: "var(--accent-strong)" }}
+                              >
+                                Open Meet
+                              </a>
+                            ) : (
+                              "—"
+                            )}
+                          </td>
+                          <td className="px-4 py-3 align-top sm:px-5 sm:py-4">
+                            {hasAssignedLeadershipLinks(member) ? (
+                              <a
+                                href="https://drive.google.com/"
+                                target="_blank"
+                                rel="noreferrer"
+                                className="text-xs font-semibold underline underline-offset-2"
+                                style={{ color: "var(--accent-strong)" }}
+                              >
+                                Open Drive
+                              </a>
+                            ) : (
+                              "—"
+                            )}
+                          </td>
+                          <td className="px-4 py-3 text-right align-top sm:px-5 sm:py-4">
+                            {canDeleteMember(member) ? (
+                              <button
+                                type="button"
+                                className="rounded-lg border border-rose-200 px-2 py-1.5 text-xs font-semibold text-rose-700 transition hover:bg-rose-50 disabled:opacity-50"
+                                disabled={deletingId === member.id}
+                                onClick={() => void deleteEmployee(member)}
+                              >
+                                {deletingId === member.id ? "…" : "Delete"}
+                              </button>
+                            ) : (
+                              <span className="text-[var(--text-faint)]">—</span>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
             )}
 
             {hasMoreUsers ? (

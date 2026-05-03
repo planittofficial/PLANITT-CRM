@@ -3,6 +3,7 @@ import multer from "multer";
 import {
   bulkCreateUsers,
   createUser,
+  deleteUser,
   getMyProfile,
   getUserAnalytics,
   getUsers,
@@ -36,7 +37,7 @@ router.get(
   authorizeRoles("SUPERADMIN", "ADMIN", "MANAGER"),
   getUserAnalytics
 );
-router.post("/", authMiddleware, authorizeRoles("SUPERADMIN", "ADMIN"), createUser);
+router.post("/", authMiddleware, authorizeRoles("SUPERADMIN", "ADMIN", "MANAGER"), createUser);
 router.put(
   "/:id/profile",
   authMiddleware,
@@ -46,8 +47,9 @@ router.put(
 router.put(
   "/:id/assignment",
   authMiddleware,
-  authorizeRoles("SUPERADMIN", "ADMIN"),
+  authorizeRoles("SUPERADMIN", "ADMIN", "MANAGER"),
   updateUserAssignment
 );
+router.delete("/:id", authMiddleware, authorizeRoles("SUPERADMIN", "ADMIN", "MANAGER"), deleteUser);
 
 export default router;

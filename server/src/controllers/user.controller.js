@@ -191,6 +191,10 @@ async function createUserRecord(input, actorRole, actorUserId) {
     throw new Error("Only the CEO can create another superadmin");
   }
 
+  if (actorRole === "MANAGER" && !["EMPLOYEE", "INTERN"].includes(role)) {
+    throw new Error("Managers may only create employees or interns");
+  }
+
   const existingUser = await prisma.user.findUnique({
     where: { email },
     select: { id: true },
@@ -201,7 +205,12 @@ async function createUserRecord(input, actorRole, actorUserId) {
   }
 
   const departmentId = await resolveDepartmentId(input.departmentId ?? input.department);
-  const managerId = await resolveManagerId(input.managerId ?? input.managerEmail);
+  let managerId = null;
+  if (actorRole === "MANAGER") {
+    managerId = actorUserId;
+  } else {
+    managerId = await resolveManagerId(input.managerId ?? input.managerEmail);
+  }
 
   const hashedPassword = await bcrypt.hash(password, 10);
 
@@ -479,11 +488,28 @@ export async function updateUserAssignment(req, res) {
       select: {
         id: true,
         role: true,
+        managerId: true,
       },
     });
 
     if (!existingUser) {
       return res.status(404).json({ error: "User not found" });
+    }
+
+    if (req.user.role === "MANAGER") {
+      if (existingUser.managerId !== req.user.userId) {
+        return res.status(403).json({ error: "You can only update direct reports on your team." });
+      }
+      if (typeof role === "string" && role.trim() && !["EMPLOYEE", "INTERN"].includes(role.trim())) {
+        return res.status(403).json({ error: "Managers cannot assign this role." });
+      }
+      if (Object.prototype.hasOwnProperty.call(req.body, "managerId")) {
+        const rawMgr = managerId;
+        const nextManagerId = typeof rawMgr === "string" && rawMgr.trim() ? rawMgr.trim() : null;
+        if (nextManagerId && nextManagerId !== req.user.userId) {
+          return res.status(400).json({ error: "Team members must report to you as their manager." });
+        }
+      }
     }
 
     if (existingUser.role === "SUPERADMIN" && req.user.role !== "SUPERADMIN") {
@@ -652,6 +678,19 @@ export async function updateUserProfileByLeadership(req, res) {
       return res.status(403).json({ error: "Only the CEO can edit superadmin profile details" });
     }
 
+    if (req.user.role === "MANAGER") {
+      const scopeUser = await prisma.user.findUnique({
+        where: { id: req.params.id },
+        select: { managerId: true, role: true },
+      });
+      if (!scopeUser || scopeUser.managerId !== req.user.userId) {
+        return res.status(403).json({ error: "You can only edit profiles for your direct reports." });
+      }
+      if (["SUPERADMIN", "ADMIN"].includes(scopeUser.role)) {
+        return res.status(403).json({ error: "You cannot edit this profile." });
+      }
+    }
+
     if (typeof email === "string" && email.trim()) {
       const duplicate = await prisma.user.findUnique({
         where: { email: email.trim() },
@@ -689,6 +728,65 @@ export async function updateUserProfileByLeadership(req, res) {
     });
 
     return res.json(user);
+  } catch (err) {
+    return sendSafeError(res, err, "Unable to update profile");
+  }
+}
+
+export async function deleteUser(req, res) {
+  try {
+    const id = req.params.id;
+    const actor = req.user;
+
+    if (!id) {
+      return res.status(400).json({ error: "User id is required" });
+    }
+
+    if (id === actor.userId) {
+      return res.status(400).json({ error: "You cannot delete your own account from here." });
+    }
+
+    const target = await prisma.user.findUnique({
+      where: { id },
+      select: { id: true, role: true, managerId: true },
+    });
+
+    if (!target) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    if (target.role === "SUPERADMIN" && actor.role !== "SUPERADMIN") {
+      return res.status(403).json({ error: "Only the CEO can remove a superadmin." });
+    }
+
+    if (actor.role === "ADMIN" && target.role === "SUPERADMIN") {
+      return res.status(403).json({ error: "Only the CEO can remove a superadmin." });
+    }
+
+    if (actor.role === "MANAGER") {
+      if (target.managerId !== actor.userId) {
+        return res.status(403).json({ error: "You can only delete members on your team." });
+      }
+      if (!["EMPLOYEE", "INTERN"].includes(target.role)) {
+        return res.status(403).json({ error: "You cannot delete this role." });
+      }
+    }
+
+    await prisma.$transaction(async (tx) => {
+      await tx.department.updateMany({ where: { headId: id }, data: { headId: null } });
+      await tx.project.updateMany({ where: { ownerId: id }, data: { ownerId: null } });
+      await tx.taskIssue.updateMany({ where: { resolvedById: id }, data: { resolvedById: null } });
+      await tx.user.updateMany({ where: { managerId: id }, data: { managerId: null } });
+      await tx.user.updateMany({ where: { createdById: id }, data: { createdById: null } });
+      await tx.user.delete({ where: { id } });
+    });
+
+    emitCRMEvent("org:updated", {
+      type: "user_deleted",
+      userId: id,
+    });
+
+    return res.status(204).send();
   } catch (err) {
     return sendSafeError(res, err, "Unable to delete user");
   }

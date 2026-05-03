@@ -34,7 +34,7 @@ Planitt CRM is designed for a company that needs one place to manage daily work:
 | Dashboard | Role-aware overview, KPIs, leadership analytics, employee performance, attendance insights, task progress, and Google Workspace actions. |
 | Projects | Department-linked project boards with owners, progress, task counts, and kanban-style task management. |
 | Tasks | Create, assign, edit, delete, track progress, toggle checklists, and report/respond to blockers. |
-| Employees | Create users, assign roles, connect managers, update emails, and organize employees by departments. |
+| Employees | Table directory: create users, assign roles and managers, update emails, bulk CSV (admins), delete members; managers scoped to their team. |
 | Departments | Create departments, assign heads, and structure the organization. |
 | Attendance | Check in/out, track active attendance, and calculate work hours for analytics. |
 | Chat | Department and project rooms with stored messages and real-time refresh support. |
@@ -140,9 +140,11 @@ Planitt CRM is designed for a company that needs one place to manage daily work:
 | Capability | Superadmin | Admin | Manager | Employee | Intern |
 | --- | --- | --- | --- | --- | --- |
 | View dashboard | Yes | Yes | Yes | Yes | Yes |
-| Create users | Yes | Yes | No | No | No |
+| Create users | Yes | Yes | Yes (employees & interns, own team) | No | No |
+| Delete users | Yes | Yes | Yes (employees & interns, own team) | No | No |
 | View employees | Yes | Yes | Yes | No | No |
-| Update employee assignments | Yes | Yes | Yes | No | No |
+| Update employee assignments | Yes | Yes | Yes (own team) | No | No |
+| Bulk upload employees (CSV) | Yes | Yes | No | No | No |
 | Create departments | Yes | Yes | No | No | No |
 | View departments | Yes | Yes | Yes | No | No |
 | Create projects | Yes | Yes | Yes | No | No |
@@ -187,8 +189,9 @@ Planitt CRM is designed for a company that needs one place to manage daily work:
 
 ### 5. Employees & Departments
 
-- Admins create employees and interns.
-- Leadership assigns department, role, designation, and manager.
+- Superadmins and admins manage the full directory (create, update, delete, bulk CSV).
+- Managers create, update, and delete **employees and interns on their team** (direct reports); bulk CSV remains admin-only.
+- Leadership assigns department, role, designation, and manager where permitted by role.
 - Departments organize projects, employees, analytics, and chat rooms.
 
 ### 6. Attendance
@@ -370,10 +373,12 @@ All API routes are mounted under `/api`.
 | GET | `/users/me` | Get the current user profile. |
 | PUT | `/users/me/profile` | Update own profile fields. |
 | GET | `/users` | List users for leadership roles. |
-| POST | `/users` | Create user. |
+| POST | `/users` | Create user (superadmin, admin, or manager with team scope). |
+| POST | `/users/bulk-upload` | Bulk-create from CSV (superadmin, admin only). |
 | GET | `/users/:id/analytics` | Get analytics for one user. |
 | PUT | `/users/:id/profile` | Leadership email/profile update. |
 | PUT | `/users/:id/assignment` | Update role, manager, department, and designation. |
+| DELETE | `/users/:id` | Remove user (scoped for managers; clears department head / project owner links first). |
 
 ### Departments
 
