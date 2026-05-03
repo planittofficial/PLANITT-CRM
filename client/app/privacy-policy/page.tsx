@@ -156,7 +156,7 @@ export default function PrivacyPolicyPage() {
           8. Your Rights Under the DPDP Act, 2023
         </h2>
         <p>
-          As a Data Principal, you have the following rights, exercisable by contacting us at privacy@planitt.in:
+          As a Data Principal, you have the following rights, exercisable by contacting us at planitt.official@gmail.com:
         </p>
         <ul className="list-disc space-y-2 pl-6 marker:text-[var(--text-soft)]">
           <li>Right to Access — Obtain a summary of the personal data we hold about you.</li>
@@ -229,7 +229,7 @@ export default function PrivacyPolicyPage() {
         </h2>
         <p>In accordance with the IT Act, 2000 and DPDP Act, 2023, we have designated a Grievance Officer:</p>
         <p>Name: [Grievance Officer Name]</p>
-        <p>Email: privacy@planitt.in</p>
+        <p>Email: planitt.official@gmail.com</p>
         <p>Address: S2, Renuka sai mandir,Gorewada Road 440013, India</p>
         <p>
           You may submit your grievance in writing; we will acknowledge it within 48 hours and resolve it within 30 days.

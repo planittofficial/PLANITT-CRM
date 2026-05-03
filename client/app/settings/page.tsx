@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { CRMShell } from "@/components/layout/crm-shell";
 import { StatePanel } from "@/components/shared/state-panel";
 import { renderSessionGate } from "@/components/shared/session-gate";
@@ -14,6 +15,7 @@ export default function SettingsPage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
+  const [settingsTab, setSettingsTab] = useState<"profile" | "legal">("profile");
   const [form, setForm] = useState({
     name: "",
     designation: "",
@@ -101,6 +103,86 @@ export default function SettingsPage() {
   return (
     <CRMShell user={user}>
       <div className="space-y-4">
+        <div
+          className="inline-flex rounded-2xl border p-1"
+          style={{ borderColor: "var(--border)", background: "var(--surface-soft)" }}
+          role="tablist"
+          aria-label="Settings sections"
+        >
+          <button
+            type="button"
+            role="tab"
+            aria-selected={settingsTab === "profile"}
+            onClick={() => setSettingsTab("profile")}
+            className="rounded-xl px-4 py-2 text-sm font-semibold transition sm:px-5"
+            style={
+              settingsTab === "profile"
+                ? { background: "var(--surface-strong)", color: "var(--text-main)", boxShadow: "var(--shadow-card)" }
+                : { color: "var(--text-soft)" }
+            }
+          >
+            Profile
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={settingsTab === "legal"}
+            onClick={() => setSettingsTab("legal")}
+            className="rounded-xl px-4 py-2 text-sm font-semibold transition sm:px-5"
+            style={
+              settingsTab === "legal"
+                ? { background: "var(--surface-strong)", color: "var(--text-main)", boxShadow: "var(--shadow-card)" }
+                : { color: "var(--text-soft)" }
+            }
+          >
+            Legal
+          </button>
+        </div>
+
+        {settingsTab === "legal" ? (
+          <section
+            className="rounded-[20px] border px-5 py-5"
+            style={{
+              background: "var(--surface)",
+              borderColor: "var(--border)",
+              boxShadow: "var(--shadow-soft)",
+            }}
+          >
+            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[var(--text-faint)]">
+              Legal &amp; policies
+            </p>
+            <h1 className="mt-2 text-3xl font-semibold text-[var(--text-main)]">Privacy &amp; terms</h1>
+            <p className="mt-2 max-w-2xl text-sm text-[var(--text-soft)]">
+              Review how we handle your data and the rules for using Planitt CRM. These documents open in full on separate
+              pages.
+            </p>
+            <div className="mt-6 grid gap-4 sm:grid-cols-2">
+              <Link
+                href="/privacy-policy"
+                className="rounded-2xl border px-5 py-5 transition hover:border-[var(--accent)]"
+                style={{ borderColor: "var(--border)", background: "var(--surface-soft)" }}
+              >
+                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--text-faint)]">Privacy</p>
+                <p className="mt-2 text-lg font-semibold text-[var(--text-main)]">Privacy Policy</p>
+                <p className="mt-2 text-sm text-[var(--text-soft)]">Data collection, use, retention, and your rights.</p>
+                <p className="mt-4 text-sm font-semibold text-[var(--accent)]">Read document →</p>
+              </Link>
+              <Link
+                href="/terms-of-service"
+                className="rounded-2xl border px-5 py-5 transition hover:border-[var(--accent)]"
+                style={{ borderColor: "var(--border)", background: "var(--surface-soft)" }}
+              >
+                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--text-faint)]">Terms</p>
+                <p className="mt-2 text-lg font-semibold text-[var(--text-main)]">Terms of Service</p>
+                <p className="mt-2 text-sm text-[var(--text-soft)]">Acceptable use, billing, liability, and disputes.</p>
+                <p className="mt-4 text-sm font-semibold text-[var(--accent)]">Read document →</p>
+              </Link>
+            </div>
+          </section>
+        ) : null}
+
+        {settingsTab === "profile" ? (
+          <>
         <section
           className="rounded-[20px] border px-5 py-5"
           style={{
@@ -217,6 +299,8 @@ export default function SettingsPage() {
             {saving ? "Saving..." : "Save profile"}
           </button>
         </section>
+          </>
+        ) : null}
       </div>
     </CRMShell>
   );

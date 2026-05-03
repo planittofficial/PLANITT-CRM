@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { setToken } from "@/lib/auth";
 import { resolveApiBaseUrl } from "@/lib/api";
@@ -239,6 +240,28 @@ export default function LoginPage() {
           >
             {googleLoading ? "Redirecting to Google..." : "Login with Google"}
           </button>
+
+          <nav
+            className="mt-8 flex flex-wrap items-center justify-center gap-x-5 gap-y-2 border-t pt-6 text-sm"
+            style={{ borderColor: "var(--border)" }}
+            aria-label="Legal"
+          >
+            <Link
+              href="/privacy-policy"
+              className="font-medium text-[var(--text-soft)] underline-offset-4 transition hover:text-[var(--accent)] hover:underline"
+            >
+              Privacy Policy
+            </Link>
+            <span className="text-[var(--text-faint)]" aria-hidden>
+              ·
+            </span>
+            <Link
+              href="/terms-of-service"
+              className="font-medium text-[var(--text-soft)] underline-offset-4 transition hover:text-[var(--accent)] hover:underline"
+            >
+              Terms of Service
+            </Link>
+          </nav>
         </section>
       </div>
     </div>

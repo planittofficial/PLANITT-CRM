@@ -68,7 +68,7 @@ export default function TermsOfServicePage() {
         <ul className="list-disc space-y-2 pl-6 marker:text-[var(--text-soft)]">
           <li>Provide accurate, current, and complete information during registration.</li>
           <li>Maintain the confidentiality of your credentials and not share them with any third party.</li>
-          <li>Immediately notify us at privacy@planitt.in of any unauthorised use of your account.</li>
+          <li>Immediately notify us at planitt.official@gmail.com of any unauthorised use of your account.</li>
           <li>Accept responsibility for all activities that occur under your account.</li>
         </ul>
         <p>
@@ -283,7 +283,7 @@ export default function TermsOfServicePage() {
         </h2>
         <p>For questions, complaints, or legal notices, please contact:</p>
         <p>PLANITT SOLUTIONS PVT LTD</p>
-        <p>Email: privacy@planitt.in</p>
+        <p>Email: planitt.official@gmail.com</p>
         <p>Address: S2, Renuka sai mandir,Gorewada Road 440013, India</p>
         <p>© 2026 PLANITT SOLUTIONS PVT LTD . All rights reserved. Jurisdiction: India.</p>
       </section>
