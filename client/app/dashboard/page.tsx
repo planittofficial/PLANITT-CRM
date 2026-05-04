@@ -935,7 +935,7 @@ function TeamAnalyticsPanel({
             }}
           >
             <div
-              className="min-h-0 flex-1 space-y-2 overflow-y-auto overscroll-contain pr-0.5"
+              className="max-h-[min(58vh,620px)] min-h-0 flex-1 space-y-2 overflow-y-auto overscroll-contain pr-0.5"
               style={{ scrollbarGutter: "stable" }}
             >
               {members.map((member) => (
