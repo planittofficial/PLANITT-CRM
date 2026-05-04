@@ -1,6 +1,6 @@
 import { Server } from "socket.io";
 import jwt from "jsonwebtoken";
-import { getJwtSecret } from "./config/security.js";
+import { getAllowedCorsOrigins, getJwtSecret, isCorsOriginAllowed } from "./config/security.js";
 import { getAuthCookieName } from "./utils/auth-cookie.js";
 
 let ioInstance = null;
@@ -38,14 +38,17 @@ function getAuthToken(socket) {
 }
 
 export function initSocket(server) {
-  const allowedOrigins = (process.env.CORS_ORIGINS ?? "")
-    .split(",")
-    .map((origin) => origin.trim())
-    .filter(Boolean);
+  const allowedOrigins = getAllowedCorsOrigins();
 
   ioInstance = new Server(server, {
     cors: {
-      origin: allowedOrigins.length ? allowedOrigins : true,
+      origin(origin, callback) {
+        if (isCorsOriginAllowed(origin, allowedOrigins)) {
+          callback(null, true);
+          return;
+        }
+        callback(new Error("Not allowed by CORS"));
+      },
       credentials: true,
     },
   });
