@@ -31,8 +31,6 @@ import type {
 
 type WorkspaceActionLoading = "" | "meet" | "sheets" | "drive";
 const TEAM_ANALYTICS_PRELOAD_LIMIT = 8;
-const TEAM_DIRECTORY_INITIAL_VISIBLE = 5;
-const TEAM_DIRECTORY_LOAD_MORE_STEP = 5;
 
 function Surface({
   children,
@@ -877,9 +875,6 @@ function TeamMemberCard({
 
 function TeamAnalyticsPanel({
   members,
-  totalInDirectory,
-  canLoadMore,
-  onLoadMore,
   selectedMemberId,
   selectedAnalytics,
   analyticsLoading,
@@ -888,9 +883,6 @@ function TeamAnalyticsPanel({
   onSelect,
 }: {
   members: CRMUser[];
-  totalInDirectory: number;
-  canLoadMore: boolean;
-  onLoadMore?: () => void;
   selectedMemberId: string;
   selectedAnalytics: UserAnalyticsSummary | null;
   analyticsLoading: boolean;
@@ -899,8 +891,8 @@ function TeamAnalyticsPanel({
   onSelect: (memberId: string) => void;
 }) {
   return (
-    <div className="grid items-start gap-4 lg:grid-cols-[minmax(280px,0.42fr)_1fr] xl:grid-cols-[minmax(300px,0.4fr)_1fr]">
-      <Surface className="h-fit w-full min-w-0 self-start overflow-hidden p-0">
+    <div className="grid min-h-[min(62vh,780px)] items-stretch gap-4 lg:grid-cols-[minmax(280px,0.42fr)_1fr] xl:grid-cols-[minmax(300px,0.4fr)_1fr]">
+      <Surface className="flex h-full min-h-0 min-w-0 flex-col overflow-hidden p-0">
         <div
           className="border-b px-5 py-4"
           style={{
@@ -918,7 +910,7 @@ function TeamAnalyticsPanel({
                 {directoryTitle}
               </h2>
               <p className="mt-1 max-w-md text-xs leading-relaxed text-[var(--text-soft)]">
-                Tap a row to open analytics. Search and role filters apply to the full directory.
+                Tap a row to open analytics. Scroll the list for everyone; search and role filters narrow the roster.
               </p>
             </div>
             <span
@@ -929,21 +921,21 @@ function TeamAnalyticsPanel({
                 color: "var(--text-main)",
               }}
             >
-              {members.length} / {totalInDirectory}
+              {members.length} {members.length === 1 ? "member" : "members"}
             </span>
           </div>
         </div>
 
-        <div className="p-3 sm:p-4">
+        <div className="flex min-h-0 flex-1 flex-col p-3 sm:p-4">
           <div
-            className="rounded-2xl border p-2 sm:p-2.5"
+            className="flex min-h-0 flex-1 flex-col rounded-2xl border p-2 sm:p-2.5"
             style={{
               borderColor: "var(--border)",
               background: "color-mix(in srgb, var(--surface-soft) 65%, var(--surface))",
             }}
           >
             <div
-              className="max-h-[min(52vh,520px)] min-h-0 space-y-2 overflow-y-auto overscroll-contain pr-0.5"
+              className="min-h-0 flex-1 space-y-2 overflow-y-auto overscroll-contain pr-0.5"
               style={{ scrollbarGutter: "stable" }}
             >
               {members.map((member) => (
@@ -956,36 +948,17 @@ function TeamAnalyticsPanel({
               ))}
             </div>
           </div>
-
-          {canLoadMore && onLoadMore ? (
-            <div className="mt-3 sm:mt-4">
-              <button
-                type="button"
-                onClick={() => onLoadMore()}
-                className="w-full rounded-full border px-5 py-3 text-sm font-semibold transition hover:opacity-95"
-                style={{
-                  borderColor: "var(--border)",
-                  background: "var(--surface-soft)",
-                  color: "var(--text-main)",
-                  boxShadow: "0 1px 0 color-mix(in srgb, var(--border) 45%, transparent)",
-                }}
-              >
-                Load more
-                <span className="ml-1.5 tabular-nums font-medium text-[var(--text-soft)]">
-                  ({Math.max(0, totalInDirectory - members.length)} left)
-                </span>
-              </button>
-            </div>
-          ) : null}
         </div>
       </Surface>
 
-      <div className="min-w-0 space-y-4">
+      <div className="flex min-h-0 min-w-0 flex-col gap-4 lg:h-full">
         {analyticsLoading || !selectedAnalytics ? (
-          <StatePanel
-            title="Loading team analytics"
-            description="Preparing attendance, progress, and work-hour charts for the selected member."
-          />
+          <div className="flex min-h-0 flex-1 flex-col justify-center">
+            <StatePanel
+              title="Loading team analytics"
+              description="Preparing attendance, progress, and work-hour charts for the selected member."
+            />
+          </div>
         ) : (
           <>
             <Surface className="overflow-hidden p-0">
@@ -1870,7 +1843,6 @@ export default function DashboardPage() {
   const [summary, setSummary] = useState<DashboardSummary | null>(null);
   const [teamMembers, setTeamMembers] = useState<CRMUser[]>([]);
   const [teamDirectoryRoleFilter, setTeamDirectoryRoleFilter] = useState<MemberRoleFilter>("ALL");
-  const [teamDirectoryVisibleCount, setTeamDirectoryVisibleCount] = useState(TEAM_DIRECTORY_INITIAL_VISIBLE);
   const [selectedMemberId, setSelectedMemberId] = useState("");
   const [selectedAnalytics, setSelectedAnalytics] = useState<UserAnalyticsSummary | null>(null);
   const [teamAnalyticsList, setTeamAnalyticsList] = useState<UserAnalyticsSummary[]>([]);
@@ -1901,15 +1873,6 @@ export default function DashboardPage() {
     [teamMembers, globalSearch, teamDirectoryRoleFilter]
   );
 
-  const teamDirectoryVisibleMembers = useMemo(
-    () => filteredTeamMembers.slice(0, teamDirectoryVisibleCount),
-    [filteredTeamMembers, teamDirectoryVisibleCount]
-  );
-
-  useEffect(() => {
-    setTeamDirectoryVisibleCount(TEAM_DIRECTORY_INITIAL_VISIBLE);
-  }, [globalSearch, teamDirectoryRoleFilter]);
-
   useEffect(() => {
     if (!leadershipView) {
       return;
@@ -1921,17 +1884,6 @@ export default function DashboardPage() {
       return filteredTeamMembers[0]?.id ?? "";
     });
   }, [leadershipView, filteredTeamMembers]);
-
-  useEffect(() => {
-    if (!selectedMemberId || !filteredTeamMembers.length) {
-      return;
-    }
-    const index = filteredTeamMembers.findIndex((member) => member.id === selectedMemberId);
-    if (index === -1) {
-      return;
-    }
-    setTeamDirectoryVisibleCount((current) => (index < current ? current : index + 1));
-  }, [selectedMemberId, filteredTeamMembers]);
 
   useEffect(() => {
     if (typeof window === "undefined") {
@@ -2705,17 +2657,7 @@ export default function DashboardPage() {
                     />
                   ) : (
                     <TeamAnalyticsPanel
-                      members={teamDirectoryVisibleMembers}
-                      totalInDirectory={filteredTeamMembers.length}
-                      canLoadMore={teamDirectoryVisibleCount < filteredTeamMembers.length}
-                      onLoadMore={() =>
-                        setTeamDirectoryVisibleCount((count) =>
-                          Math.min(
-                            count + TEAM_DIRECTORY_LOAD_MORE_STEP,
-                            filteredTeamMembers.length
-                          )
-                        )
-                      }
+                      members={filteredTeamMembers}
                       selectedMemberId={selectedMemberId}
                       selectedAnalytics={selectedAnalytics}
                       analyticsLoading={analyticsLoading}
