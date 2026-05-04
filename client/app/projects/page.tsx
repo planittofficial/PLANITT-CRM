@@ -9,7 +9,12 @@ import { useRealtimeRefresh } from "@/hooks/use-realtime-refresh";
 import { useSession } from "@/hooks/use-session";
 import { apiDelete, apiGet, apiPost, apiPut } from "@/lib/api";
 import { getTaskAssignableRoles } from "@/lib/dashboard";
-import type { CRMUser, Department, Project, Task } from "@/types/crm";
+import {
+  TASK_PRIORITY_OPTIONS,
+  groupTasksByAssignees,
+  priorityBadgeClass,
+} from "@/lib/task-groups";
+import type { CRMUser, Department, Project, Task, TaskPriority } from "@/types/crm";
 type PaginatedResponse<T> = { items: T[]; total: number; hasMore: boolean; nextOffset: number };
 
 const columns: Array<{ key: Task["status"]; label: string; tone: string }> = [
@@ -62,12 +67,14 @@ export default function ProjectsPage() {
     description: "",
     userIds: [] as string[],
     checklistText: "",
+    priority: "MEDIUM" as TaskPriority,
   });
   const [editTaskForm, setEditTaskForm] = useState({
     title: "",
     description: "",
     userIds: [] as string[],
     checklistText: "",
+    priority: "MEDIUM" as TaskPriority,
   });
   const [projectAssignQuery, setProjectAssignQuery] = useState("");
   const [projectAssignRole, setProjectAssignRole] = useState<MemberRoleFilter>("ALL");
@@ -223,6 +230,7 @@ export default function ProjectsPage() {
         description: taskForm.description,
         userIds: taskForm.userIds,
         projectId: selectedProjectId,
+        priority: taskForm.priority,
         checklistItems: taskForm.checklistText
           .split("\n")
           .map((item) => item.trim())
@@ -233,6 +241,7 @@ export default function ProjectsPage() {
         description: "",
         userIds: [],
         checklistText: "",
+        priority: "MEDIUM",
       });
       setNotice("Task added to project.");
       await loadProjectTasks(selectedProjectId);
@@ -256,6 +265,18 @@ export default function ProjectsPage() {
     }
   };
 
+  const updateTaskPriority = async (taskId: string, priority: TaskPriority) => {
+    try {
+      await apiPut(`/tasks/${taskId}`, { priority });
+      if (selectedProjectId) {
+        await loadProjectTasks(selectedProjectId);
+      }
+      await loadProjects(false);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to update priority");
+    }
+  };
+
   const openTaskEditor = (task: Task) => {
     setEditingTaskId(task.id);
     setEditTaskForm({
@@ -263,6 +284,7 @@ export default function ProjectsPage() {
       description: task.description ?? "",
       userIds: task.assignments.map((assignment) => assignment.userId),
       checklistText: task.checklistItems.map((item) => item.title).join("\n"),
+      priority: task.priority ?? "MEDIUM",
     });
   };
 
@@ -287,6 +309,7 @@ export default function ProjectsPage() {
         title: editTaskForm.title,
         description: editTaskForm.description,
         userIds: editTaskForm.userIds,
+        priority: editTaskForm.priority,
         checklistItems: editTaskForm.checklistText
           .split("\n")
           .map((item) => item.trim())
@@ -588,6 +611,26 @@ export default function ProjectsPage() {
                       setTaskForm((current) => ({ ...current, description: event.target.value }))
                     }
                   />
+                  <label className="grid gap-2">
+                    <span className="text-sm font-medium text-[var(--text-main)]">Priority</span>
+                    <select
+                      className="h-12 rounded-2xl border px-4 text-sm outline-none"
+                      style={fieldStyle}
+                      value={taskForm.priority}
+                      onChange={(event) =>
+                        setTaskForm((current) => ({
+                          ...current,
+                          priority: event.target.value as TaskPriority,
+                        }))
+                      }
+                    >
+                      {TASK_PRIORITY_OPTIONS.map((opt) => (
+                        <option key={opt.value} value={opt.value}>
+                          {opt.label}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
                   <textarea
                     className="min-h-28 rounded-2xl border px-4 py-3 outline-none"
                     style={fieldStyle}
@@ -679,56 +722,100 @@ export default function ProjectsPage() {
                 </div>
 
                 <div className="mt-5 space-y-4">
-                  {groupedTasks[column.key].map((task) => {
-                    const completedChecklist = task.checklistItems.filter((item) => item.completed).length;
-                    return (
-                      <article
-                        key={task.id}
-                        className="rounded-[18px] border p-4"
-                        style={{ borderColor: "var(--border)", background: "var(--surface-soft)" }}
-                      >
-                        <div className="flex items-start justify-between gap-3">
-                          <div>
-                            <h4 className="text-lg font-semibold text-[var(--text-main)]">{task.title}</h4>
-                            <p className="mt-1 text-sm text-[var(--text-soft)]">
-                              {task.description || "No description"}
-                            </p>
-                          </div>
-                          <div className="flex flex-col items-end gap-2">
-                            <div className="flex gap-2">
-                              <button
-                                type="button"
-                                onClick={() => openTaskEditor(task)}
-                                className="rounded-full border px-3 py-1 text-xs font-semibold"
-                                style={{ borderColor: "var(--border)", color: "var(--text-soft)" }}
-                              >
-                                Edit
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => void deleteTask(task.id)}
-                                className="rounded-full border px-3 py-1 text-xs font-semibold text-rose-600"
-                                style={{ borderColor: "var(--border)" }}
-                              >
-                                Delete
-                              </button>
-                            </div>
-                            <select
-                              value={task.status}
-                              onChange={(event) =>
-                                void updateTaskStatus(task.id, event.target.value as Task["status"])
-                              }
-                              className="rounded-xl border px-3 py-2 text-xs font-semibold"
-                              style={{ borderColor: "var(--border)", background: "var(--surface)", color: "var(--text-main)" }}
+                  {groupTasksByAssignees(groupedTasks[column.key]).map((assigneeGroup) => (
+                    <div
+                      key={assigneeGroup.key}
+                      className="rounded-[18px] border p-3"
+                      style={{ borderColor: "var(--border)", background: "color-mix(in srgb, var(--surface-soft) 92%, var(--border))" }}
+                    >
+                      <p className="mb-3 border-b pb-2 text-xs font-semibold uppercase tracking-wide text-[var(--text-soft)]" style={{ borderColor: "var(--border)" }}>
+                        {assigneeGroup.label}
+                        <span className="ml-2 font-normal normal-case text-[var(--text-faint)]">
+                          ({assigneeGroup.tasks.length} task{assigneeGroup.tasks.length === 1 ? "" : "s"})
+                        </span>
+                      </p>
+                      <div className="space-y-3">
+                        {assigneeGroup.tasks.map((task) => {
+                          const completedChecklist = task.checklistItems.filter((item) => item.completed).length;
+                          return (
+                            <article
+                              key={task.id}
+                              className="rounded-[14px] border p-4"
+                              style={{ borderColor: "var(--border)", background: "var(--surface-soft)" }}
                             >
-                              {columns.map((option) => (
-                                <option key={option.key} value={option.key}>
-                                  {option.label}
-                                </option>
-                              ))}
-                            </select>
-                          </div>
-                        </div>
+                              <div className="flex items-start justify-between gap-3">
+                                <div className="min-w-0">
+                                  <div className="flex flex-wrap items-center gap-2">
+                                    <h4 className="text-lg font-semibold text-[var(--text-main)]">{task.title}</h4>
+                                    <span
+                                      className={`rounded-md px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide ${priorityBadgeClass[task.priority ?? "MEDIUM"]}`}
+                                    >
+                                      {TASK_PRIORITY_OPTIONS.find((o) => o.value === (task.priority ?? "MEDIUM"))
+                                        ?.label ?? "Medium"}
+                                    </span>
+                                  </div>
+                                  <p className="mt-1 text-sm text-[var(--text-soft)]">
+                                    {task.description || "No description"}
+                                  </p>
+                                </div>
+                                <div className="flex shrink-0 flex-col items-end gap-2">
+                                  <div className="flex gap-2">
+                                    <button
+                                      type="button"
+                                      onClick={() => openTaskEditor(task)}
+                                      className="rounded-full border px-3 py-1 text-xs font-semibold"
+                                      style={{ borderColor: "var(--border)", color: "var(--text-soft)" }}
+                                    >
+                                      Edit
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => void deleteTask(task.id)}
+                                      className="rounded-full border px-3 py-1 text-xs font-semibold text-rose-600"
+                                      style={{ borderColor: "var(--border)" }}
+                                    >
+                                      Delete
+                                    </button>
+                                  </div>
+                                  <select
+                                    value={task.priority ?? "MEDIUM"}
+                                    onChange={(event) =>
+                                      void updateTaskPriority(task.id, event.target.value as TaskPriority)
+                                    }
+                                    className="rounded-xl border px-2 py-1.5 text-[11px] font-semibold"
+                                    style={{
+                                      borderColor: "var(--border)",
+                                      background: "var(--surface)",
+                                      color: "var(--text-main)",
+                                    }}
+                                    title="Priority"
+                                  >
+                                    {TASK_PRIORITY_OPTIONS.map((opt) => (
+                                      <option key={opt.value} value={opt.value}>
+                                        {opt.label}
+                                      </option>
+                                    ))}
+                                  </select>
+                                  <select
+                                    value={task.status}
+                                    onChange={(event) =>
+                                      void updateTaskStatus(task.id, event.target.value as Task["status"])
+                                    }
+                                    className="rounded-xl border px-3 py-2 text-xs font-semibold"
+                                    style={{
+                                      borderColor: "var(--border)",
+                                      background: "var(--surface)",
+                                      color: "var(--text-main)",
+                                    }}
+                                  >
+                                    {columns.map((option) => (
+                                      <option key={option.key} value={option.key}>
+                                        {option.label}
+                                      </option>
+                                    ))}
+                                  </select>
+                                </div>
+                              </div>
 
                         {editingTaskId === task.id ? (
                           <div
@@ -751,6 +838,26 @@ export default function ProjectsPage() {
                                 setEditTaskForm((current) => ({ ...current, description: event.target.value }))
                               }
                             />
+                            <label className="grid gap-1.5">
+                              <span className="text-xs font-semibold text-[var(--text-soft)]">Priority</span>
+                              <select
+                                className="h-11 rounded-2xl border px-3 text-sm outline-none"
+                                style={fieldStyle}
+                                value={editTaskForm.priority}
+                                onChange={(event) =>
+                                  setEditTaskForm((current) => ({
+                                    ...current,
+                                    priority: event.target.value as TaskPriority,
+                                  }))
+                                }
+                              >
+                                {TASK_PRIORITY_OPTIONS.map((opt) => (
+                                  <option key={opt.value} value={opt.value}>
+                                    {opt.label}
+                                  </option>
+                                ))}
+                              </select>
+                            </label>
                             <textarea
                               className="min-h-24 rounded-2xl border px-3 py-3 text-sm outline-none"
                               style={fieldStyle}
@@ -835,9 +942,12 @@ export default function ProjectsPage() {
                             </span>
                           ))}
                         </div>
-                      </article>
-                    );
-                  })}
+                            </article>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ))}
 
                   {!groupedTasks[column.key].length ? (
                     <div

@@ -4,7 +4,12 @@ import { useEffect, useMemo, useState } from "react";
 import { MemberPickerToolbar, filterMembersForPicker, sortedUniqueRoles, type MemberRoleFilter } from "@/components/shared/member-picker-toolbar";
 import { apiDelete, apiPost, apiPut } from "@/lib/api";
 import { getTaskAssignableRoles } from "@/lib/dashboard";
-import type { CRMUser, Task } from "@/types/crm";
+import {
+  TASK_PRIORITY_OPTIONS,
+  groupTasksByAssignees,
+  priorityBadgeClass,
+} from "@/lib/task-groups";
+import type { CRMUser, Task, TaskPriority } from "@/types/crm";
 
 type TaskListProps = {
   tasks: Task[];
@@ -38,7 +43,10 @@ export function TaskList({
   const [responseDrafts, setResponseDrafts] = useState<Record<string, string>>({});
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
   const [editForms, setEditForms] = useState<
-    Record<string, { title: string; description: string; userIds: string[]; checklistText: string }>
+    Record<
+      string,
+      { title: string; description: string; userIds: string[]; checklistText: string; priority: TaskPriority }
+    >
   >({});
   const [issuePanelTaskId, setIssuePanelTaskId] = useState<string | null>(null);
   const [checklistPanelTaskId, setChecklistPanelTaskId] = useState<string | null>(null);
@@ -106,6 +114,8 @@ export function TaskList({
     [team, assigneePickQuery, assigneePickRole, assignableRoles]
   );
 
+  const taskGroups = useMemo(() => groupTasksByAssignees(tasks), [tasks]);
+
   const openEditTask = (task: Task) => {
     setEditingTaskId(task.id);
     setEditForms((current) => ({
@@ -115,6 +125,7 @@ export function TaskList({
         description: task.description ?? "",
         userIds: task.assignments.map((assignment) => assignment.userId),
         checklistText: task.checklistItems.map((item) => item.title).join("\n"),
+        priority: task.priority ?? "MEDIUM",
       },
     }));
   };
@@ -129,7 +140,7 @@ export function TaskList({
 
   const handleTaskUpdate = async (
     taskId: string,
-    payload: Partial<Pick<Task, "status" | "progress">>
+    payload: Partial<Pick<Task, "status" | "progress" | "priority">>
   ) => {
     try {
       setSavingId(taskId);
@@ -221,6 +232,7 @@ export function TaskList({
         title: form.title,
         description: form.description,
         userIds: form.userIds,
+        priority: form.priority,
         checklistItems: form.checklistText
           .split("\n")
           .map((item) => item.trim())
@@ -252,49 +264,99 @@ export function TaskList({
   };
 
   return (
-    <div className="space-y-3">
-      {tasks.map((task) => (
-        <article
-          key={task.id}
-          className="rounded-lg border p-4"
+    <div className="space-y-4">
+      {taskGroups.map((group) => (
+        <section
+          key={group.key}
+          className="rounded-xl border p-4"
           style={{
             background: "var(--surface)",
             borderColor: "var(--border)",
-            boxShadow: "var(--shadow-card)",
+            boxShadow: "var(--shadow-soft)",
           }}
         >
+          <div
+            className="mb-3 flex flex-wrap items-center justify-between gap-2 border-b pb-3"
+            style={{ borderColor: "var(--border)" }}
+          >
+            <p className="text-sm font-semibold text-[var(--text-main)]">{group.label}</p>
+            <p className="text-xs text-[var(--text-soft)]">
+              {group.tasks.length} task{group.tasks.length === 1 ? "" : "s"}
+            </p>
+          </div>
           <div className="space-y-3">
-            <div className="flex flex-wrap items-start justify-between gap-3">
-              <div className="min-w-0 flex-1">
-                <div className="flex flex-wrap items-center gap-2">
-                  <h3 className="truncate text-base font-semibold text-[var(--text-main)]">{task.title}</h3>
-                  <span className={`rounded-md px-2.5 py-1 text-[11px] font-bold ${statusStyles[task.status]}`}>
-                    {task.status.replace("_", " ")}
-                  </span>
-                  {canManageTask(task) && !task.checklistItems.length ? (
-                    <select
-                      value={task.status}
-                      disabled={savingId === task.id}
-                      onChange={(event) =>
-                        void handleTaskUpdate(task.id, {
-                          status: event.target.value as Task["status"],
-                        })
-                      }
-                      className="rounded-md border px-2 py-1 text-xs outline-none"
-                      style={{
-                        borderColor: "var(--border)",
-                        background: "var(--surface-soft)",
-                        color: "var(--text-main)",
-                      }}
-                    >
-                      {statuses.map((status) => (
-                        <option key={status} value={status}>
-                          {status.replace("_", " ")}
-                        </option>
-                      ))}
-                    </select>
-                  ) : null}
-                </div>
+            {group.tasks.map((task) => (
+              <article
+                key={task.id}
+                className="rounded-lg border p-4"
+                style={{
+                  background: "var(--surface-soft)",
+                  borderColor: "var(--border)",
+                  boxShadow: "var(--shadow-card)",
+                }}
+              >
+                <div className="space-y-3">
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <h3 className="truncate text-base font-semibold text-[var(--text-main)]">{task.title}</h3>
+                        <span
+                          className={`rounded-md px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide ${priorityBadgeClass[task.priority ?? "MEDIUM"]}`}
+                        >
+                          {TASK_PRIORITY_OPTIONS.find((o) => o.value === (task.priority ?? "MEDIUM"))?.label ??
+                            "Medium"}
+                        </span>
+                        <span className={`rounded-md px-2.5 py-1 text-[11px] font-bold ${statusStyles[task.status]}`}>
+                          {task.status.replace("_", " ")}
+                        </span>
+                        {canManageTask(task) ? (
+                          <select
+                            value={task.priority ?? "MEDIUM"}
+                            disabled={savingId === task.id}
+                            onChange={(event) =>
+                              void handleTaskUpdate(task.id, {
+                                priority: event.target.value as TaskPriority,
+                              })
+                            }
+                            className="rounded-md border px-2 py-1 text-xs outline-none"
+                            style={{
+                              borderColor: "var(--border)",
+                              background: "var(--surface)",
+                              color: "var(--text-main)",
+                            }}
+                            title="Priority"
+                          >
+                            {TASK_PRIORITY_OPTIONS.map((opt) => (
+                              <option key={opt.value} value={opt.value}>
+                                {opt.label}
+                              </option>
+                            ))}
+                          </select>
+                        ) : null}
+                        {canManageTask(task) && !task.checklistItems.length ? (
+                          <select
+                            value={task.status}
+                            disabled={savingId === task.id}
+                            onChange={(event) =>
+                              void handleTaskUpdate(task.id, {
+                                status: event.target.value as Task["status"],
+                              })
+                            }
+                            className="rounded-md border px-2 py-1 text-xs outline-none"
+                            style={{
+                              borderColor: "var(--border)",
+                              background: "var(--surface)",
+                              color: "var(--text-main)",
+                            }}
+                          >
+                            {statuses.map((status) => (
+                              <option key={status} value={status}>
+                                {status.replace("_", " ")}
+                              </option>
+                            ))}
+                          </select>
+                        ) : null}
+                      </div>
                 <p className="mt-1 text-sm text-[var(--text-soft)]">{task.description || "No description"}</p>
               </div>
 
@@ -417,7 +479,13 @@ export function TaskList({
                   setEditForms((current) => ({
                     ...current,
                     [task.id]: {
-                      ...(current[task.id] ?? { title: "", description: "", userIds: [], checklistText: "" }),
+                      ...(current[task.id] ?? {
+                        title: "",
+                        description: "",
+                        userIds: [],
+                        checklistText: "",
+                        priority: "MEDIUM" as TaskPriority,
+                      }),
                       title: event.target.value,
                     },
                   }))
@@ -431,12 +499,49 @@ export function TaskList({
                   setEditForms((current) => ({
                     ...current,
                     [task.id]: {
-                      ...(current[task.id] ?? { title: "", description: "", userIds: [], checklistText: "" }),
+                      ...(current[task.id] ?? {
+                        title: "",
+                        description: "",
+                        userIds: [],
+                        checklistText: "",
+                        priority: "MEDIUM" as TaskPriority,
+                      }),
                       description: event.target.value,
                     },
                   }))
                 }
               />
+              {canEditTask ? (
+                <label className="grid gap-1.5">
+                  <span className="text-xs font-semibold text-[var(--text-soft)]">Priority</span>
+                  <select
+                    className="h-11 rounded-md border px-3 text-sm outline-none"
+                    style={{ borderColor: "var(--border)", background: "var(--surface)", color: "var(--text-main)" }}
+                    value={editForms[task.id]?.priority ?? "MEDIUM"}
+                    onChange={(event) =>
+                      setEditForms((current) => ({
+                        ...current,
+                        [task.id]: {
+                          ...(current[task.id] ?? {
+                            title: "",
+                            description: "",
+                            userIds: [],
+                            checklistText: "",
+                            priority: "MEDIUM" as TaskPriority,
+                          }),
+                          priority: event.target.value as TaskPriority,
+                        },
+                      }))
+                    }
+                  >
+                    {TASK_PRIORITY_OPTIONS.map((opt) => (
+                      <option key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              ) : null}
               <textarea
                 className="min-h-24 rounded-md border px-3 py-3 text-sm outline-none"
                 style={{ borderColor: "var(--border)", background: "var(--surface)", color: "var(--text-main)" }}
@@ -446,7 +551,13 @@ export function TaskList({
                   setEditForms((current) => ({
                     ...current,
                     [task.id]: {
-                      ...(current[task.id] ?? { title: "", description: "", userIds: [], checklistText: "" }),
+                      ...(current[task.id] ?? {
+                        title: "",
+                        description: "",
+                        userIds: [],
+                        checklistText: "",
+                        priority: "MEDIUM" as TaskPriority,
+                      }),
                       checklistText: event.target.value,
                     },
                   }))
@@ -680,6 +791,9 @@ export function TaskList({
             </div>
           ) : null}
         </article>
+            ))}
+          </div>
+        </section>
       ))}
       {responsePreviewIssue ? (
         <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/45 p-4">

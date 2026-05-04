@@ -81,11 +81,21 @@ function isLeadership(role) {
   return role === "SUPERADMIN" || role === "ADMIN" || role === "MANAGER";
 }
 
+const TASK_PRIORITIES = new Set(["LOW", "MEDIUM", "HIGH", "URGENT"]);
+
+function normalizePriority(value, fallback = "MEDIUM") {
+  const raw = String(value ?? "")
+    .trim()
+    .toUpperCase();
+  return TASK_PRIORITIES.has(raw) ? raw : fallback;
+}
+
 const LEADERSHIP_ROLES = ["SUPERADMIN", "ADMIN", "MANAGER"];
 
 export async function createTask(req, res) {
   try {
-    const { title, description, userIds = [], progress = 0, checklistItems = [], projectId } = req.body;
+    const { title, description, userIds = [], progress = 0, checklistItems = [], projectId, priority } =
+      req.body;
 
     if (!title) {
       return res.status(400).json({ error: "Task title is required" });
@@ -112,6 +122,7 @@ export async function createTask(req, res) {
       data: {
         title,
         description,
+        priority: normalizePriority(priority),
         ...(projectId ? { projectId } : {}),
         status: initialStatus,
         progress: normalizedProgress,
@@ -198,10 +209,12 @@ export async function getTasks(_req, res) {
     const limit = Number.isFinite(limitRaw) ? Math.min(Math.max(Math.trunc(limitRaw), 1), 200) : 30;
     const offset = Number.isFinite(offsetRaw) ? Math.max(Math.trunc(offsetRaw), 0) : 0;
 
+    const taskOrderBy = [{ priority: "desc" }, { createdAt: "desc" }];
+
     if (!paginate) {
       const tasks = await prisma.task.findMany({
         where,
-        orderBy: { createdAt: "desc" },
+        orderBy: taskOrderBy,
         include: getTaskInclude(),
       });
       return res.json(tasks);
@@ -210,7 +223,7 @@ export async function getTasks(_req, res) {
     const [items, total] = await Promise.all([
       prisma.task.findMany({
         where,
-        orderBy: { createdAt: "desc" },
+        orderBy: taskOrderBy,
         skip: offset,
         take: limit,
         include: getTaskInclude(),
@@ -231,15 +244,17 @@ export async function getTasks(_req, res) {
 
 export async function updateTaskStatus(req, res) {
   try {
-    const { status, progress, title, description, userIds, checklistItems } = req.body;
+    const { status, progress, title, description, userIds, checklistItems, priority } = req.body;
 
-    const wantsStructureEdit =
+    const isStructurePayload =
       typeof title === "string" ||
       typeof description === "string" ||
       Array.isArray(userIds) ||
       Array.isArray(checklistItems);
 
-    if (!wantsStructureEdit && !status && typeof progress !== "number") {
+    const hasPriorityUpdate = typeof priority === "string";
+
+    if (!isStructurePayload && !hasPriorityUpdate && !status && typeof progress !== "number") {
       return res.status(400).json({ error: "Task update payload is empty" });
     }
 
@@ -250,11 +265,12 @@ export async function updateTaskStatus(req, res) {
         checklistItems: true,
       },
     });
-    const previousAssigneeIds = existingTask.assignments.map((assignment) => assignment.userId);
 
     if (!existingTask) {
       return res.status(404).json({ error: "Task not found" });
     }
+
+    const previousAssigneeIds = existingTask.assignments.map((assignment) => assignment.userId);
 
     const isLeader = isLeadership(req.user.role);
     const canUpdate =
@@ -265,9 +281,20 @@ export async function updateTaskStatus(req, res) {
       return res.status(403).json({ error: "You are not allowed to update this task" });
     }
 
-    if (wantsStructureEdit && !isLeader) {
+    if (isStructurePayload && !isLeader) {
       return res.status(403).json({ error: "Only leadership can modify task details" });
     }
+
+    if (hasPriorityUpdate) {
+      const canChangePriority =
+        isLeader ||
+        existingTask.assignments.some((assignment) => assignment.userId === req.user.userId);
+      if (!canChangePriority) {
+        return res.status(403).json({ error: "You are not allowed to change this task's priority" });
+      }
+    }
+
+    const emitAsStructureChange = isStructurePayload || hasPriorityUpdate;
 
     const normalizedChecklistItems = Array.isArray(checklistItems)
       ? checklistItems
@@ -338,6 +365,9 @@ export async function updateTaskStatus(req, res) {
       const taskData = {
         ...(typeof title === "string" ? { title: title.trim() || existingTask.title } : {}),
         ...(typeof description === "string" ? { description } : {}),
+        ...(hasPriorityUpdate
+          ? { priority: normalizePriority(priority, existingTask.priority ?? "MEDIUM") }
+          : {}),
         status: normalizedChecklistItems && normalizedChecklistItems.length ? "TODO" : nextStatus,
         progress: normalizedChecklistItems && normalizedChecklistItems.length ? 0 : normalizedProgress,
       };
@@ -361,7 +391,7 @@ export async function updateTaskStatus(req, res) {
     });
 
     emitCRMEvent("task:updated", {
-      type: wantsStructureEdit ? "task_modified" : "task_progress_updated",
+      type: emitAsStructureChange ? "task_modified" : "task_progress_updated",
       taskId: task.id,
       projectId: task.projectId ?? null,
       taskTitle: task.title,

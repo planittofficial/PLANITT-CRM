@@ -11,7 +11,8 @@ import { MemberPickerToolbar, filterMembersForPicker, sortedUniqueRoles, type Me
 import { apiGet, apiPost } from "@/lib/api";
 import { getTaskAssignableRoles, isAdminRole } from "@/lib/dashboard";
 import { useSearchParams } from "next/navigation";
-import type { CRMUser, Task } from "@/types/crm";
+import { TASK_PRIORITY_OPTIONS } from "@/lib/task-groups";
+import type { CRMUser, Task, TaskPriority } from "@/types/crm";
 type PaginatedResponse<T> = { items: T[]; total: number; hasMore: boolean; nextOffset: number };
 
 function Surface({ children }: { children: ReactNode }) {
@@ -47,6 +48,7 @@ function TasksPageContent() {
     userIds: [] as string[],
     progress: 0,
     checklistText: "",
+    priority: "MEDIUM" as TaskPriority,
   });
   const [assignPickerQuery, setAssignPickerQuery] = useState("");
   const [assignPickerRole, setAssignPickerRole] = useState<MemberRoleFilter>("ALL");
@@ -146,12 +148,13 @@ function TasksPageContent() {
         description: form.description,
         userIds: form.userIds,
         progress: form.progress,
+        priority: form.priority,
         checklistItems: form.checklistText
           .split("\n")
           .map((item) => item.trim())
           .filter(Boolean),
       });
-      setForm({ title: "", description: "", userIds: [], progress: 0, checklistText: "" });
+      setForm({ title: "", description: "", userIds: [], progress: 0, checklistText: "", priority: "MEDIUM" });
       setNotice("Task created successfully.");
       await loadTasks(false);
     } catch (err) {
@@ -236,6 +239,26 @@ function TasksPageContent() {
                     setForm((current) => ({ ...current, description: event.target.value }))
                   }
                 />
+                <label className="grid gap-2">
+                  <span className="text-sm font-medium text-[var(--text-main)]">Priority</span>
+                  <select
+                    className="h-12 rounded-2xl border px-4 text-sm outline-none"
+                    style={fieldStyle}
+                    value={form.priority}
+                    onChange={(event) =>
+                      setForm((current) => ({
+                        ...current,
+                        priority: event.target.value as TaskPriority,
+                      }))
+                    }
+                  >
+                    {TASK_PRIORITY_OPTIONS.map((opt) => (
+                      <option key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
                 <textarea
                   className="min-h-32 rounded-2xl border px-4 py-3 outline-none"
                   style={fieldStyle}

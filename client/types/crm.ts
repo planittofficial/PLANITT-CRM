@@ -148,11 +148,14 @@ export type AssignedUser = {
   role: UserRole;
 };
 
+export type TaskPriority = "LOW" | "MEDIUM" | "HIGH" | "URGENT";
+
 export type Task = {
   id: string;
   title: string;
   description?: string | null;
   status: "TODO" | "IN_PROGRESS" | "DONE";
+  priority: TaskPriority;
   progress: number;
   createdAt?: string;
   assignments: Array<{
