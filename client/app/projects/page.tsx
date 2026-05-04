@@ -9,11 +9,7 @@ import { useRealtimeRefresh } from "@/hooks/use-realtime-refresh";
 import { useSession } from "@/hooks/use-session";
 import { apiDelete, apiGet, apiPost, apiPut } from "@/lib/api";
 import { getTaskAssignableRoles } from "@/lib/dashboard";
-import {
-  TASK_PRIORITY_OPTIONS,
-  groupTasksByAssignees,
-  priorityBadgeClass,
-} from "@/lib/task-groups";
+import { TASK_PRIORITY_OPTIONS, groupTasksByAssignees } from "@/lib/task-groups";
 import type { CRMUser, Department, Project, Task, TaskPriority } from "@/types/crm";
 type PaginatedResponse<T> = { items: T[]; total: number; hasMore: boolean; nextOffset: number };
 
@@ -78,6 +74,10 @@ export default function ProjectsPage() {
   });
   const [projectAssignQuery, setProjectAssignQuery] = useState("");
   const [projectAssignRole, setProjectAssignRole] = useState<MemberRoleFilter>("ALL");
+  const [projectTeamQuery, setProjectTeamQuery] = useState("");
+  const [projectTeamRole, setProjectTeamRole] = useState<MemberRoleFilter>("ALL");
+  const [projectMemberDraftIds, setProjectMemberDraftIds] = useState<string[]>([]);
+  const [savingProjectMembers, setSavingProjectMembers] = useState(false);
 
   const fieldStyle = {
     borderColor: "var(--border)",
@@ -89,20 +89,6 @@ export default function ProjectsPage() {
     () => (user ? getTaskAssignableRoles(user.role) : []),
     [user]
   );
-  const projectAssignRoleOptions = useMemo(() => {
-    const pool = team.filter((member) => assignableRoles.includes(member.role));
-    return sortedUniqueRoles(pool);
-  }, [team, assignableRoles]);
-  const filteredProjectAssignees = useMemo(
-    () =>
-      filterMembersForPicker(team, {
-        searchQuery: projectAssignQuery,
-        roleFilter: projectAssignRole,
-        restrictToRoles: assignableRoles,
-      }),
-    [team, projectAssignQuery, projectAssignRole, assignableRoles]
-  );
-
   const loadProjects = async (append = false) => {
     const offset = append ? nextProjectOffset : 0;
     const [projectPage, departmentData, userData] = await Promise.all([
@@ -163,6 +149,87 @@ export default function ProjectsPage() {
     () => projects.find((project) => project.id === selectedProjectId) ?? null,
     [projects, selectedProjectId]
   );
+
+  const departmentMembersForSelectedProject = useMemo(() => {
+    if (!selectedProject) {
+      return [];
+    }
+    return team.filter(
+      (member) =>
+        member.departmentId === selectedProject.departmentId && assignableRoles.includes(member.role)
+    );
+  }, [team, selectedProject, assignableRoles]);
+
+  const taskAssigneePickerSource = useMemo(() => {
+    if (!selectedProject) {
+      return team;
+    }
+    const roster = selectedProject.members ?? [];
+    if (!roster.length) {
+      return team;
+    }
+    const allowed = new Set(roster.map((row) => row.user.id));
+    return team.filter((member) => allowed.has(member.id));
+  }, [selectedProject, team]);
+
+  const projectAssignRoleOptions = useMemo(() => {
+    const pool = taskAssigneePickerSource.filter((member) => assignableRoles.includes(member.role));
+    return sortedUniqueRoles(pool);
+  }, [taskAssigneePickerSource, assignableRoles]);
+
+  const filteredProjectAssignees = useMemo(
+    () =>
+      filterMembersForPicker(taskAssigneePickerSource, {
+        searchQuery: projectAssignQuery,
+        roleFilter: projectAssignRole,
+        restrictToRoles: assignableRoles,
+      }),
+    [taskAssigneePickerSource, projectAssignQuery, projectAssignRole, assignableRoles]
+  );
+
+  const projectTeamRoleOptions = useMemo(
+    () => sortedUniqueRoles(departmentMembersForSelectedProject),
+    [departmentMembersForSelectedProject]
+  );
+
+  const filteredProjectTeamRoster = useMemo(
+    () =>
+      filterMembersForPicker(departmentMembersForSelectedProject, {
+        searchQuery: projectTeamQuery,
+        roleFilter: projectTeamRole,
+        restrictToRoles: assignableRoles,
+      }),
+    [departmentMembersForSelectedProject, projectTeamQuery, projectTeamRole, assignableRoles]
+  );
+
+  const rosterMemberIdsSignature = selectedProject?.members?.map((m) => m.user.id).join(",") ?? "";
+
+  useEffect(() => {
+    if (!selectedProject) {
+      setProjectMemberDraftIds([]);
+      return;
+    }
+    setProjectMemberDraftIds(selectedProject.members?.map((row) => row.user.id) ?? []);
+  }, [selectedProject?.id, rosterMemberIdsSignature]);
+
+  useEffect(() => {
+    if (!selectedProject) {
+      return;
+    }
+    const roster = selectedProject.members ?? [];
+    if (!roster.length) {
+      return;
+    }
+    const allowed = new Set(roster.map((row) => row.user.id));
+    setTaskForm((current) => ({
+      ...current,
+      userIds: current.userIds.filter((id) => allowed.has(id)),
+    }));
+    setEditTaskForm((current) => ({
+      ...current,
+      userIds: current.userIds.filter((id) => allowed.has(id)),
+    }));
+  }, [selectedProject?.id, rosterMemberIdsSignature]);
 
   const groupedTasks = useMemo(
     () => ({
@@ -345,6 +412,31 @@ export default function ProjectsPage() {
       await loadProjects();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to delete task");
+    }
+  };
+
+  const toggleProjectMemberDraft = (userId: string) => {
+    setProjectMemberDraftIds((current) =>
+      current.includes(userId) ? current.filter((id) => id !== userId) : [...current, userId]
+    );
+  };
+
+  const saveProjectMembers = async () => {
+    if (!selectedProjectId) {
+      return;
+    }
+
+    try {
+      setSavingProjectMembers(true);
+      setError("");
+      setNotice("");
+      await apiPut(`/projects/${selectedProjectId}/members`, { memberUserIds: projectMemberDraftIds });
+      setNotice("Project team updated.");
+      await loadProjects(false);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to update project team");
+    } finally {
+      setSavingProjectMembers(false);
     }
   };
 
@@ -582,6 +674,77 @@ export default function ProjectsPage() {
 
           {selectedProject ? (
             <Surface>
+              <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[var(--text-faint)]">
+                    Project team
+                  </p>
+                  <h3 className="mt-2 text-xl font-semibold text-[var(--text-main)]">Task assignee pool</h3>
+                  <p className="mt-2 max-w-3xl text-sm leading-6 text-[var(--text-soft)]">
+                    Pick people from this project&apos;s department. After you save, new and edited tasks can only be
+                    assigned to those team members. Leave nobody selected and save to use the full workspace list again.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  disabled={savingProjectMembers}
+                  onClick={() => void saveProjectMembers()}
+                  className="h-11 shrink-0 rounded-2xl px-5 text-sm font-semibold text-white transition disabled:opacity-70"
+                  style={{ background: "var(--accent-strong)" }}
+                >
+                  {savingProjectMembers ? "Saving..." : "Save project team"}
+                </button>
+              </div>
+              <div className="mt-4">
+                <MemberPickerToolbar
+                  searchQuery={projectTeamQuery}
+                  onSearchChange={setProjectTeamQuery}
+                  roleFilter={projectTeamRole}
+                  onRoleFilterChange={setProjectTeamRole}
+                  roleOptions={projectTeamRoleOptions}
+                />
+              </div>
+              <div className="mt-3 grid max-h-72 gap-3 overflow-auto sm:grid-cols-2">
+                {filteredProjectTeamRoster.length === 0 ? (
+                  <p
+                    className="col-span-full rounded-2xl border px-4 py-6 text-sm text-[var(--text-soft)]"
+                    style={{ borderColor: "var(--border)" }}
+                  >
+                    No people in this department match your filters.
+                  </p>
+                ) : (
+                  filteredProjectTeamRoster.map((member) => (
+                    <label
+                      key={member.id}
+                      className="flex items-center gap-3 rounded-2xl border px-4 py-3 text-sm"
+                      style={{
+                        borderColor: "var(--border)",
+                        background: "var(--surface-soft)",
+                        color: "var(--text-main)",
+                      }}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={projectMemberDraftIds.includes(member.id)}
+                        onChange={() => toggleProjectMemberDraft(member.id)}
+                      />
+                      <span>
+                        {member.name} - {member.role}
+                      </span>
+                    </label>
+                  ))
+                )}
+              </div>
+              <p className="mt-3 text-xs text-[var(--text-faint)]">
+                {(selectedProject.members ?? []).length > 0
+                  ? `Task assignees use the last saved team (${(selectedProject.members ?? []).length} people), not draft checkboxes until you save.`
+                  : "No saved team yet — task assignees below include everyone you can normally assign."}
+              </p>
+            </Surface>
+          ) : null}
+
+          {selectedProject ? (
+            <Surface>
               <div className="flex items-center justify-between gap-4">
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[var(--text-faint)]">
@@ -644,9 +807,11 @@ export default function ProjectsPage() {
 
                 <div>
                   <p className="text-sm font-medium text-[var(--text-main)]">
-                    {user?.role === "SUPERADMIN"
-                      ? "Assign to team (including admins and managers)"
-                      : "Assign to employees or interns"}
+                    {(selectedProject.members ?? []).length > 0
+                      ? "Assign to project team members (list filtered from your saved roster above)"
+                      : user?.role === "SUPERADMIN"
+                        ? "Assign to team (including admins and managers)"
+                        : "Assign to employees or interns"}
                   </p>
                   <div className="mt-3">
                     <MemberPickerToolbar
@@ -740,26 +905,17 @@ export default function ProjectsPage() {
                           return (
                             <article
                               key={task.id}
-                              className="rounded-[14px] border p-4"
+                              className="overflow-hidden rounded-[14px] border p-4"
                               style={{ borderColor: "var(--border)", background: "var(--surface-soft)" }}
                             >
-                              <div className="flex items-start justify-between gap-3">
-                                <div className="min-w-0">
-                                  <div className="flex flex-wrap items-center gap-2">
-                                    <h4 className="text-lg font-semibold text-[var(--text-main)]">{task.title}</h4>
-                                    <span
-                                      className={`rounded-md px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide ${priorityBadgeClass[task.priority ?? "MEDIUM"]}`}
-                                    >
-                                      {TASK_PRIORITY_OPTIONS.find((o) => o.value === (task.priority ?? "MEDIUM"))
-                                        ?.label ?? "Medium"}
-                                    </span>
+                              <div className="flex flex-col gap-3">
+                                <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                                  <div className="min-w-0 flex-1">
+                                    <h4 className="text-lg font-semibold leading-snug text-[var(--text-main)] [overflow-wrap:anywhere]">
+                                      {task.title}
+                                    </h4>
                                   </div>
-                                  <p className="mt-1 text-sm text-[var(--text-soft)]">
-                                    {task.description || "No description"}
-                                  </p>
-                                </div>
-                                <div className="flex shrink-0 flex-col items-end gap-2">
-                                  <div className="flex gap-2">
+                                  <div className="flex w-full min-w-0 shrink-0 flex-wrap items-center gap-2 sm:w-auto sm:max-w-[min(100%,20rem)] sm:justify-end">
                                     <button
                                       type="button"
                                       onClick={() => openTaskEditor(task)}
@@ -776,45 +932,49 @@ export default function ProjectsPage() {
                                     >
                                       Delete
                                     </button>
+                                    <select
+                                      value={task.priority ?? "MEDIUM"}
+                                      onChange={(event) =>
+                                        void updateTaskPriority(task.id, event.target.value as TaskPriority)
+                                      }
+                                      className="min-w-0 flex-1 rounded-xl border px-2 py-1.5 text-[11px] font-semibold sm:flex-initial sm:min-w-[7.5rem]"
+                                      style={{
+                                        borderColor: "var(--border)",
+                                        background: "var(--surface)",
+                                        color: "var(--text-main)",
+                                      }}
+                                      title="Priority"
+                                    >
+                                      {TASK_PRIORITY_OPTIONS.map((opt) => (
+                                        <option key={opt.value} value={opt.value}>
+                                          {opt.label}
+                                        </option>
+                                      ))}
+                                    </select>
+                                    <select
+                                      value={task.status}
+                                      onChange={(event) =>
+                                        void updateTaskStatus(task.id, event.target.value as Task["status"])
+                                      }
+                                      className="min-w-0 flex-1 rounded-xl border px-3 py-2 text-xs font-semibold sm:flex-initial sm:min-w-[9.5rem]"
+                                      style={{
+                                        borderColor: "var(--border)",
+                                        background: "var(--surface)",
+                                        color: "var(--text-main)",
+                                      }}
+                                      title="Status"
+                                    >
+                                      {columns.map((option) => (
+                                        <option key={option.key} value={option.key}>
+                                          {option.label}
+                                        </option>
+                                      ))}
+                                    </select>
                                   </div>
-                                  <select
-                                    value={task.priority ?? "MEDIUM"}
-                                    onChange={(event) =>
-                                      void updateTaskPriority(task.id, event.target.value as TaskPriority)
-                                    }
-                                    className="rounded-xl border px-2 py-1.5 text-[11px] font-semibold"
-                                    style={{
-                                      borderColor: "var(--border)",
-                                      background: "var(--surface)",
-                                      color: "var(--text-main)",
-                                    }}
-                                    title="Priority"
-                                  >
-                                    {TASK_PRIORITY_OPTIONS.map((opt) => (
-                                      <option key={opt.value} value={opt.value}>
-                                        {opt.label}
-                                      </option>
-                                    ))}
-                                  </select>
-                                  <select
-                                    value={task.status}
-                                    onChange={(event) =>
-                                      void updateTaskStatus(task.id, event.target.value as Task["status"])
-                                    }
-                                    className="rounded-xl border px-3 py-2 text-xs font-semibold"
-                                    style={{
-                                      borderColor: "var(--border)",
-                                      background: "var(--surface)",
-                                      color: "var(--text-main)",
-                                    }}
-                                  >
-                                    {columns.map((option) => (
-                                      <option key={option.key} value={option.key}>
-                                        {option.label}
-                                      </option>
-                                    ))}
-                                  </select>
                                 </div>
+                                <p className="text-sm leading-relaxed text-[var(--text-soft)] [overflow-wrap:anywhere]">
+                                  {task.description || "No description"}
+                                </p>
                               </div>
 
                         {editingTaskId === task.id ? (

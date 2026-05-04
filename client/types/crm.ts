@@ -16,6 +16,17 @@ export type Department = {
   };
 };
 
+export type ProjectMemberRow = {
+  id: string;
+  user: {
+    id: string;
+    name: string;
+    email: string;
+    role: UserRole;
+    departmentId?: string | null;
+  };
+};
+
 export type Project = {
   id: string;
   name: string;
@@ -28,6 +39,8 @@ export type Project = {
     email: string;
     role: UserRole;
   } | null;
+  /** When non-empty, tasks on this project may only be assigned to these users. */
+  members?: ProjectMemberRow[];
   progress: number;
   taskCounts: {
     total: number;

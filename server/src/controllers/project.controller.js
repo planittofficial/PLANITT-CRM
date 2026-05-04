@@ -2,6 +2,44 @@ import prisma from "../config/db.js";
 import { emitCRMEvent } from "../socket.js";
 import { sendSafeError } from "../middleware/error.middleware.js";
 
+const PROJECT_LIST_INCLUDE = {
+  department: {
+    select: {
+      id: true,
+      name: true,
+      code: true,
+    },
+  },
+  owner: {
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      role: true,
+    },
+  },
+  tasks: {
+    select: {
+      id: true,
+      status: true,
+      progress: true,
+    },
+  },
+  members: {
+    include: {
+      user: {
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          role: true,
+          departmentId: true,
+        },
+      },
+    },
+  },
+};
+
 function getProjectProgress(tasks) {
   if (!tasks.length) {
     return 0;
@@ -9,6 +47,31 @@ function getProjectProgress(tasks) {
 
   const total = tasks.reduce((sum, task) => sum + task.progress, 0);
   return Math.round(total / tasks.length);
+}
+
+function mapProject(project) {
+  const memberRows = project.members ?? [];
+  return {
+    ...project,
+    members: memberRows.map((row) => ({
+      id: row.id,
+      user: row.user,
+    })),
+    progress: getProjectProgress(project.tasks),
+    taskCounts: {
+      total: project.tasks.length,
+      todo: project.tasks.filter((task) => task.status === "TODO").length,
+      inProgress: project.tasks.filter((task) => task.status === "IN_PROGRESS").length,
+      done: project.tasks.filter((task) => task.status === "DONE").length,
+    },
+  };
+}
+
+function rosterRolesForActor(actorRole) {
+  if (actorRole === "SUPERADMIN" || actorRole === "ADMIN") {
+    return ["SUPERADMIN", "ADMIN", "MANAGER", "EMPLOYEE", "INTERN"];
+  }
+  return ["EMPLOYEE", "INTERN"];
 }
 
 export async function getProjects(req, res) {
@@ -54,42 +117,8 @@ export async function getProjects(req, res) {
     const baseQuery = {
       where,
       orderBy: { createdAt: "desc" },
-      include: {
-        department: {
-          select: {
-            id: true,
-            name: true,
-            code: true,
-          },
-        },
-        owner: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-            role: true,
-          },
-        },
-        tasks: {
-          select: {
-            id: true,
-            status: true,
-            progress: true,
-          },
-        },
-      },
+      include: PROJECT_LIST_INCLUDE,
     };
-
-    const mapProject = (project) => ({
-        ...project,
-        progress: getProjectProgress(project.tasks),
-        taskCounts: {
-          total: project.tasks.length,
-          todo: project.tasks.filter((task) => task.status === "TODO").length,
-          inProgress: project.tasks.filter((task) => task.status === "IN_PROGRESS").length,
-          done: project.tasks.filter((task) => task.status === "DONE").length,
-        },
-      });
 
     if (!paginate) {
       const projects = await prisma.project.findMany(baseQuery);
@@ -149,30 +178,7 @@ export async function createProject(req, res) {
         departmentId,
         ...(ownerId ? { ownerId } : {}),
       },
-      include: {
-        department: {
-          select: {
-            id: true,
-            name: true,
-            code: true,
-          },
-        },
-        owner: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-            role: true,
-          },
-        },
-        tasks: {
-          select: {
-            id: true,
-            status: true,
-            progress: true,
-          },
-        },
-      },
+      include: PROJECT_LIST_INCLUDE,
     });
 
     emitCRMEvent("project:updated", {
@@ -181,17 +187,80 @@ export async function createProject(req, res) {
       departmentId: project.departmentId,
     });
 
-    return res.status(201).json({
-      ...project,
-      progress: 0,
-      taskCounts: {
-        total: 0,
-        todo: 0,
-        inProgress: 0,
-        done: 0,
-      },
-    });
+    return res.status(201).json(mapProject(project));
   } catch (err) {
     return sendSafeError(res, err, "Unable to create project");
+  }
+}
+
+export async function updateProjectMembers(req, res) {
+  try {
+    const { id } = req.params;
+    const memberUserIdsRaw = req.body.memberUserIds;
+
+    if (!Array.isArray(memberUserIdsRaw)) {
+      return res.status(400).json({ error: "memberUserIds must be an array" });
+    }
+
+    const memberUserIds = Array.from(
+      new Set(memberUserIdsRaw.map((x) => `${x ?? ""}`.trim()).filter(Boolean))
+    );
+
+    const project = await prisma.project.findUnique({
+      where: { id },
+      select: { id: true, departmentId: true },
+    });
+
+    if (!project) {
+      return res.status(404).json({ error: "Project not found" });
+    }
+
+    const rosterRoles = rosterRolesForActor(req.user.role);
+
+    if (memberUserIds.length) {
+      const users = await prisma.user.findMany({
+        where: { id: { in: memberUserIds } },
+        select: { id: true, departmentId: true, role: true },
+      });
+
+      if (users.length !== memberUserIds.length) {
+        return res.status(400).json({ error: "One or more user ids are invalid" });
+      }
+
+      for (const u of users) {
+        if (u.departmentId !== project.departmentId) {
+          return res.status(400).json({
+            error: "Project team members must belong to the project's department",
+          });
+        }
+        if (!rosterRoles.includes(u.role)) {
+          return res.status(400).json({ error: "This role cannot be added to a project team" });
+        }
+      }
+    }
+
+    await prisma.$transaction(async (tx) => {
+      await tx.projectMember.deleteMany({ where: { projectId: id } });
+      if (memberUserIds.length) {
+        await tx.projectMember.createMany({
+          data: memberUserIds.map((userId) => ({ projectId: id, userId })),
+        });
+      }
+    });
+
+    const updated = await prisma.project.findUnique({
+      where: { id },
+      include: PROJECT_LIST_INCLUDE,
+    });
+
+    emitCRMEvent("project:updated", {
+      type: "project_members_updated",
+      projectId: id,
+      departmentId: project.departmentId,
+    });
+
+    return res.json(mapProject(updated));
+  } catch (err) {
+    return sendSafeError(res, err, "Unable to update project team");
   }
 }

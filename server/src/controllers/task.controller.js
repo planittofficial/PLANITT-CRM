@@ -92,6 +92,39 @@ function normalizePriority(value, fallback = "MEDIUM") {
 
 const LEADERSHIP_ROLES = ["SUPERADMIN", "ADMIN", "MANAGER"];
 
+async function validateProjectTaskAssignees(projectId, userIds) {
+  if (!projectId || !Array.isArray(userIds) || userIds.length === 0) {
+    return null;
+  }
+
+  const project = await prisma.project.findUnique({
+    where: { id: projectId },
+    select: {
+      members: { select: { userId: true } },
+    },
+  });
+
+  if (!project) {
+    return { status: 404, error: "Project not found" };
+  }
+
+  if (!project.members.length) {
+    return null;
+  }
+
+  const allowed = new Set(project.members.map((m) => m.userId));
+  const invalid = userIds.filter((id) => !allowed.has(id));
+
+  if (invalid.length) {
+    return {
+      status: 400,
+      error: "Assignees must be on the project team. Add them under project team first, or clear the team to assign from the full directory.",
+    };
+  }
+
+  return null;
+}
+
 export async function createTask(req, res) {
   try {
     const { title, description, userIds = [], progress = 0, checklistItems = [], projectId, priority } =
@@ -117,6 +150,13 @@ export async function createTask(req, res) {
         : normalizedProgress > 0
           ? "IN_PROGRESS"
           : "TODO";
+
+    if (projectId) {
+      const assigneeError = await validateProjectTaskAssignees(projectId, userIds);
+      if (assigneeError) {
+        return res.status(assigneeError.status).json({ error: assigneeError.error });
+      }
+    }
 
     const task = await prisma.task.create({
       data: {
@@ -329,6 +369,13 @@ export async function updateTaskStatus(req, res) {
         : normalizedProgress > 0
           ? "IN_PROGRESS"
           : "TODO");
+
+    if (Array.isArray(userIds) && existingTask.projectId) {
+      const assigneeError = await validateProjectTaskAssignees(existingTask.projectId, userIds);
+      if (assigneeError) {
+        return res.status(assigneeError.status).json({ error: assigneeError.error });
+      }
+    }
 
     const task = await prisma.$transaction(async (tx) => {
       if (Array.isArray(userIds)) {
