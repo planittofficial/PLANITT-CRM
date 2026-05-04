@@ -31,6 +31,8 @@ import type {
 
 type WorkspaceActionLoading = "" | "meet" | "sheets" | "drive";
 const TEAM_ANALYTICS_PRELOAD_LIMIT = 8;
+const TEAM_DIRECTORY_INITIAL_VISIBLE = 5;
+const TEAM_DIRECTORY_LOAD_MORE_STEP = 5;
 
 function Surface({
   children,
@@ -825,6 +827,9 @@ function TeamMemberCard({
 
 function TeamAnalyticsPanel({
   members,
+  totalInDirectory,
+  canLoadMore,
+  onLoadMore,
   selectedMemberId,
   selectedAnalytics,
   analyticsLoading,
@@ -833,6 +838,9 @@ function TeamAnalyticsPanel({
   onSelect,
 }: {
   members: CRMUser[];
+  totalInDirectory: number;
+  canLoadMore: boolean;
+  onLoadMore?: () => void;
   selectedMemberId: string;
   selectedAnalytics: UserAnalyticsSummary | null;
   analyticsLoading: boolean;
@@ -843,25 +851,44 @@ function TeamAnalyticsPanel({
   return (
     <div className="grid gap-4 2xl:grid-cols-[0.9fr_1.1fr]">
       <Surface className="p-5">
-        <div className="flex items-end justify-between gap-3">
+        <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[var(--text-faint)]">
               {directorySubtitle}
             </p>
             <h2 className="mt-2 text-xl font-semibold text-[var(--text-main)]">{directoryTitle}</h2>
           </div>
-          <span className="text-sm text-[var(--text-soft)]">{members.length} visible</span>
+          <span className="text-sm tabular-nums text-[var(--text-soft)]">
+            Showing {members.length} of {totalInDirectory}
+          </span>
         </div>
-        <div className="mt-5 grid gap-3 md:grid-cols-2 2xl:grid-cols-1">
-          {members.map((member) => (
-            <TeamMemberCard
-              key={member.id}
-              member={member}
-              active={member.id === selectedMemberId}
-              onClick={() => onSelect(member.id)}
-            />
-          ))}
+        <div
+          className="mt-5 max-h-[min(52vh,560px)] overflow-y-auto pr-1"
+          style={{ scrollbarGutter: "stable" }}
+        >
+          <div className="grid gap-3 md:grid-cols-2 2xl:grid-cols-1">
+            {members.map((member) => (
+              <TeamMemberCard
+                key={member.id}
+                member={member}
+                active={member.id === selectedMemberId}
+                onClick={() => onSelect(member.id)}
+              />
+            ))}
+          </div>
         </div>
+        {canLoadMore && onLoadMore ? (
+          <div className="mt-4 flex justify-center border-t pt-4" style={{ borderColor: "var(--border)" }}>
+            <button
+              type="button"
+              onClick={() => onLoadMore()}
+              className="w-full max-w-md rounded-xl px-4 py-3 text-sm font-semibold text-white shadow-sm transition sm:w-auto"
+              style={{ background: "var(--accent-strong)" }}
+            >
+              Load more ({Math.max(0, totalInDirectory - members.length)} remaining)
+            </button>
+          </div>
+        ) : null}
       </Surface>
 
       <div className="space-y-4">
@@ -1754,6 +1781,7 @@ export default function DashboardPage() {
   const [summary, setSummary] = useState<DashboardSummary | null>(null);
   const [teamMembers, setTeamMembers] = useState<CRMUser[]>([]);
   const [teamDirectoryRoleFilter, setTeamDirectoryRoleFilter] = useState<MemberRoleFilter>("ALL");
+  const [teamDirectoryVisibleCount, setTeamDirectoryVisibleCount] = useState(TEAM_DIRECTORY_INITIAL_VISIBLE);
   const [selectedMemberId, setSelectedMemberId] = useState("");
   const [selectedAnalytics, setSelectedAnalytics] = useState<UserAnalyticsSummary | null>(null);
   const [teamAnalyticsList, setTeamAnalyticsList] = useState<UserAnalyticsSummary[]>([]);
@@ -1784,6 +1812,15 @@ export default function DashboardPage() {
     [teamMembers, globalSearch, teamDirectoryRoleFilter]
   );
 
+  const teamDirectoryVisibleMembers = useMemo(
+    () => filteredTeamMembers.slice(0, teamDirectoryVisibleCount),
+    [filteredTeamMembers, teamDirectoryVisibleCount]
+  );
+
+  useEffect(() => {
+    setTeamDirectoryVisibleCount(TEAM_DIRECTORY_INITIAL_VISIBLE);
+  }, [globalSearch, teamDirectoryRoleFilter]);
+
   useEffect(() => {
     if (!leadershipView) {
       return;
@@ -1795,6 +1832,17 @@ export default function DashboardPage() {
       return filteredTeamMembers[0]?.id ?? "";
     });
   }, [leadershipView, filteredTeamMembers]);
+
+  useEffect(() => {
+    if (!selectedMemberId || !filteredTeamMembers.length) {
+      return;
+    }
+    const index = filteredTeamMembers.findIndex((member) => member.id === selectedMemberId);
+    if (index === -1) {
+      return;
+    }
+    setTeamDirectoryVisibleCount((current) => (index < current ? current : index + 1));
+  }, [selectedMemberId, filteredTeamMembers]);
 
   useEffect(() => {
     if (typeof window === "undefined") {
@@ -2568,7 +2616,17 @@ export default function DashboardPage() {
                     />
                   ) : (
                     <TeamAnalyticsPanel
-                      members={filteredTeamMembers}
+                      members={teamDirectoryVisibleMembers}
+                      totalInDirectory={filteredTeamMembers.length}
+                      canLoadMore={teamDirectoryVisibleCount < filteredTeamMembers.length}
+                      onLoadMore={() =>
+                        setTeamDirectoryVisibleCount((count) =>
+                          Math.min(
+                            count + TEAM_DIRECTORY_LOAD_MORE_STEP,
+                            filteredTeamMembers.length
+                          )
+                        )
+                      }
                       selectedMemberId={selectedMemberId}
                       selectedAnalytics={selectedAnalytics}
                       analyticsLoading={analyticsLoading}
