@@ -176,6 +176,13 @@ function getMessageTypeFromMime(mimeType) {
   return "TEXT";
 }
 
+function getCloudinaryResourceTypeFromMime(mimeType) {
+  if (mimeType === "application/pdf") {
+    return "raw";
+  }
+  return "image";
+}
+
 function isMediaMessage(message) {
   return Boolean(message.attachmentUrl) && ["IMAGE", "PDF", "STICKER"].includes(message.messageType);
 }
@@ -1231,6 +1238,7 @@ export async function uploadChatAttachment(req, res) {
     const uploaded = await uploadChatAssetToCloudinary(req.file, {
       folder: "planitt-crm/chat",
       publicId,
+      resourceType: getCloudinaryResourceTypeFromMime(req.file.mimetype),
     });
 
     return res.status(201).json({

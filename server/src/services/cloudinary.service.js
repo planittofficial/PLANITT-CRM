@@ -42,6 +42,7 @@ export async function uploadChatAssetToCloudinary(file, options = {}) {
   const timestamp = Math.floor(Date.now() / 1000);
   const folder = options.folder || "planitt-crm/chat";
   const publicId = options.publicId;
+  const resourceType = options.resourceType || "auto";
 
   const paramsToSign = {
     folder,
@@ -58,7 +59,7 @@ export async function uploadChatAssetToCloudinary(file, options = {}) {
   form.append("public_id", publicId);
   form.append("signature", signature);
 
-  const response = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/auto/upload`, {
+  const response = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/${resourceType}/upload`, {
     method: "POST",
     body: form,
   });
