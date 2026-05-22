@@ -402,7 +402,7 @@ All API routes are mounted under `/api`.
 | POST | `/tasks` | Create task. |
 | PUT | `/tasks/:id` | Update task status, progress, title, assignments, or checklist. |
 | DELETE | `/tasks/:id` | Delete task. |
-| PUT | `/tasks/checklist/:itemId` | Toggle checklist item completion. |
+| PUT | `/tasks/checklist/:itemId` | Toggle checklist item completion. | 
 | POST | `/tasks/:id/issues` | Report a blocker/issue. |
 | PUT | `/tasks/issues/:issueId/respond` | Manager/admin response to issue. |
 
