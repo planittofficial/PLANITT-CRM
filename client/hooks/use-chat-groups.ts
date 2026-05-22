@@ -36,6 +36,19 @@ export function useChatGroups(onError: (msg: string) => void, onRefreshRooms: ()
     }
   };
 
+  const startDirectChat = async (targetUserId: string) => {
+    if (!targetUserId) return;
+    try {
+      setGroupSaving(true);
+      await apiPost<ChatGroup>("/chat/direct", { targetUserId });
+      await onRefreshRooms();
+    } catch (err) {
+      onError(normalizeErrorMessage(err, "Failed to start one-to-one chat"));
+    } finally {
+      setGroupSaving(false);
+    }
+  };
+
   const openGroupSettings = async (room: ChatRoom) => {
     if (room.type !== "GROUP") return;
     try {
@@ -125,6 +138,7 @@ export function useChatGroups(onError: (msg: string) => void, onRefreshRooms: ()
     setShowGroupSettings,
     setActiveGroup,
     createGroup,
+    startDirectChat,
     openGroupSettings,
     updateGroup,
     addMembers,

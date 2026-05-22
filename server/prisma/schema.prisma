@@ -38,6 +38,7 @@ model User {
   department                Department?                @relation("DepartmentMembers", fields: [departmentId], references: [id])
   manager                   User?                      @relation("ManagerReports", fields: [managerId], references: [id])
   directReports             User[]                     @relation("ManagerReports")
+  activityLogs              ActivityLog[]
 }
 
 model Department {
@@ -245,6 +246,26 @@ model ChatGroupMember {
 
   @@unique([groupId, userId])
   @@index([userId, createdAt])
+}
+
+model ActivityLog {
+  id           String   @id @default(cuid())
+  userId       String
+  userRole     UserRole
+  method       String
+  path         String
+  statusCode   Int
+  action       String
+  ipAddress    String?
+  userAgent    String?
+  requestId    String?
+  metadataJson String?
+  createdAt    DateTime @default(now())
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([userRole, createdAt])
+  @@index([createdAt])
 }
 
 enum UserRole {

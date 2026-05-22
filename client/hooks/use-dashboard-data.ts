@@ -87,6 +87,23 @@ export function useDashboardData() {
   }, [user]);
 
   useEffect(() => {
+    if (!user) return;
+    const onLocalAttendanceUpdate = () => {
+      void apiGet<DashboardSummary>("/dashboard/summary")
+        .then((d) => {
+          setSummary(d);
+          setError("");
+        })
+        .catch((err) => setError(normalizeErrorMessage(err, "Failed to refresh dashboard")));
+    };
+
+    window.addEventListener("attendance:local-updated", onLocalAttendanceUpdate);
+    return () => {
+      window.removeEventListener("attendance:local-updated", onLocalAttendanceUpdate);
+    };
+  }, [user]);
+
+  useEffect(() => {
     async function loadTeam() {
       if (!leadershipView) { setTeamAnalyticsList([]); return; }
       try {
@@ -97,8 +114,13 @@ export function useDashboardData() {
           : page.items.filter((m) => m.role === "EMPLOYEE" || m.role === "INTERN");
         setTeamMembers(visible);
         setSelectedMemberId((c) => c || visible[0]?.id || "");
-        const analyticsData = await Promise.all(visible.slice(0, TEAM_ANALYTICS_PRELOAD_LIMIT).map((m) => apiGet<UserAnalyticsSummary>(`/users/${m.id}/analytics`)));
-        setTeamAnalyticsList(analyticsData);
+        void Promise.all(
+          visible
+            .slice(0, TEAM_ANALYTICS_PRELOAD_LIMIT)
+            .map((m) => apiGet<UserAnalyticsSummary>(`/users/${m.id}/analytics`))
+        )
+          .then((analyticsData) => setTeamAnalyticsList(analyticsData))
+          .catch(() => {});
       } catch (err) { setError(normalizeErrorMessage(err, "Failed to load team members")); }
       finally { setTeamLoading(false); }
     }
@@ -140,11 +162,20 @@ export function useDashboardData() {
       const membersPage = await apiGet<{ items: CRMUser[] }>("/users?paginate=true&limit=120&offset=0");
       const visible = fresh.scope === "superadmin" ? membersPage.items.filter((m) => ["ADMIN","MANAGER","EMPLOYEE","INTERN"].includes(m.role)) : membersPage.items.filter((m) => m.role === "EMPLOYEE" || m.role === "INTERN");
       setTeamMembers(visible);
-      const analyticsList = await Promise.all(visible.slice(0, TEAM_ANALYTICS_PRELOAD_LIMIT).map((m) => apiGet<UserAnalyticsSummary>(`/users/${m.id}/analytics`)));
-      setTeamAnalyticsList(analyticsList);
+      void Promise.all(
+        visible
+          .slice(0, TEAM_ANALYTICS_PRELOAD_LIMIT)
+          .map((m) => apiGet<UserAnalyticsSummary>(`/users/${m.id}/analytics`))
+      )
+        .then((analyticsList) => setTeamAnalyticsList(analyticsList))
+        .catch(() => {});
       const nextId = visible.find((m) => m.id === selectedMemberId)?.id ?? visible[0]?.id ?? "";
       setSelectedMemberId(nextId);
-      if (nextId) setSelectedAnalytics(await apiGet<UserAnalyticsSummary>(`/users/${nextId}/analytics`));
+      if (nextId) {
+        void apiGet<UserAnalyticsSummary>(`/users/${nextId}/analytics`)
+          .then((data) => setSelectedAnalytics(data))
+          .catch(() => {});
+      }
     }
     if (canUseGoogleWorkspace(fresh.scope)) {
       try {

@@ -1,5 +1,6 @@
 import { Router } from "express";
 import attendanceRouter from "./attendance.routes.js";
+import activityLogRouter from "./activity-log.routes.js";
 import authRouter from "./auth.routes.js";
 import chatRouter from "./chat.routes.js";
 import dashboardRouter from "./dashboard.routes.js";
@@ -21,6 +22,7 @@ router.use("/integrations", integrationRouter);
 router.use("/projects", projectRouter);
 router.use("/tasks", taskRouter);
 router.use("/attendance", attendanceRouter);
+router.use("/activity-logs", activityLogRouter);
 router.use("/users", userRouter);
 
 export default router;

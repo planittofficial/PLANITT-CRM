@@ -38,6 +38,9 @@ export default function DashboardPage() {
   const completionRate = summary.scope === "employee"
     ? Math.round((((summary as EmployeeDashboardSummary).metrics.completedTasks || 0) / Math.max(1, (summary as EmployeeDashboardSummary).metrics.myTasks)) * 100)
     : Math.round((summary.metrics.completedTasks / Math.max(1, summary.metrics.totalTasks)) * 100);
+  const currentUserCheckedIn = summary.scope === "employee"
+    ? (summary as EmployeeDashboardSummary).metrics.checkedIn
+    : summary.metrics.checkedIn;
   const heroHoursValue = summary.analytics.workingHoursTrend.at(-1)?.hours ?? 0;
   const totalWorkforce = summary.scope === "employee" ? 1 : summary.metrics.totalEmployees + summary.metrics.totalInterns;
   const activeAttendance = summary.scope === "employee" ? ((summary as EmployeeDashboardSummary).metrics.checkedIn ? 1 : 0) : summary.metrics.activeAttendance;
@@ -102,7 +105,7 @@ export default function DashboardPage() {
           </div>
         </Surface>
 
-        {summary.scope === "employee" ? <AttendanceCard initialCheckedIn={(summary as EmployeeDashboardSummary).metrics.checkedIn} /> : null}
+        <AttendanceCard initialCheckedIn={currentUserCheckedIn} />
 
         <Surface className="p-2">
           <div className="grid grid-cols-2 gap-2">

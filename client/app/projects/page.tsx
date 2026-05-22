@@ -77,17 +77,17 @@ export default function ProjectsPage() {
             <Surface>
               <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[var(--text-faint)]">Create project</p>
               <div className="mt-4 grid gap-3">
-                <input className="h-11 rounded-2xl border px-3 text-sm outline-none" style={FIELD_STYLE} placeholder="Project name" value={projectForm.name} onChange={(e) => setProjectForm((c) => ({ ...c, name: e.target.value }))} />
-                <textarea className="min-h-24 rounded-2xl border px-3 py-3 text-sm outline-none" style={FIELD_STYLE} placeholder="Project description" value={projectForm.description} onChange={(e) => setProjectForm((c) => ({ ...c, description: e.target.value }))} />
-                <select className="h-11 rounded-2xl border px-3 text-sm outline-none" style={FIELD_STYLE} value={projectForm.departmentId} onChange={(e) => setProjectForm((c) => ({ ...c, departmentId: e.target.value }))}>
+                <input className="h-11 w-full min-w-0 box-border rounded-2xl border px-3 text-sm outline-none" style={FIELD_STYLE} placeholder="Project name" value={projectForm.name} onChange={(e) => setProjectForm((c) => ({ ...c, name: e.target.value }))} />
+                <textarea className="min-h-24 w-full min-w-0 box-border rounded-2xl border px-3 py-3 text-sm outline-none" style={FIELD_STYLE} placeholder="Project description" value={projectForm.description} onChange={(e) => setProjectForm((c) => ({ ...c, description: e.target.value }))} />
+                <select className="h-11 w-full min-w-0 box-border rounded-2xl border px-3 text-sm outline-none" style={FIELD_STYLE} value={projectForm.departmentId} onChange={(e) => setProjectForm((c) => ({ ...c, departmentId: e.target.value }))}>
                   <option value="">Select department</option>
                   {departments.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
                 </select>
-                <select className="h-11 rounded-2xl border px-3 text-sm outline-none" style={FIELD_STYLE} value={projectForm.ownerId} onChange={(e) => setProjectForm((c) => ({ ...c, ownerId: e.target.value }))}>
+                <select className="h-11 w-full min-w-0 box-border rounded-2xl border px-3 text-sm outline-none" style={FIELD_STYLE} value={projectForm.ownerId} onChange={(e) => setProjectForm((c) => ({ ...c, ownerId: e.target.value }))}>
                   <option value="">Select owner</option>
                   {team.filter((m) => ["SUPERADMIN","ADMIN","MANAGER"].includes(m.role)).map((m) => <option key={m.id} value={m.id}>{m.name} - {m.role}</option>)}
                 </select>
-                <button type="button" disabled={creatingProject} onClick={() => void createProject()} className="rounded-2xl px-4 py-3 text-sm font-semibold text-white transition disabled:cursor-wait disabled:opacity-70" style={{ background: "var(--accent-strong)" }}>{creatingProject ? "Creating..." : "Create board"}</button>
+                <button type="button" disabled={creatingProject} onClick={() => void createProject()} className="w-full min-w-0 box-border rounded-2xl px-4 py-3 text-sm font-semibold text-white transition disabled:cursor-wait disabled:opacity-70" style={{ background: "var(--accent-strong)" }}>{creatingProject ? "Creating..." : "Create board"}</button>
               </div>
             </Surface>
           </aside>

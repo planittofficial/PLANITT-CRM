@@ -30,12 +30,14 @@ export function AttendanceCard({ initialCheckedIn = false }: AttendanceCardProps
         await apiPost("/attendance/checkout");
         setCheckedIn(false);
         setMessage("Checked out successfully.");
+        window.dispatchEvent(new CustomEvent("attendance:local-updated"));
         return;
       }
 
       await apiPost("/attendance/checkin");
       setCheckedIn(true);
       setMessage("Checked in successfully.");
+      window.dispatchEvent(new CustomEvent("attendance:local-updated"));
     } catch (error) {
       const err = error as Error & { status?: number };
 

@@ -3,13 +3,13 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { apiPost } from "@/lib/api";
+import { apiGet, apiPost } from "@/lib/api";
 import { clearToken } from "@/lib/auth";
 import { useCrmSearch } from "@/components/providers/crm-search-provider";
 import { useTheme } from "@/components/providers/theme-provider";
 import { useNotifications } from "@/hooks/use-notifications";
 import { migrateLegacyThemeKeys } from "@/lib/theme-storage";
-import type { CRMUser } from "@/types/crm";
+import type { CRMUser, DashboardSummary, EmployeeDashboardSummary } from "@/types/crm";
 
 type CRMShellProps = {
   children: React.ReactNode;
@@ -36,6 +36,7 @@ const pageTitles: Record<string, string> = {
   "/tasks": "Tasks",
   "/employees": "Employees",
   "/departments": "Departments",
+  "/logs": "Logs",
   "/chat": "Chats",
   "/settings": "Settings",
 };
@@ -77,6 +78,8 @@ export function CRMShell({ children, user }: CRMShellProps) {
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const { items, unreadCount, lastPushedId, markAllRead, markRead, clearAll } = useNotifications(user);
   const [toastVisible, setToastVisible] = useState(false);
+  const [attendanceLoading, setAttendanceLoading] = useState(false);
+  const [checkedIn, setCheckedIn] = useState(false);
 
   const latestItem = useMemo(() => items[0] ?? null, [items]);
 
@@ -89,6 +92,55 @@ export function CRMShell({ children, user }: CRMShellProps) {
     return () => clearTimeout(timer);
   }, [lastPushedId]);
 
+  const canUseAttendanceQuickAction =
+    user.role === "SUPERADMIN" || user.role === "ADMIN" || user.role === "MANAGER";
+
+  useEffect(() => {
+    if (!canUseAttendanceQuickAction) {
+      return;
+    }
+
+    const syncAttendanceState = async () => {
+      try {
+        const summary = await apiGet<DashboardSummary>("/dashboard/summary");
+        const currentCheckedIn =
+          summary.scope === "employee"
+            ? (summary as EmployeeDashboardSummary).metrics.checkedIn
+            : summary.metrics.checkedIn;
+        setCheckedIn(Boolean(currentCheckedIn));
+      } catch {
+        setCheckedIn(false);
+      }
+    };
+
+    void syncAttendanceState();
+
+    const onAttendanceUpdated = () => {
+      void syncAttendanceState();
+    };
+
+    window.addEventListener("attendance:local-updated", onAttendanceUpdated);
+    return () => {
+      window.removeEventListener("attendance:local-updated", onAttendanceUpdated);
+    };
+  }, [canUseAttendanceQuickAction]);
+
+  const handleAttendanceQuickAction = async () => {
+    try {
+      setAttendanceLoading(true);
+      if (checkedIn) {
+        await apiPost("/attendance/checkout");
+        setCheckedIn(false);
+      } else {
+        await apiPost("/attendance/checkin");
+        setCheckedIn(true);
+      }
+      window.dispatchEvent(new CustomEvent("attendance:local-updated"));
+    } finally {
+      setAttendanceLoading(false);
+    }
+  };
+
   const navItems: NavItem[] = [
     { href: "/dashboard", label: "Dashboard", icon: "D" },
     ...(user.role === "SUPERADMIN" || user.role === "ADMIN" || user.role === "MANAGER"
@@ -100,6 +152,9 @@ export function CRMShell({ children, user }: CRMShellProps) {
       : []),
     ...(user.role === "SUPERADMIN" || user.role === "ADMIN"
       ? [{ href: "/departments", label: "Departments", icon: "O" }]
+      : []),
+    ...(user.role === "SUPERADMIN" || user.role === "ADMIN"
+      ? [{ href: "/logs", label: "Logs", icon: "L" }]
       : []),
     { href: "/chat", label: "Chats", icon: "C" },
     { href: "/settings", label: "Settings", icon: "S" },
@@ -293,6 +348,25 @@ export function CRMShell({ children, user }: CRMShellProps) {
             <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
               <CRMShellHeaderSearch />
               <div className="flex items-center gap-2">
+                {canUseAttendanceQuickAction ? (
+                  <button
+                    type="button"
+                    onClick={() => void handleAttendanceQuickAction()}
+                    disabled={attendanceLoading}
+                    className="flex h-10 items-center justify-center rounded-md border px-3 text-xs font-bold transition disabled:cursor-wait disabled:opacity-70"
+                    style={{
+                      borderColor: "var(--border)",
+                      background: checkedIn ? "var(--danger)" : "var(--accent)",
+                      color: "white",
+                    }}
+                  >
+                    {attendanceLoading
+                      ? "Please wait"
+                      : checkedIn
+                        ? "Check out"
+                        : "Check in"}
+                  </button>
+                ) : null}
                 <div className="relative">
                   <button
                     type="button"

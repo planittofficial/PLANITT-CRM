@@ -7,6 +7,7 @@ const LEADERSHIP_ROLES = ["SUPERADMIN", "ADMIN"];
 const GROUP_ADMIN_ROLES = ["SUPERADMIN", "ADMIN", "MANAGER"];
 const ACCESS_CACHE_TTL_MS = 30_000;
 const accessCache = new Map();
+const DIRECT_GROUP_PREFIX = "DM::";
 
 function isLeadership(user) {
   return LEADERSHIP_ROLES.includes(user.role);
@@ -14,6 +15,23 @@ function isLeadership(user) {
 
 function canManageGroups(user) {
   return GROUP_ADMIN_ROLES.includes(user.role);
+}
+
+function isDirectGroupName(name) {
+  return typeof name === "string" && name.startsWith(DIRECT_GROUP_PREFIX);
+}
+
+function buildDirectGroupName(userAId, userBId) {
+  const [a, b] = [String(userAId), String(userBId)].sort();
+  return `${DIRECT_GROUP_PREFIX}${a}::${b}`;
+}
+
+function isDirectGroupMemberEditable(group) {
+  return !isDirectGroupName(group?.name);
+}
+
+function canViewAllGroups(user) {
+  return user.role === "SUPERADMIN";
 }
 
 function getVisibleProjectWhere(user) {
@@ -135,7 +153,7 @@ async function canAccessRoom(authUser, channelType, channelId) {
   } else if (channelType === "PROJECT") {
     value = await canAccessProjectRoom(authUser, channelId);
   } else if (channelType === "GROUP") {
-    if (isLeadership(authUser) || authUser.role === "MANAGER") {
+    if (canViewAllGroups(authUser)) {
       value = Boolean(await prisma.chatGroup.findUnique({ where: { id: channelId }, select: { id: true } }));
     } else {
       value = Boolean(
@@ -227,7 +245,7 @@ export async function getChatRooms(req, res) {
         },
       }),
       prisma.chatGroup.findMany({
-        where: canManageGroups(req.user)
+        where: canViewAllGroups(req.user)
           ? {}
           : {
               members: {
@@ -241,6 +259,18 @@ export async function getChatRooms(req, res) {
           id: true,
           name: true,
           description: true,
+          members: {
+            select: {
+              userId: true,
+              user: {
+                select: {
+                  id: true,
+                  name: true,
+                  role: true,
+                },
+              },
+            },
+          },
           _count: {
             select: { members: true },
           },
@@ -380,13 +410,30 @@ export async function getChatRooms(req, res) {
       }))
     );
     const groupsWithMeta = await Promise.all(
-      groups.map(async (group) => ({
-        id: group.id,
-        type: "GROUP",
-        name: group.name,
-        subtitle: group.description || `${group._count.members} members`,
-        ...roomMeta("GROUP", group.id),
-      }))
+      groups.map(async (group) => {
+        const isDirect = isDirectGroupName(group.name);
+        const peer = isDirect
+          ? group.members.find((member) => member.userId !== req.user.userId)?.user ?? null
+          : null;
+
+        return {
+          id: group.id,
+          type: "GROUP",
+          name: isDirect ? (peer?.name || "One-to-one chat") : group.name,
+          subtitle: isDirect
+            ? `One-to-one${peer?.role ? ` | ${peer.role}` : ""}`
+            : (group.description || `${group._count.members} members`),
+          isDirect,
+          directPeer: peer
+            ? {
+                id: peer.id,
+                name: peer.name,
+                role: peer.role,
+              }
+            : null,
+          ...roomMeta("GROUP", group.id),
+        };
+      })
     );
 
     return res.json({
@@ -773,6 +820,63 @@ export async function createChatGroup(req, res) {
   }
 }
 
+export async function startDirectChat(req, res) {
+  try {
+    if (!canManageGroups(req.user)) {
+      return res
+        .status(403)
+        .json({ error: "Only admin, manager, or superadmin can start one-to-one chats" });
+    }
+
+    const targetUserId = String(req.body.targetUserId || "").trim();
+    if (!targetUserId) {
+      return res.status(400).json({ error: "targetUserId is required" });
+    }
+    if (targetUserId === req.user.userId) {
+      return res.status(400).json({ error: "You cannot start one-to-one chat with yourself" });
+    }
+
+    const targetUser = await prisma.user.findUnique({
+      where: { id: targetUserId },
+      select: { id: true, name: true, role: true },
+    });
+    if (!targetUser) {
+      return res.status(404).json({ error: "Target member not found" });
+    }
+
+    const directName = buildDirectGroupName(req.user.userId, targetUserId);
+    const existing = await prisma.chatGroup.findFirst({
+      where: { name: directName },
+      include: { _count: { select: { members: true } } },
+    });
+
+    if (existing) {
+      return res.json(existing);
+    }
+
+    const created = await prisma.chatGroup.create({
+      data: {
+        name: directName,
+        description: "Direct one-to-one chat",
+        createdById: req.user.userId,
+        members: {
+          create: [
+            { userId: req.user.userId, addedById: req.user.userId },
+            { userId: targetUserId, addedById: req.user.userId },
+          ],
+        },
+      },
+      include: {
+        _count: { select: { members: true } },
+      },
+    });
+
+    return res.status(201).json(created);
+  } catch (err) {
+    return sendSafeError(res, err, "Unable to start one-to-one chat");
+  }
+}
+
 export async function getChatGroupById(req, res) {
   try {
     const groupId = String(req.params.id || "");
@@ -824,6 +928,19 @@ export async function updateChatGroup(req, res) {
       return res.status(403).json({ error: "Only admin, manager, or superadmin can update groups" });
     }
     const groupId = String(req.params.id || "");
+    if (!(await canAccessRoom(req.user, "GROUP", groupId))) {
+      return res.status(403).json({ error: "You do not have access to this group" });
+    }
+    const existingGroup = await prisma.chatGroup.findUnique({
+      where: { id: groupId },
+      select: { id: true, name: true },
+    });
+    if (!existingGroup) {
+      return res.status(404).json({ error: "Group not found" });
+    }
+    if (!isDirectGroupMemberEditable(existingGroup)) {
+      return res.status(400).json({ error: "One-to-one chat settings cannot be edited" });
+    }
     const name = typeof req.body.name === "string" ? req.body.name.trim() : "";
     const description = typeof req.body.description === "string" ? req.body.description.trim() : "";
     const group = await prisma.chatGroup.update({
@@ -845,6 +962,19 @@ export async function deleteChatGroup(req, res) {
       return res.status(403).json({ error: "Only admin, manager, or superadmin can delete groups" });
     }
     const groupId = String(req.params.id || "");
+    if (!(await canAccessRoom(req.user, "GROUP", groupId))) {
+      return res.status(403).json({ error: "You do not have access to this group" });
+    }
+    const existingGroup = await prisma.chatGroup.findUnique({
+      where: { id: groupId },
+      select: { id: true, name: true },
+    });
+    if (!existingGroup) {
+      return res.status(404).json({ error: "Group not found" });
+    }
+    if (!isDirectGroupMemberEditable(existingGroup)) {
+      return res.status(400).json({ error: "One-to-one chats cannot be deleted from group controls" });
+    }
     await prisma.chatGroup.delete({
       where: { id: groupId },
     });
@@ -860,6 +990,19 @@ export async function addChatGroupMembers(req, res) {
       return res.status(403).json({ error: "Only admin, manager, or superadmin can add members" });
     }
     const groupId = String(req.params.id || "");
+    if (!(await canAccessRoom(req.user, "GROUP", groupId))) {
+      return res.status(403).json({ error: "You do not have access to this group" });
+    }
+    const existingGroup = await prisma.chatGroup.findUnique({
+      where: { id: groupId },
+      select: { id: true, name: true },
+    });
+    if (!existingGroup) {
+      return res.status(404).json({ error: "Group not found" });
+    }
+    if (!isDirectGroupMemberEditable(existingGroup)) {
+      return res.status(400).json({ error: "One-to-one chats cannot add members" });
+    }
     const memberIds = Array.isArray(req.body.memberIds) ? req.body.memberIds.map(String) : [];
     if (!memberIds.length) {
       return res.status(400).json({ error: "memberIds array is required" });
@@ -891,6 +1034,19 @@ export async function removeChatGroupMember(req, res) {
       return res.status(403).json({ error: "Only admin, manager, or superadmin can remove members" });
     }
     const groupId = String(req.params.id || "");
+    if (!(await canAccessRoom(req.user, "GROUP", groupId))) {
+      return res.status(403).json({ error: "You do not have access to this group" });
+    }
+    const existingGroup = await prisma.chatGroup.findUnique({
+      where: { id: groupId },
+      select: { id: true, name: true },
+    });
+    if (!existingGroup) {
+      return res.status(404).json({ error: "Group not found" });
+    }
+    if (!isDirectGroupMemberEditable(existingGroup)) {
+      return res.status(400).json({ error: "One-to-one chats cannot remove members" });
+    }
     const userId = String(req.params.userId || "");
     await prisma.chatGroupMember.deleteMany({
       where: { groupId, userId },

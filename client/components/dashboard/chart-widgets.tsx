@@ -192,6 +192,41 @@ export function PerformanceBars({ title, subtitle, items }: { title: string; sub
 }
 
 export function HeatmapGrid({ title, subtitle, items }: { title: string; subtitle: string; items: Array<{ date: string; label: string; value: number; intensity: number }> }) {
+  const today = new Date();
+  const todayKey = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+
+  function getHeatmapStyles(intensity: number, isToday: boolean) {
+    if (intensity <= 0) {
+      return {
+        background: "var(--surface-soft)",
+        borderColor: isToday ? "var(--accent)" : "var(--border)",
+        boxShadow: isToday ? "0 0 0 1px color-mix(in srgb, var(--accent) 40%, transparent) inset" : "none",
+      };
+    }
+
+    if (intensity < 30) {
+      return {
+        background: "color-mix(in srgb, var(--accent) 20%, var(--surface-soft))",
+        borderColor: isToday ? "var(--accent-strong)" : "color-mix(in srgb, var(--accent) 35%, var(--border))",
+        boxShadow: isToday ? "0 0 0 1px color-mix(in srgb, var(--accent-strong) 40%, transparent) inset" : "none",
+      };
+    }
+
+    if (intensity < 65) {
+      return {
+        background: "color-mix(in srgb, var(--accent) 42%, var(--surface-soft))",
+        borderColor: isToday ? "var(--accent-strong)" : "color-mix(in srgb, var(--accent) 50%, var(--border))",
+        boxShadow: isToday ? "0 0 0 1px color-mix(in srgb, var(--accent-strong) 45%, transparent) inset" : "none",
+      };
+    }
+
+    return {
+      background: "linear-gradient(180deg, color-mix(in srgb, var(--accent-strong) 82%, var(--surface-soft)), color-mix(in srgb, var(--accent) 66%, var(--surface-soft)))",
+      borderColor: isToday ? "var(--accent-strong)" : "color-mix(in srgb, var(--accent-strong) 55%, var(--border))",
+      boxShadow: isToday ? "0 0 0 1px color-mix(in srgb, var(--accent-strong) 55%, transparent) inset" : "none",
+    };
+  }
+
   return (
     <Surface className="p-5">
       <p className="text-sm font-semibold text-[var(--text-main)]">{title}</p>
@@ -199,7 +234,11 @@ export function HeatmapGrid({ title, subtitle, items }: { title: string; subtitl
       <div className="mt-5 grid grid-cols-7 gap-2">
         {items.map((item) => (
           <div key={item.date} className="space-y-1 text-center">
-            <div className="h-9 rounded-xl border" title={`${item.label}: ${item.value}`} style={{ borderColor: "var(--border)", background: `linear-gradient(180deg, color-mix(in srgb, var(--accent) ${Math.max(10, item.intensity)}%, var(--surface-soft)), var(--surface-soft))` }} />
+            <div
+              className="h-9 rounded-xl border transition-all"
+              title={`${item.label}: ${item.value}`}
+              style={getHeatmapStyles(item.intensity, item.date === todayKey)}
+            />
             <p className="text-[10px] text-[var(--text-faint)]">{item.label.split(" ")[1] ?? item.label}</p>
           </div>
         ))}

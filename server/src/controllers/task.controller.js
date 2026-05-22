@@ -81,6 +81,43 @@ function isLeadership(role) {
   return role === "SUPERADMIN" || role === "ADMIN" || role === "MANAGER";
 }
 
+function isSuperAdmin(role) {
+  return role === "SUPERADMIN";
+}
+
+async function getCurrentUserDepartmentId(userId) {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { departmentId: true },
+  });
+  return user?.departmentId ?? null;
+}
+
+function getDepartmentScopedTaskWhere(departmentId) {
+  if (!departmentId) {
+    return { id: "__no_tasks_without_department__" };
+  }
+
+  return {
+    OR: [
+      { project: { departmentId } },
+      { assignments: { some: { user: { departmentId } } } },
+    ],
+  };
+}
+
+function canAccessTaskByDepartment(task, departmentId) {
+  if (!departmentId) {
+    return false;
+  }
+
+  if (task.project?.departmentId === departmentId) {
+    return true;
+  }
+
+  return task.assignments.some((assignment) => assignment.user?.departmentId === departmentId);
+}
+
 const TASK_PRIORITIES = new Set(["LOW", "MEDIUM", "HIGH", "URGENT"]);
 
 function normalizePriority(value, fallback = "MEDIUM") {
@@ -228,16 +265,9 @@ export async function getTasks(_req, res) {
     const projectFilter = _req.query.projectId
       ? { projectId: _req.query.projectId }
       : {};
-    const roleWhere =
-      _req.user.role === "SUPERADMIN" || _req.user.role === "ADMIN" || _req.user.role === "MANAGER"
-        ? {}
-        : {
-            assignments: {
-              some: {
-                userId: _req.user.userId,
-              },
-            },
-          };
+    const roleWhere = isSuperAdmin(_req.user.role)
+      ? {}
+      : getDepartmentScopedTaskWhere(await getCurrentUserDepartmentId(_req.user.userId));
     const where = {
       ...roleWhere,
       ...projectFilter,
@@ -301,13 +331,35 @@ export async function updateTaskStatus(req, res) {
     const existingTask = await prisma.task.findUnique({
       where: { id: req.params.id },
       include: {
-        assignments: true,
+        assignments: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                departmentId: true,
+              },
+            },
+          },
+        },
         checklistItems: true,
+        project: {
+          select: {
+            id: true,
+            departmentId: true,
+          },
+        },
       },
     });
 
     if (!existingTask) {
       return res.status(404).json({ error: "Task not found" });
+    }
+
+    if (!isSuperAdmin(req.user.role)) {
+      const departmentId = await getCurrentUserDepartmentId(req.user.userId);
+      if (!canAccessTaskByDepartment(existingTask, departmentId)) {
+        return res.status(403).json({ error: "You are not allowed to access this task" });
+      }
     }
 
     const previousAssigneeIds = existingTask.assignments.map((assignment) => assignment.userId);
@@ -475,11 +527,32 @@ export async function deleteTask(req, res) {
       select: {
         id: true,
         projectId: true,
+        project: {
+          select: {
+            departmentId: true,
+          },
+        },
+        assignments: {
+          select: {
+            user: {
+              select: {
+                departmentId: true,
+              },
+            },
+          },
+        },
       },
     });
 
     if (!existingTask) {
       return res.status(404).json({ error: "Task not found" });
+    }
+
+    if (!isSuperAdmin(req.user.role)) {
+      const departmentId = await getCurrentUserDepartmentId(req.user.userId);
+      if (!canAccessTaskByDepartment(existingTask, departmentId)) {
+        return res.status(403).json({ error: "You are not allowed to access this task" });
+      }
     }
 
     await prisma.task.delete({
@@ -512,7 +585,22 @@ export async function toggleChecklistItem(req, res) {
       include: {
         task: {
           include: {
-            assignments: true,
+            assignments: {
+              include: {
+                user: {
+                  select: {
+                    id: true,
+                    departmentId: true,
+                  },
+                },
+              },
+            },
+            project: {
+              select: {
+                id: true,
+                departmentId: true,
+              },
+            },
           },
         },
       },
@@ -520,6 +608,13 @@ export async function toggleChecklistItem(req, res) {
 
     if (!item) {
       return res.status(404).json({ error: "Checklist item not found" });
+    }
+
+    if (!isSuperAdmin(req.user.role)) {
+      const departmentId = await getCurrentUserDepartmentId(req.user.userId);
+      if (!canAccessTaskByDepartment(item.task, departmentId)) {
+        return res.status(403).json({ error: "You are not allowed to access this task" });
+      }
     }
 
     const canUpdate =
@@ -572,12 +667,34 @@ export async function createTaskIssue(req, res) {
     const task = await prisma.task.findUnique({
       where: { id: req.params.id },
       include: {
-        assignments: true,
+        assignments: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                departmentId: true,
+              },
+            },
+          },
+        },
+        project: {
+          select: {
+            id: true,
+            departmentId: true,
+          },
+        },
       },
     });
 
     if (!task) {
       return res.status(404).json({ error: "Task not found" });
+    }
+
+    if (!isSuperAdmin(req.user.role)) {
+      const departmentId = await getCurrentUserDepartmentId(req.user.userId);
+      if (!canAccessTaskByDepartment(task, departmentId)) {
+        return res.status(403).json({ error: "You are not allowed to access this task" });
+      }
     }
 
     const canReport =
@@ -669,9 +786,19 @@ export async function respondToTaskIssue(req, res) {
             id: true,
             title: true,
             projectId: true,
+            project: {
+              select: {
+                departmentId: true,
+              },
+            },
             assignments: {
               select: {
                 userId: true,
+                user: {
+                  select: {
+                    departmentId: true,
+                  },
+                },
               },
             },
           },
@@ -681,6 +808,13 @@ export async function respondToTaskIssue(req, res) {
 
     if (!issue) {
       return res.status(404).json({ error: "Issue not found" });
+    }
+
+    if (!isSuperAdmin(req.user.role)) {
+      const departmentId = await getCurrentUserDepartmentId(req.user.userId);
+      if (!canAccessTaskByDepartment(issue.task, departmentId)) {
+        return res.status(403).json({ error: "You are not allowed to access this task" });
+      }
     }
 
     const canRespond =

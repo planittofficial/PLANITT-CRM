@@ -43,15 +43,23 @@ export function useProjectsData() {
   const [projectTeamRole, setProjectTeamRole] = useState<MemberRoleFilter>("ALL");
   const [projectMemberDraftIds, setProjectMemberDraftIds] = useState<string[]>([]);
   const [savingProjectMembers, setSavingProjectMembers] = useState(false);
+  const [metaLoaded, setMetaLoaded] = useState(false);
 
   const fieldStyle = { borderColor: "var(--border)", background: "var(--surface-soft)", color: "var(--text-main)" } as const;
 
+  const loadProjectMeta = async () => {
+    const [depts, users] = await Promise.all([apiGet<Department[]>("/departments"), apiGet<CRMUser[]>("/users")]);
+    setDepartments(depts);
+    setTeam(users);
+    setMetaLoaded(true);
+  };
+
   const loadProjects = async (append = false) => {
     const offset = append ? nextProjectOffset : 0;
-    const [page, depts, users] = await Promise.all([apiGet<PaginatedResponse<Project>>(`/projects?paginate=true&limit=20&offset=${offset}`), apiGet<Department[]>("/departments"), apiGet<CRMUser[]>("/users")]);
+    const page = await apiGet<PaginatedResponse<Project>>(`/projects?paginate=true&limit=20&offset=${offset}`);
     setProjects((cur) => (append ? [...cur, ...page.items] : page.items));
-    setHasMoreProjects(page.hasMore); setNextProjectOffset(page.nextOffset);
-    setDepartments(depts); setTeam(users);
+    setHasMoreProjects(page.hasMore);
+    setNextProjectOffset(page.nextOffset);
     if (!selectedProjectId && page.items[0]) setSelectedProjectId(page.items[0].id);
   };
 
@@ -62,12 +70,28 @@ export function useProjectsData() {
 
   useEffect(() => {
     if (!user) return;
-    void loadProjects(false).catch((err) => setError(err instanceof Error ? err.message : "Failed to load projects")).finally(() => setLoading(false));
+    async function boot() {
+      try {
+        setError("");
+        await Promise.all([loadProjects(false), loadProjectMeta()]);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Failed to load projects");
+      } finally {
+        setLoading(false);
+      }
+    }
+    void boot();
   }, [user]);
 
   useEffect(() => { if (!selectedProjectId) { setTasks([]); return; } void loadProjectTasks(selectedProjectId); }, [selectedProjectId]);
 
-  useRealtimeRefresh(user, ["project:updated", "task:updated", "org:updated"], async () => { await loadProjects(); if (selectedProjectId) await loadProjectTasks(selectedProjectId); });
+  useRealtimeRefresh(user, ["project:updated", "task:updated", "org:updated"], async () => {
+    await loadProjects();
+    if (!metaLoaded) {
+      await loadProjectMeta();
+    }
+    if (selectedProjectId) await loadProjectTasks(selectedProjectId);
+  });
 
   const selectedProject = useMemo(() => projects.find((p) => p.id === selectedProjectId) ?? null, [projects, selectedProjectId]);
 

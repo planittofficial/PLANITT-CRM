@@ -8,6 +8,7 @@ import { renderSessionGate } from "@/components/shared/session-gate";
 import { useRealtimeRefresh } from "@/hooks/use-realtime-refresh";
 import { useSession } from "@/hooks/use-session";
 import { MemberPickerToolbar, type MemberRoleFilter } from "@/components/shared/member-picker-toolbar";
+import { LoadingRows } from "@/components/shared/loading-skeleton";
 import { usePaginatedDirectoryUsers } from "@/hooks/use-paginated-directory-users";
 import { apiGet, apiPost } from "@/lib/api";
 import { getTaskAssignableRoles, isAdminRole } from "@/lib/dashboard";
@@ -415,7 +416,7 @@ function TasksPageContent() {
               </span>
             </div>
 
-            {loading ? <p className="mt-6 text-sm text-[var(--text-soft)]">Loading tasks...</p> : null}
+            {loading ? <div className="mt-6"><LoadingRows rows={6} /></div> : null}
             {!loading && error ? <p className="mt-6 text-sm font-medium text-rose-600">{error}</p> : null}
 
             <div className="mt-6 max-h-[min(70vh,900px)] overflow-y-auto pr-1">

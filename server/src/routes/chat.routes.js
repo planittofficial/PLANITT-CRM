@@ -4,6 +4,7 @@ import {
   addChatGroupMembers,
   clearChatLocal,
   createChatGroup,
+  startDirectChat,
   createChatMessage,
   deleteChatMedia,
   deleteChatMediaBulk,
@@ -39,6 +40,7 @@ const upload = multer({
 
 router.get("/rooms", authMiddleware, getChatRooms);
 router.post("/groups", authMiddleware, authorizeRoles("SUPERADMIN", "ADMIN", "MANAGER"), createChatGroup);
+router.post("/direct", authMiddleware, authorizeRoles("SUPERADMIN", "ADMIN", "MANAGER"), startDirectChat);
 router.get("/groups/:id", authMiddleware, getChatGroupById);
 router.get("/groups/:id/members", authMiddleware, getChatGroupMembers);
 router.put("/groups/:id", authMiddleware, authorizeRoles("SUPERADMIN", "ADMIN", "MANAGER"), updateChatGroup);
