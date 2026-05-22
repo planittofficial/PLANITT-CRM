@@ -418,7 +418,7 @@ All API routes are mounted under `/api`.
 | Method | Endpoint | Purpose |
 | --- | --- | --- |
 | GET | `/chat/rooms` | List accessible department/project rooms. |
-| GET | `/chat/messages` | Get messages for a room. |
+| GET | `/chat/messages` | Get messages for a room. | 
 | POST | `/chat/messages` | Send message. |
 
 ### Google Workspace
