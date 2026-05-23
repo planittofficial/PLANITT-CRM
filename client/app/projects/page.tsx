@@ -147,6 +147,9 @@ export default function ProjectsPage() {
                         {TASK_PRIORITY_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
                       </select>
                     </label>
+                    <label className="grid gap-2"><span className="text-sm font-medium text-[var(--text-main)]">Deadline</span>
+                      <input type="datetime-local" className="h-12 rounded-2xl border px-4 text-sm outline-none" style={FIELD_STYLE} value={taskForm.deadlineAt} onChange={(e) => setTaskForm((c) => ({ ...c, deadlineAt: e.target.value }))} />
+                    </label>
                     <textarea className="min-h-28 rounded-2xl border px-4 py-3 outline-none" style={FIELD_STYLE} placeholder={"Subtasks checklist, one per line\nExample:\nBuild UI\nConnect API\nQA and deploy"} value={taskForm.checklistText} onChange={(e) => setTaskForm((c) => ({ ...c, checklistText: e.target.value }))} />
                   </div>
                   <div>

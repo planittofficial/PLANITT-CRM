@@ -36,6 +36,7 @@ export function TaskList({
   initialIssueTaskId = null,
   initialIssueId = null,
 }: TaskListProps) {
+  const [now, setNow] = useState(() => Date.now());
   const [savingId, setSavingId] = useState<string | null>(null);
   const [issueDrafts, setIssueDrafts] = useState<
     Record<string, { title: string; description: string }>
@@ -45,7 +46,7 @@ export function TaskList({
   const [editForms, setEditForms] = useState<
     Record<
       string,
-      { title: string; description: string; userIds: string[]; checklistText: string; priority: TaskPriority }
+      { title: string; description: string; userIds: string[]; checklistText: string; priority: TaskPriority; deadlineAt: string }
     >
   >({});
   const [issuePanelTaskId, setIssuePanelTaskId] = useState<string | null>(null);
@@ -116,6 +117,44 @@ export function TaskList({
 
   const taskGroups = useMemo(() => groupTasksByAssignees(tasks), [tasks]);
 
+  useEffect(() => {
+    const timer = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => window.clearInterval(timer);
+  }, []);
+
+  const toLocalDateTimeInput = (value?: string | null) => {
+    if (!value) {
+      return "";
+    }
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) {
+      return "";
+    }
+    const offset = date.getTimezoneOffset();
+    const local = new Date(date.getTime() - offset * 60000);
+    return local.toISOString().slice(0, 16);
+  };
+
+  const getCountdownLabel = (deadlineAt?: string | null) => {
+    if (!deadlineAt) {
+      return null;
+    }
+    const deadline = new Date(deadlineAt).getTime();
+    if (Number.isNaN(deadline)) {
+      return null;
+    }
+    const diff = deadline - now;
+    const abs = Math.abs(diff);
+    const days = Math.floor(abs / 86400000);
+    const hours = Math.floor((abs % 86400000) / 3600000);
+    const minutes = Math.floor((abs % 3600000) / 60000);
+    const parts = [];
+    if (days) parts.push(`${days}d`);
+    if (hours || days) parts.push(`${hours}h`);
+    parts.push(`${minutes}m`);
+    return `${diff >= 0 ? "Time left" : "Overdue by"} ${parts.join(" ")}`;
+  };
+
   const openEditTask = (task: Task) => {
     setEditingTaskId(task.id);
     setEditForms((current) => ({
@@ -126,6 +165,7 @@ export function TaskList({
         userIds: task.assignments.map((assignment) => assignment.userId),
         checklistText: task.checklistItems.map((item) => item.title).join("\n"),
         priority: task.priority ?? "MEDIUM",
+        deadlineAt: toLocalDateTimeInput(task.deadlineAt),
       },
     }));
   };
@@ -233,6 +273,7 @@ export function TaskList({
         description: form.description,
         userIds: form.userIds,
         priority: form.priority,
+        deadlineAt: form.deadlineAt || null,
         checklistItems: form.checklistText
           .split("\n")
           .map((item) => item.trim())
@@ -289,6 +330,10 @@ export function TaskList({
               const showAssigneeChips = !group.key.startsWith("user:");
               const showInlineStatusSelect = canManageTask(task) && !task.checklistItems.length;
               const showPrioritySelect = canManageTask(task);
+              const shouldShowTimer =
+                task.assignments.some((assignment) => assignment.userId === user.id) ||
+                task.assignedById === user.id;
+              const countdownLabel = shouldShowTimer ? getCountdownLabel(task.deadlineAt) : null;
               return (
               <article
                 key={task.id}
@@ -370,6 +415,14 @@ export function TaskList({
                         </div>
                       </div>
                 <p className="mt-1 text-sm leading-relaxed text-[var(--text-soft)]">{task.description || "No description"}</p>
+                {task.deadlineAt ? (
+                  <p className="mt-1 text-xs text-[var(--text-soft)]">
+                    Deadline: {new Date(task.deadlineAt).toLocaleString()}
+                  </p>
+                ) : null}
+                {countdownLabel ? (
+                  <p className="mt-1 text-xs font-semibold text-[var(--accent-strong)]">{countdownLabel}</p>
+                ) : null}
               </div>
 
               <div className="flex flex-wrap items-center gap-2">
@@ -499,6 +552,7 @@ export function TaskList({
                         userIds: [],
                         checklistText: "",
                         priority: "MEDIUM" as TaskPriority,
+                        deadlineAt: "",
                       }),
                       title: event.target.value,
                     },
@@ -519,6 +573,7 @@ export function TaskList({
                         userIds: [],
                         checklistText: "",
                         priority: "MEDIUM" as TaskPriority,
+                        deadlineAt: "",
                       }),
                       description: event.target.value,
                     },
@@ -540,9 +595,10 @@ export function TaskList({
                             title: "",
                             description: "",
                             userIds: [],
-                            checklistText: "",
-                            priority: "MEDIUM" as TaskPriority,
-                          }),
+                          checklistText: "",
+                          priority: "MEDIUM" as TaskPriority,
+                          deadlineAt: "",
+                        }),
                           priority: event.target.value as TaskPriority,
                         },
                       }))
@@ -556,6 +612,31 @@ export function TaskList({
                   </select>
                 </label>
               ) : null}
+              <label className="grid gap-1.5">
+                <span className="text-xs font-semibold text-[var(--text-soft)]">Deadline</span>
+                <input
+                  type="datetime-local"
+                  className="h-11 rounded-md border px-3 text-sm outline-none"
+                  style={{ borderColor: "var(--border)", background: "var(--surface)", color: "var(--text-main)" }}
+                  value={editForms[task.id]?.deadlineAt ?? ""}
+                  onChange={(event) =>
+                    setEditForms((current) => ({
+                      ...current,
+                      [task.id]: {
+                        ...(current[task.id] ?? {
+                          title: "",
+                          description: "",
+                          userIds: [],
+                          checklistText: "",
+                          priority: "MEDIUM" as TaskPriority,
+                          deadlineAt: "",
+                        }),
+                        deadlineAt: event.target.value,
+                      },
+                    }))
+                  }
+                />
+              </label>
               <textarea
                 className="min-h-24 rounded-md border px-3 py-3 text-sm outline-none"
                 style={{ borderColor: "var(--border)", background: "var(--surface)", color: "var(--text-main)" }}
@@ -571,6 +652,7 @@ export function TaskList({
                         userIds: [],
                         checklistText: "",
                         priority: "MEDIUM" as TaskPriority,
+                        deadlineAt: "",
                       }),
                       checklistText: event.target.value,
                     },

@@ -93,20 +93,32 @@ async function getCurrentUserDepartmentId(userId) {
   return user?.departmentId ?? null;
 }
 
-function getDepartmentScopedTaskWhere(departmentId) {
+function getDepartmentScopedTaskWhere(departmentId, userId) {
   if (!departmentId) {
-    return { id: "__no_tasks_without_department__" };
+    return {
+      OR: [{ assignedById: userId }, { assignments: { some: { userId } } }],
+    };
   }
 
   return {
     OR: [
       { project: { departmentId } },
       { assignments: { some: { user: { departmentId } } } },
+      { assignedById: userId },
+      { assignments: { some: { userId } } },
     ],
   };
 }
 
-function canAccessTaskByDepartment(task, departmentId) {
+function canAccessTaskByDepartment(task, departmentId, userId) {
+  if (task.assignedById === userId) {
+    return true;
+  }
+
+  if (task.assignments.some((assignment) => assignment.userId === userId)) {
+    return true;
+  }
+
   if (!departmentId) {
     return false;
   }
@@ -128,6 +140,17 @@ function normalizePriority(value, fallback = "MEDIUM") {
 }
 
 const LEADERSHIP_ROLES = ["SUPERADMIN", "ADMIN", "MANAGER"];
+
+function parseDeadlineInput(value) {
+  if (value === null || value === undefined || value === "") {
+    return null;
+  }
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) {
+    return "INVALID";
+  }
+  return parsed;
+}
 
 async function validateProjectTaskAssignees(projectId, userIds) {
   if (!projectId || !Array.isArray(userIds) || userIds.length === 0) {
@@ -164,7 +187,7 @@ async function validateProjectTaskAssignees(projectId, userIds) {
 
 export async function createTask(req, res) {
   try {
-    const { title, description, userIds = [], progress = 0, checklistItems = [], projectId, priority } =
+    const { title, description, userIds = [], progress = 0, checklistItems = [], projectId, priority, deadlineAt } =
       req.body;
 
     if (!title) {
@@ -195,11 +218,18 @@ export async function createTask(req, res) {
       }
     }
 
+    const parsedDeadline = parseDeadlineInput(deadlineAt);
+    if (parsedDeadline === "INVALID") {
+      return res.status(400).json({ error: "Deadline is not a valid date-time value" });
+    }
+
     const task = await prisma.task.create({
       data: {
         title,
         description,
         priority: normalizePriority(priority),
+        deadlineAt: parsedDeadline,
+        assignedById: userIds.length ? req.user.userId : null,
         ...(projectId ? { projectId } : {}),
         status: initialStatus,
         progress: normalizedProgress,
@@ -267,7 +297,10 @@ export async function getTasks(_req, res) {
       : {};
     const roleWhere = isSuperAdmin(_req.user.role)
       ? {}
-      : getDepartmentScopedTaskWhere(await getCurrentUserDepartmentId(_req.user.userId));
+      : getDepartmentScopedTaskWhere(
+          await getCurrentUserDepartmentId(_req.user.userId),
+          _req.user.userId
+        );
     const where = {
       ...roleWhere,
       ...projectFilter,
@@ -314,7 +347,7 @@ export async function getTasks(_req, res) {
 
 export async function updateTaskStatus(req, res) {
   try {
-    const { status, progress, title, description, userIds, checklistItems, priority } = req.body;
+    const { status, progress, title, description, userIds, checklistItems, priority, deadlineAt } = req.body;
 
     const isStructurePayload =
       typeof title === "string" ||
@@ -323,8 +356,9 @@ export async function updateTaskStatus(req, res) {
       Array.isArray(checklistItems);
 
     const hasPriorityUpdate = typeof priority === "string";
+    const hasDeadlineUpdate = Object.prototype.hasOwnProperty.call(req.body, "deadlineAt");
 
-    if (!isStructurePayload && !hasPriorityUpdate && !status && typeof progress !== "number") {
+    if (!isStructurePayload && !hasPriorityUpdate && !hasDeadlineUpdate && !status && typeof progress !== "number") {
       return res.status(400).json({ error: "Task update payload is empty" });
     }
 
@@ -357,7 +391,7 @@ export async function updateTaskStatus(req, res) {
 
     if (!isSuperAdmin(req.user.role)) {
       const departmentId = await getCurrentUserDepartmentId(req.user.userId);
-      if (!canAccessTaskByDepartment(existingTask, departmentId)) {
+      if (!canAccessTaskByDepartment(existingTask, departmentId, req.user.userId)) {
         return res.status(403).json({ error: "You are not allowed to access this task" });
       }
     }
@@ -373,7 +407,7 @@ export async function updateTaskStatus(req, res) {
       return res.status(403).json({ error: "You are not allowed to update this task" });
     }
 
-    if (isStructurePayload && !isLeader) {
+    if ((isStructurePayload || hasDeadlineUpdate) && !isLeader) {
       return res.status(403).json({ error: "Only leadership can modify task details" });
     }
 
@@ -386,7 +420,12 @@ export async function updateTaskStatus(req, res) {
       }
     }
 
-    const emitAsStructureChange = isStructurePayload || hasPriorityUpdate;
+    const emitAsStructureChange = isStructurePayload || hasPriorityUpdate || hasDeadlineUpdate;
+
+    const parsedDeadline = hasDeadlineUpdate ? parseDeadlineInput(deadlineAt) : undefined;
+    if (parsedDeadline === "INVALID") {
+      return res.status(400).json({ error: "Deadline is not a valid date-time value" });
+    }
 
     const normalizedChecklistItems = Array.isArray(checklistItems)
       ? checklistItems
@@ -467,6 +506,8 @@ export async function updateTaskStatus(req, res) {
         ...(hasPriorityUpdate
           ? { priority: normalizePriority(priority, existingTask.priority ?? "MEDIUM") }
           : {}),
+        ...(hasDeadlineUpdate ? { deadlineAt: parsedDeadline } : {}),
+        ...(Array.isArray(userIds) ? { assignedById: userIds.length ? req.user.userId : null } : {}),
         status: normalizedChecklistItems && normalizedChecklistItems.length ? "TODO" : nextStatus,
         progress: normalizedChecklistItems && normalizedChecklistItems.length ? 0 : normalizedProgress,
       };
@@ -550,7 +591,7 @@ export async function deleteTask(req, res) {
 
     if (!isSuperAdmin(req.user.role)) {
       const departmentId = await getCurrentUserDepartmentId(req.user.userId);
-      if (!canAccessTaskByDepartment(existingTask, departmentId)) {
+      if (!canAccessTaskByDepartment(existingTask, departmentId, req.user.userId)) {
         return res.status(403).json({ error: "You are not allowed to access this task" });
       }
     }
@@ -612,7 +653,7 @@ export async function toggleChecklistItem(req, res) {
 
     if (!isSuperAdmin(req.user.role)) {
       const departmentId = await getCurrentUserDepartmentId(req.user.userId);
-      if (!canAccessTaskByDepartment(item.task, departmentId)) {
+      if (!canAccessTaskByDepartment(item.task, departmentId, req.user.userId)) {
         return res.status(403).json({ error: "You are not allowed to access this task" });
       }
     }
@@ -692,7 +733,7 @@ export async function createTaskIssue(req, res) {
 
     if (!isSuperAdmin(req.user.role)) {
       const departmentId = await getCurrentUserDepartmentId(req.user.userId);
-      if (!canAccessTaskByDepartment(task, departmentId)) {
+      if (!canAccessTaskByDepartment(task, departmentId, req.user.userId)) {
         return res.status(403).json({ error: "You are not allowed to access this task" });
       }
     }
@@ -812,7 +853,7 @@ export async function respondToTaskIssue(req, res) {
 
     if (!isSuperAdmin(req.user.role)) {
       const departmentId = await getCurrentUserDepartmentId(req.user.userId);
-      if (!canAccessTaskByDepartment(issue.task, departmentId)) {
+      if (!canAccessTaskByDepartment(issue.task, departmentId, req.user.userId)) {
         return res.status(403).json({ error: "You are not allowed to access this task" });
       }
     }

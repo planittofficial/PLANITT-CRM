@@ -173,6 +173,8 @@ export type Task = {
   id: string;
   title: string;
   description?: string | null;
+  deadlineAt?: string | null;
+  assignedById?: string | null;
   status: "TODO" | "IN_PROGRESS" | "DONE";
   priority: TaskPriority;
   progress: number;

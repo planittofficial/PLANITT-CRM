@@ -51,6 +51,7 @@ function TasksPageContent() {
     progress: 0,
     checklistText: "",
     priority: "MEDIUM" as TaskPriority,
+    deadlineAt: "",
   });
   const [assignPickerQuery, setAssignPickerQuery] = useState("");
   const [assignPickerRole, setAssignPickerRole] = useState<MemberRoleFilter>("ALL");
@@ -163,12 +164,13 @@ function TasksPageContent() {
         userIds: form.userIds,
         progress: form.progress,
         priority: form.priority,
+        deadlineAt: form.deadlineAt || null,
         checklistItems: form.checklistText
           .split("\n")
           .map((item) => item.trim())
           .filter(Boolean),
       });
-      setForm({ title: "", description: "", userIds: [], progress: 0, checklistText: "", priority: "MEDIUM" });
+      setForm({ title: "", description: "", userIds: [], progress: 0, checklistText: "", priority: "MEDIUM", deadlineAt: "" });
       setNotice("Task created successfully.");
       await loadTasks(false);
     } catch (err) {
@@ -253,6 +255,18 @@ function TasksPageContent() {
                     setForm((current) => ({ ...current, description: event.target.value }))
                   }
                 />
+                <label className="grid gap-2">
+                  <span className="text-sm font-medium text-[var(--text-main)]">Deadline</span>
+                  <input
+                    type="datetime-local"
+                    className="h-12 rounded-2xl border px-4 text-sm outline-none"
+                    style={fieldStyle}
+                    value={form.deadlineAt}
+                    onChange={(event) =>
+                      setForm((current) => ({ ...current, deadlineAt: event.target.value }))
+                    }
+                  />
+                </label>
                 <label className="grid gap-2">
                   <span className="text-sm font-medium text-[var(--text-main)]">Priority</span>
                   <select

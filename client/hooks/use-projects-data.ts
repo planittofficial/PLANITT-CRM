@@ -15,8 +15,8 @@ export { TASK_PRIORITY_OPTIONS };
 type PaginatedResponse<T> = { items: T[]; total: number; hasMore: boolean; nextOffset: number };
 const PROJECT_MEMBER_ROLES: UserRole[] = ["ADMIN", "MANAGER", "EMPLOYEE", "INTERN"];
 
-export type TaskFormState = { title: string; description: string; userIds: string[]; checklistText: string; priority: TaskPriority };
-const EMPTY_TASK_FORM: TaskFormState = { title: "", description: "", userIds: [], checklistText: "", priority: "MEDIUM" };
+export type TaskFormState = { title: string; description: string; userIds: string[]; checklistText: string; priority: TaskPriority; deadlineAt: string };
+const EMPTY_TASK_FORM: TaskFormState = { title: "", description: "", userIds: [], checklistText: "", priority: "MEDIUM", deadlineAt: "" };
 
 export function useProjectsData() {
   const { user, loading: sessionLoading, error: sessionError, retry: retrySession } = useSession({ allowedRoles: ["SUPERADMIN", "ADMIN", "MANAGER"] });
@@ -144,7 +144,7 @@ export function useProjectsData() {
     if (!selectedProjectId) return;
     try {
       setCreatingTask(true); setError(""); setNotice("");
-      await apiPost("/tasks", { ...taskForm, projectId: selectedProjectId, checklistItems: taskForm.checklistText.split("\n").map((x) => x.trim()).filter(Boolean) });
+      await apiPost("/tasks", { ...taskForm, deadlineAt: taskForm.deadlineAt || null, projectId: selectedProjectId, checklistItems: taskForm.checklistText.split("\n").map((x) => x.trim()).filter(Boolean) });
       setTaskForm(EMPTY_TASK_FORM); setNotice("Task added to project."); await loadProjectTasks(selectedProjectId); await loadProjects(false);
     } catch (err) { setError(err instanceof Error ? err.message : "Failed to create project task"); }
     finally { setCreatingTask(false); }
@@ -160,13 +160,23 @@ export function useProjectsData() {
     catch (err) { setError(err instanceof Error ? err.message : "Failed to update priority"); }
   };
 
-  const openTaskEditor = (task: Task) => { setEditingTaskId(task.id); setEditTaskForm({ title: task.title, description: task.description ?? "", userIds: task.assignments.map((a) => a.userId), checklistText: task.checklistItems.map((x) => x.title).join("\n"), priority: task.priority ?? "MEDIUM" }); };
+  const openTaskEditor = (task: Task) => {
+    const localDeadline = task.deadlineAt
+      ? (() => {
+          const date = new Date(task.deadlineAt);
+          const offset = date.getTimezoneOffset();
+          return new Date(date.getTime() - offset * 60000).toISOString().slice(0, 16);
+        })()
+      : "";
+    setEditingTaskId(task.id);
+    setEditTaskForm({ title: task.title, description: task.description ?? "", userIds: task.assignments.map((a) => a.userId), checklistText: task.checklistItems.map((x) => x.title).join("\n"), priority: task.priority ?? "MEDIUM", deadlineAt: localDeadline });
+  };
 
   const saveTaskEdits = async () => {
     if (!editingTaskId) return;
     try {
       setError(""); setNotice("");
-      await apiPut(`/tasks/${editingTaskId}`, { ...editTaskForm, checklistItems: editTaskForm.checklistText.split("\n").map((x) => x.trim()).filter(Boolean) });
+      await apiPut(`/tasks/${editingTaskId}`, { ...editTaskForm, deadlineAt: editTaskForm.deadlineAt || null, checklistItems: editTaskForm.checklistText.split("\n").map((x) => x.trim()).filter(Boolean) });
       setEditingTaskId(""); setNotice("Task updated successfully.");
       if (selectedProjectId) await loadProjectTasks(selectedProjectId); await loadProjects();
     } catch (err) { setError(err instanceof Error ? err.message : "Failed to update task"); }

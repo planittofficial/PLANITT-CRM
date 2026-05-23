@@ -31,6 +31,7 @@ model User {
   ownedProjects             Project[]
   projectMemberships        ProjectMember[]
   assignments               TaskAssignment[]
+  assignedTasksCreated      Task[]                    @relation("TaskAssigner")
   reportedIssues            TaskIssue[]                @relation("ReportedIssues")
   resolvedIssues            TaskIssue[]                @relation("ResolvedIssues")
   createdBy                 User?                      @relation("UserCreator", fields: [createdById], references: [id])
@@ -88,11 +89,14 @@ model Task {
   description    String?
   status         TaskStatus          @default(TODO)
   priority       TaskPriority        @default(MEDIUM)
+  deadlineAt     DateTime?
+  assignedById   String?
   createdAt      DateTime            @default(now())
   updatedAt      DateTime            @updatedAt
   progress       Int                 @default(0)
   projectId      String?
   project        Project?            @relation(fields: [projectId], references: [id])
+  assignedBy     User?               @relation("TaskAssigner", fields: [assignedById], references: [id])
   assignments    TaskAssignment[]
   checklistItems TaskChecklistItem[]
   issues         TaskIssue[]

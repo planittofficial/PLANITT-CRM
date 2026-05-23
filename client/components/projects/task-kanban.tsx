@@ -5,7 +5,7 @@ import { TASK_PRIORITY_OPTIONS } from "@/lib/task-groups";
 import { groupTasksByAssignees } from "@/lib/task-groups";
 import type { CRMUser, Task, TaskPriority, UserRole } from "@/types/crm";
 
-type TaskFormState = { title: string; description: string; userIds: string[]; checklistText: string; priority: TaskPriority };
+type TaskFormState = { title: string; description: string; userIds: string[]; checklistText: string; priority: TaskPriority; deadlineAt: string };
 
 const COLUMNS: Array<{ key: Task["status"]; label: string; tone: string }> = [
   { key: "TODO", label: "Pending", tone: "bg-rose-500" },
@@ -79,6 +79,10 @@ export function TaskKanban({ groupedTasks, editingTaskId, editTaskForm, filtered
                               <select className="h-11 rounded-2xl border px-3 text-sm outline-none" style={FIELD_STYLE} value={editTaskForm.priority} onChange={(e) => onEditTaskFormChange("priority", e.target.value)}>
                                 {TASK_PRIORITY_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
                               </select>
+                            </label>
+                            <label className="grid gap-1.5">
+                              <span className="text-xs font-semibold text-[var(--text-soft)]">Deadline</span>
+                              <input type="datetime-local" className="h-11 rounded-2xl border px-3 text-sm outline-none" style={FIELD_STYLE} value={editTaskForm.deadlineAt} onChange={(e) => onEditTaskFormChange("deadlineAt", e.target.value)} />
                             </label>
                             <textarea className="min-h-24 rounded-2xl border px-3 py-3 text-sm outline-none" style={FIELD_STYLE} value={editTaskForm.checklistText} onChange={(e) => onEditTaskFormChange("checklistText", e.target.value)} />
                             <div className="grid gap-2">
