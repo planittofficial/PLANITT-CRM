@@ -110,6 +110,7 @@ export function TaskList({
   initialIssueTaskId = null,
   initialIssueId = null,
 }: TaskListProps) {
+  const [now, setNow] = useState(() => Date.now());
   const [savingId, setSavingId] = useState<string | null>(null);
   const [issueDrafts, setIssueDrafts] = useState<
     Record<string, { title: string; description: string }>
@@ -196,6 +197,44 @@ export function TaskList({
   );
 
   const taskGroups = useMemo(() => groupTasksByAssignees(tasks), [tasks]);
+
+  useEffect(() => {
+    const timer = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => window.clearInterval(timer);
+  }, []);
+
+  const toLocalDateTimeInput = (value?: string | null) => {
+    if (!value) {
+      return "";
+    }
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) {
+      return "";
+    }
+    const offset = date.getTimezoneOffset();
+    const local = new Date(date.getTime() - offset * 60000);
+    return local.toISOString().slice(0, 16);
+  };
+
+  const getCountdownLabel = (deadlineAt?: string | null) => {
+    if (!deadlineAt) {
+      return null;
+    }
+    const deadline = new Date(deadlineAt).getTime();
+    if (Number.isNaN(deadline)) {
+      return null;
+    }
+    const diff = deadline - now;
+    const abs = Math.abs(diff);
+    const days = Math.floor(abs / 86400000);
+    const hours = Math.floor((abs % 86400000) / 3600000);
+    const minutes = Math.floor((abs % 3600000) / 60000);
+    const parts = [];
+    if (days) parts.push(`${days}d`);
+    if (hours || days) parts.push(`${hours}h`);
+    parts.push(`${minutes}m`);
+    return `${diff >= 0 ? "Time left" : "Overdue by"} ${parts.join(" ")}`;
+  };
 
   const openEditTask = (task: Task) => {
     setEditingTaskId(task.id);
@@ -319,6 +358,7 @@ export function TaskList({
         description: descriptionWithDeadline,
         userIds: form.userIds,
         priority: form.priority,
+        deadlineAt: form.deadlineLocal ? new Date(form.deadlineLocal).toISOString() : null,
         checklistItems: form.checklistText
           .split("\n")
           .map((item) => item.trim())
@@ -365,8 +405,8 @@ export function TaskList({
             className="mb-3 flex flex-wrap items-center justify-between gap-2 border-b pb-3"
             style={{ borderColor: "var(--border)" }}
           >
-            <p className="text-sm font-semibold text-[var(--text-main)]">{group.label}</p>
-            <p className="text-xs text-[var(--text-soft)]">
+            <p className="text-sm font-semibold text-(--text-main)">{group.label}</p>
+            <p className="text-xs text-(--text-soft)">
               {group.tasks.length} task{group.tasks.length === 1 ? "" : "s"}
             </p>
           </div>
@@ -393,10 +433,10 @@ export function TaskList({
                     <div className="min-w-0 flex-1">
                       {deadline ? (
                         <div className="mb-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
-                          <span className="font-semibold text-[var(--accent-strong)]">
+                          <span className="font-semibold text-(--accent-strong)">
                             {getTimeLeftLabel(deadline)}
                           </span>
-                          <span className="text-[var(--text-soft)]">
+                          <span className="text-(--text-soft)">
                             Deadline: {deadline.toLocaleString()}
                           </span>
                           <span className={`rounded-md px-2 py-0.5 text-[10px] font-semibold ${deadlineBadge?.className ?? ""}`}>
@@ -409,7 +449,7 @@ export function TaskList({
                         </div>
                       )}
                       <div className="flex flex-wrap items-start gap-x-2 gap-y-2">
-                        <h3 className="line-clamp-2 min-w-0 flex-1 text-base font-semibold leading-snug text-[var(--text-main)]">
+                        <h3 className="line-clamp-2 min-w-0 flex-1 text-base font-semibold leading-snug text-(--text-main)">
                           {task.title}
                         </h3>
                         <div className="flex shrink-0 flex-wrap items-center gap-2 lg:hidden">
@@ -475,7 +515,7 @@ export function TaskList({
                         ) : null}
                         </div>
                       </div>
-                      <p className="mt-1 whitespace-pre-wrap break-words text-sm leading-relaxed text-[var(--text-soft)]">
+                      <p className="mt-1 whitespace-pre-wrap wrap-break-word text-sm leading-relaxed text-(--text-soft)">
                         {formattedDescription}
                       </p>
               </div>
@@ -598,8 +638,8 @@ export function TaskList({
 
             <div className="w-full">
               <div className="mb-1 flex items-center justify-between">
-                <p className="text-xs font-semibold text-[var(--text-soft)]">Progress</p>
-                <span className="text-xs font-semibold text-[var(--text-main)]">{task.progress}%</span>
+                <p className="text-xs font-semibold text-(--text-soft)">Progress</p>
+                <span className="text-xs font-semibold text-(--text-main)">{task.progress}%</span>
               </div>
               <div className="h-2 overflow-hidden rounded-full" style={{ background: "var(--surface-soft)" }}>
                 <div
@@ -644,7 +684,7 @@ export function TaskList({
                 </span>
               ))}
               {task.assignments.length > 3 ? (
-                <span className="text-xs text-[var(--text-faint)]">+{task.assignments.length - 3} more</span>
+                <span className="text-xs text-(--text-faint)">+{task.assignments.length - 3} more</span>
               ) : null}
             </div>
             ) : null}
@@ -699,7 +739,7 @@ export function TaskList({
               />
               {canEditTask ? (
                 <label className="grid gap-1.5">
-                  <span className="text-xs font-semibold text-[var(--text-soft)]">Priority</span>
+                  <span className="text-xs font-semibold text-(--text-soft)">Priority</span>
                   <select
                     className="h-11 rounded-md border px-3 text-sm outline-none"
                     style={{ borderColor: "var(--border)", background: "var(--surface)", color: "var(--text-main)" }}
@@ -730,7 +770,7 @@ export function TaskList({
                 </label>
               ) : null}
               <label className="grid gap-1.5">
-                <span className="text-xs font-semibold text-[var(--text-soft)]">Deadline</span>
+                <span className="text-xs font-semibold text-(--text-soft)">Deadline</span>
                 <input
                   type="datetime-local"
                   className="h-11 rounded-md border px-3 text-sm outline-none"
@@ -787,7 +827,7 @@ export function TaskList({
                   />
                   <div className="grid gap-2 sm:grid-cols-2">
                     {filteredAssignees.length === 0 ? (
-                      <p className="col-span-full rounded-md border px-3 py-4 text-sm text-[var(--text-soft)]" style={{ borderColor: "var(--border)" }}>
+                      <p className="col-span-full rounded-md border px-3 py-4 text-sm text-(--text-soft)" style={{ borderColor: "var(--border)" }}>
                         No matches. Adjust search or role filter.
                       </p>
                     ) : (
@@ -833,7 +873,7 @@ export function TaskList({
           {task.checklistItems.length ? (
             <div className="mt-4 border-t pt-4" style={{ borderColor: "var(--border)" }}>
               <div className="flex items-center justify-between gap-3">
-                <p className="text-xs font-semibold text-[var(--text-soft)]">Checklist</p>
+                <p className="text-xs font-semibold text-(--text-soft)">Checklist</p>
                 <button
                   type="button"
                   onClick={() => toggleChecklistPanel(task.id)}
@@ -888,9 +928,9 @@ export function TaskList({
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div>
-                      <p className="font-semibold text-[var(--text-main)]">{issue.title}</p>
-                      <p className="mt-1 text-sm text-[var(--text-soft)]">{issue.description}</p>
-                      <p className="mt-2 text-xs text-[var(--text-soft)]">
+                      <p className="font-semibold text-(--text-main)">{issue.title}</p>
+                      <p className="mt-1 text-sm text-(--text-soft)">{issue.description}</p>
+                      <p className="mt-2 text-xs text-(--text-soft)">
                         Reported by {issue.reporter.name} - {issue.status}
                       </p>
                     </div>
@@ -898,8 +938,8 @@ export function TaskList({
 
                   {issue.managerResponse ? (
                     <div className="mt-3 rounded-xl p-3 text-sm" style={{ background: "var(--surface)" }}>
-                      <p className="font-semibold text-[var(--text-main)]">Manager response</p>
-                      <p className="mt-1 text-[var(--text-soft)]">{issue.managerResponse}</p>
+                      <p className="font-semibold text-(--text-main)">Manager response</p>
+                      <p className="mt-1 text-(--text-soft)">{issue.managerResponse}</p>
                       <button
                         type="button"
                         className="mt-3 rounded-md border px-3 py-1.5 text-xs font-semibold"
@@ -1010,16 +1050,16 @@ export function TaskList({
         </section>
       ))}
       {responsePreviewIssue ? (
-        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/45 p-4">
+        <div className="fixed inset-0 z-70 flex items-center justify-center bg-black/45 p-4">
           <div
             className="w-full max-w-lg rounded-xl border p-5"
             style={{ borderColor: "var(--border)", background: "var(--surface)" }}
           >
-            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-faint)]">Issue response</p>
-            <h4 className="mt-2 text-lg font-semibold text-[var(--text-main)]">{responsePreviewIssue.issueTitle}</h4>
-            <p className="mt-1 text-xs text-[var(--text-soft)]">Task: {responsePreviewIssue.taskTitle}</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-(--text-faint)">Issue response</p>
+            <h4 className="mt-2 text-lg font-semibold text-(--text-main)">{responsePreviewIssue.issueTitle}</h4>
+            <p className="mt-1 text-xs text-(--text-soft)">Task: {responsePreviewIssue.taskTitle}</p>
             <div className="mt-4 rounded-lg border p-3 text-sm" style={{ borderColor: "var(--border)", background: "var(--surface-soft)" }}>
-              <p className="text-[var(--text-main)]">{responsePreviewIssue.response}</p>
+              <p className="text-(--text-main)">{responsePreviewIssue.response}</p>
             </div>
             <div className="mt-4 flex justify-end">
               <button
@@ -1037,3 +1077,4 @@ export function TaskList({
     </div>
   );
 }
+

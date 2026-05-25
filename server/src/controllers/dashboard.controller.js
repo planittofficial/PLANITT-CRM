@@ -2,7 +2,10 @@ import prisma from "../config/db.js";
 import { sendSafeError } from "../middleware/error.middleware.js";
 
 function toDateKey(date) {
-  return date.toISOString().slice(0, 10);
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
 }
 
 function getLastNDays(dayCount) {
@@ -201,6 +204,7 @@ export async function getDashboardSummary(req, res) {
         totalTasks,
         completedTasks,
         activeAttendance,
+        myActiveAttendance,
         totalDepartments,
         totalManagers,
         departmentBreakdown,
@@ -227,6 +231,13 @@ export async function getDashboardSummary(req, res) {
         }),
         prisma.attendance.count({
           where: { checkOut: null },
+        }),
+        prisma.attendance.findFirst({
+          where: {
+            userId: req.user.userId,
+            checkOut: null,
+          },
+          select: { id: true },
         }),
         prisma.department.count(),
         prisma.user.count({
@@ -580,6 +591,7 @@ export async function getDashboardSummary(req, res) {
           totalTasks,
           completedTasks,
           activeAttendance,
+          checkedIn: Boolean(myActiveAttendance),
           totalDepartments,
           totalManagers,
         },

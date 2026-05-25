@@ -1,6 +1,7 @@
 "use client";
 
 import { StatePanel } from "@/components/shared/state-panel";
+import { LoadingSkeleton } from "@/components/shared/loading-skeleton";
 
 type SessionGateProps = {
   loading: boolean;
@@ -23,7 +24,7 @@ export function renderSessionGate({
   loadingDescription = "Please wait.",
 }: SessionGateProps) {
   if (loading) {
-    return <StatePanel title={loadingTitle} description={loadingDescription} />;
+    return <LoadingSkeleton title={loadingTitle} subtitle={loadingDescription} blocks={6} />;
   }
 
   if (!user) {
@@ -46,7 +47,7 @@ export function renderSessionGate({
       );
     }
 
-    return <StatePanel title={loadingTitle} description={loadingDescription} />;
+    return <LoadingSkeleton title={loadingTitle} subtitle={loadingDescription} blocks={4} />;
   }
 
   return null;

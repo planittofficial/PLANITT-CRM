@@ -25,6 +25,15 @@ type CreateGroupProps = {
   onSubmit: () => void;
 };
 
+type StartDirectChatProps = {
+  users: CRMUser[];
+  selectedUserId: string;
+  saving: boolean;
+  onClose: () => void;
+  onChangeUserId: (value: string) => void;
+  onSubmit: () => void;
+};
+
 export function CreateGroupModal({
   groupName,
   groupDescription,
@@ -92,6 +101,59 @@ export function CreateGroupModal({
             style={{ background: "var(--accent)" }}
           >
             {saving ? "Creating..." : "Create"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export function StartDirectChatModal({
+  users,
+  selectedUserId,
+  saving,
+  onClose,
+  onChangeUserId,
+  onSubmit,
+}: StartDirectChatProps) {
+  return (
+    <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/35 p-4">
+      <div
+        className="w-full max-w-xl rounded-2xl border p-4"
+        style={{ background: "var(--surface)", borderColor: "var(--border)" }}
+      >
+        <h3 className="text-lg font-semibold text-[var(--text-main)]">Start one-to-one chat</h3>
+        <p className="mt-1 text-sm text-[var(--text-soft)]">Select a member to open a private chat room.</p>
+        <select
+          value={selectedUserId}
+          onChange={(e) => onChangeUserId(e.target.value)}
+          className="mt-3 h-11 w-full rounded-xl border px-3 text-sm outline-none"
+          style={{ borderColor: "var(--border)", background: "var(--surface-soft)", color: "var(--text-main)" }}
+        >
+          <option value="">Select member</option>
+          {users.map((member) => (
+            <option key={member.id} value={member.id}>
+              {member.name} ({member.role})
+            </option>
+          ))}
+        </select>
+        <div className="mt-4 flex justify-end gap-2">
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-lg border px-3 py-2 text-sm"
+            style={{ borderColor: "var(--border)", color: "var(--text-main)" }}
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            disabled={saving || !selectedUserId}
+            onClick={onSubmit}
+            className="rounded-lg px-3 py-2 text-sm font-semibold text-white disabled:opacity-60"
+            style={{ background: "var(--accent)" }}
+          >
+            {saving ? "Opening..." : "Open chat"}
           </button>
         </div>
       </div>

@@ -8,6 +8,7 @@ import { renderSessionGate } from "@/components/shared/session-gate";
 import { useRealtimeRefresh } from "@/hooks/use-realtime-refresh";
 import { useSession } from "@/hooks/use-session";
 import { MemberPickerToolbar, type MemberRoleFilter } from "@/components/shared/member-picker-toolbar";
+import { LoadingRows } from "@/components/shared/loading-skeleton";
 import { usePaginatedDirectoryUsers } from "@/hooks/use-paginated-directory-users";
 import { apiGet, apiPost } from "@/lib/api";
 import { getTaskAssignableRoles, isAdminRole } from "@/lib/dashboard";
@@ -54,6 +55,7 @@ function TasksPageContent() {
     progress: 0,
     checklistText: "",
     priority: "MEDIUM" as TaskPriority,
+    deadlineAt: "",
   });
   const [assignPickerQuery, setAssignPickerQuery] = useState("");
   const [assignPickerRole, setAssignPickerRole] = useState<MemberRoleFilter>("ALL");
@@ -227,12 +229,13 @@ function TasksPageContent() {
         userIds: form.userIds,
         progress: form.progress,
         priority: form.priority,
+        deadlineAt: form.deadlineAt || null,
         checklistItems: form.checklistText
           .split("\n")
           .map((item) => item.trim())
           .filter(Boolean),
       });
-      setForm({ title: "", description: "", userIds: [], progress: 0, checklistText: "", priority: "MEDIUM" });
+      setForm({ title: "", description: "", userIds: [], progress: 0, checklistText: "", priority: "MEDIUM", deadlineAt: "" });
       setNotice("Task created successfully.");
       await loadTasks(false);
     } catch (err) {
@@ -317,6 +320,18 @@ function TasksPageContent() {
                     setForm((current) => ({ ...current, description: event.target.value }))
                   }
                 />
+                <label className="grid gap-2">
+                  <span className="text-sm font-medium text-[var(--text-main)]">Deadline</span>
+                  <input
+                    type="datetime-local"
+                    className="h-12 rounded-2xl border px-4 text-sm outline-none"
+                    style={fieldStyle}
+                    value={form.deadlineAt}
+                    onChange={(event) =>
+                      setForm((current) => ({ ...current, deadlineAt: event.target.value }))
+                    }
+                  />
+                </label>
                 <label className="grid gap-2">
                   <span className="text-sm font-medium text-(--text-main)">Priority</span>
                   <select
@@ -490,11 +505,14 @@ function TasksPageContent() {
               </div>
             </div>
             {filterOpen ? (
-              <div className="mt-4 grid gap-3 rounded-2xl border p-3 sm:grid-cols-2" style={{ borderColor: "var(--border)", background: "var(--surface-soft)" }}>
-                <label className="grid gap-1">
+              <div
+                className="mt-4 grid gap-3 rounded-2xl border p-3 md:grid-cols-[minmax(220px,320px)_minmax(0,1fr)]"
+                style={{ borderColor: "var(--border)", background: "var(--surface-soft)" }}
+              >
+                <label className="grid min-w-0 gap-1">
                   <span className="text-xs font-semibold uppercase tracking-[0.12em] text-(--text-soft)">Project</span>
                   <select
-                    className="h-10 rounded-xl border px-3 text-sm outline-none"
+                    className="h-10 w-full rounded-xl border px-3 text-sm outline-none"
                     style={fieldStyle}
                     value={selectedProjectId}
                     onChange={(event) => {
@@ -510,10 +528,10 @@ function TasksPageContent() {
                     ))}
                   </select>
                 </label>
-                <label className="grid gap-1">
+                <label className="grid min-w-0 gap-1">
                   <span className="text-xs font-semibold uppercase tracking-[0.12em] text-(--text-soft)">Task Name</span>
                   <input
-                    className="h-10 rounded-xl border px-3 text-sm outline-none"
+                    className="h-10 w-full min-w-0 rounded-xl border px-3 text-sm outline-none"
                     style={fieldStyle}
                     value={nameFilter}
                     placeholder="Search title, description, assignee"

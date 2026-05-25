@@ -402,7 +402,7 @@ All API routes are mounted under `/api`.
 | POST | `/tasks` | Create task. |
 | PUT | `/tasks/:id` | Update task status, progress, title, assignments, or checklist. |
 | DELETE | `/tasks/:id` | Delete task. |
-| PUT | `/tasks/checklist/:itemId` | Toggle checklist item completion. |
+| PUT | `/tasks/checklist/:itemId` | Toggle checklist item completion. | 
 | POST | `/tasks/:id/issues` | Report a blocker/issue. |
 | PUT | `/tasks/issues/:issueId/respond` | Manager/admin response to issue. |
 
@@ -418,7 +418,7 @@ All API routes are mounted under `/api`.
 | Method | Endpoint | Purpose |
 | --- | --- | --- |
 | GET | `/chat/rooms` | List accessible department/project rooms. |
-| GET | `/chat/messages` | Get messages for a room. |
+| GET | `/chat/messages` | Get messages for a room. | 
 | POST | `/chat/messages` | Send message. |
 
 ### Google Workspace

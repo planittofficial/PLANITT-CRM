@@ -58,6 +58,9 @@ function EmptyRoom({ label }: { label: string }) {
 }
 
 export function ChatRoomList({ rooms, selectedKey, loading, onSelect }: Props) {
+  const directRooms = rooms.groups.filter((room) => room.isDirect);
+  const groupRooms = rooms.groups.filter((room) => !room.isDirect);
+
   return (
     <div className="space-y-5">
       <div>
@@ -81,10 +84,10 @@ export function ChatRoomList({ rooms, selectedKey, loading, onSelect }: Props) {
 
       <div>
         <p className="mb-2 text-xs font-semibold uppercase tracking-[0.2em] text-[var(--text-faint)]">
-          Groups
+          One-to-one
         </p>
         <div className="space-y-2">
-          {rooms.groups.map((room) => (
+          {directRooms.map((room) => (
             <RoomButton
               key={roomKey(room)}
               room={room}
@@ -92,7 +95,26 @@ export function ChatRoomList({ rooms, selectedKey, loading, onSelect }: Props) {
               onSelect={() => onSelect(roomKey(room))}
             />
           ))}
-          {!loading && !rooms.groups.length && (
+          {!loading && !directRooms.length && (
+            <EmptyRoom label="No one-to-one room available." />
+          )}
+        </div>
+      </div>
+
+      <div>
+        <p className="mb-2 text-xs font-semibold uppercase tracking-[0.2em] text-[var(--text-faint)]">
+          Groups
+        </p>
+        <div className="space-y-2">
+          {groupRooms.map((room) => (
+            <RoomButton
+              key={roomKey(room)}
+              room={room}
+              active={roomKey(room) === selectedKey}
+              onSelect={() => onSelect(roomKey(room))}
+            />
+          ))}
+          {!loading && !groupRooms.length && (
             <EmptyRoom label="No group room available." />
           )}
         </div>

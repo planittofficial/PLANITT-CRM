@@ -73,6 +73,12 @@ export type ChatRoom = {
   type: "DEPARTMENT" | "PROJECT" | "GROUP";
   name: string;
   subtitle: string;
+  isDirect?: boolean;
+  directPeer?: {
+    id: string;
+    name: string;
+    role: UserRole;
+  } | null;
   unreadCount?: number;
   lastMessagePreview?: string;
   lastMessageAt?: string | null;
@@ -167,6 +173,8 @@ export type Task = {
   id: string;
   title: string;
   description?: string | null;
+  deadlineAt?: string | null;
+  assignedById?: string | null;
   status: "TODO" | "IN_PROGRESS" | "DONE";
   priority: TaskPriority;
   progress: number;
@@ -212,6 +220,7 @@ export type AdminDashboardSummary = {
     totalTasks: number;
     completedTasks: number;
     activeAttendance: number;
+    checkedIn: boolean;
     totalDepartments: number;
     totalManagers: number;
   };
@@ -461,4 +470,32 @@ export type BulkUserUploadResult = {
     message: string;
   }>;
   expectedColumns: string[];
+};
+
+export type ActivityLogItem = {
+  id: string;
+  userId: string;
+  userRole: UserRole;
+  method: string;
+  path: string;
+  statusCode: number;
+  action: string;
+  ipAddress?: string | null;
+  userAgent?: string | null;
+  requestId?: string | null;
+  metadataJson?: string | null;
+  createdAt: string;
+  user: {
+    id: string;
+    name: string;
+    email: string;
+    role: UserRole;
+  };
+};
+
+export type ActivityLogsResponse = {
+  items: ActivityLogItem[];
+  total: number;
+  hasMore: boolean;
+  nextOffset: number;
 };
