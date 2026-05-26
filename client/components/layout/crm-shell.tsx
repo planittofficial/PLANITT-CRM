@@ -51,7 +51,9 @@ function initials(name: string) {
 }
 
 function CRMShellHeaderSearch() {
-  const { globalSearch, setGlobalSearch } = useCrmSearch();
+  const { globalSearch, setGlobalSearch , submitSearch ,searchNoResult ,setSearchNoResult} = useCrmSearch();
+    const router = useRouter();
+  
 
   return (
     <label className="relative block">
@@ -59,18 +61,60 @@ function CRMShellHeaderSearch() {
         Search
       </span>
       <input
-        aria-label="Search CRM"
-        type="search"
-        value={globalSearch}
-        onChange={(event) => setGlobalSearch(event.target.value)}
-        className="crm-input h-10 w-full rounded-md pl-16 pr-3 text-sm sm:w-72"
-        placeholder="Search anything..."
-      />
+  aria-label="Search CRM"
+  type="search"
+  value={globalSearch}
+  onChange={(event) =>
+    setGlobalSearch(
+      event.target.value
+    )
+  }
+  onKeyDown={(event) => {
+  if (event.key !== "Enter") return;
+
+  event.preventDefault();
+
+  submitSearch();
+
+  const q = globalSearch.trim().toLowerCase();
+
+  if (!q) return;
+
+  const page = Object.entries(pageTitles).find(
+    ([, label]) =>
+      label.toLowerCase() === q
+  );
+
+  if (page) {
+  router.push(page[0]);
+} else {
+  setSearchNoResult(true);
+}
+}}
+  className="crm-input h-10 w-full rounded-md pl-16 pr-3 text-sm sm:w-72"
+  placeholder="Search anything..."
+/>
+{searchNoResult && (
+  <span
+    className="
+      absolute
+      left-0
+      top-full
+      mt-1
+      text-xs
+      text-red-500
+    "
+  >
+    No matching results
+  </span>
+)}
     </label>
   );
 }
 
 export function CRMShell({ children, user }: CRMShellProps) {
+  
+  const { globalSearch } = useCrmSearch();
   const pathname = usePathname();
   const router = useRouter();
   const { theme, setTheme } = useTheme();
@@ -112,6 +156,7 @@ export function CRMShell({ children, user }: CRMShellProps) {
         setCheckedIn(false);
       }
     };
+
 
     void syncAttendanceState();
 
@@ -169,6 +214,7 @@ export function CRMShell({ children, user }: CRMShellProps) {
     clearToken();
     router.replace("/login");
   };
+  
 
   useEffect(() => {
     migrateLegacyThemeKeys(user.id);

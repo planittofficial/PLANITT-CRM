@@ -18,7 +18,8 @@ export function canUseGoogleWorkspace(scope: DashboardSummary["scope"]) { return
 export function useDashboardData() {
   const session = useSession();
   const { user, loading, error: sessionError, retry: retrySession } = session;
-  const { globalSearch, setGlobalSearch } = useCrmSearch();
+  const { globalSearch, setGlobalSearch ,  searchSubmitted,
+ resetSearch,} = useCrmSearch();
   const [summary, setSummary] = useState<DashboardSummary | null>(null);
   const [teamMembers, setTeamMembers] = useState<CRMUser[]>([]);
   const [teamDirectoryRoleFilter, setTeamDirectoryRoleFilter] = useState<MemberRoleFilter>("ALL");
@@ -42,7 +43,7 @@ export function useDashboardData() {
 
   const leadershipView = summary?.scope === "admin" || summary?.scope === "superadmin";
   const teamDirectoryRoleOptions = useMemo(() => sortedUniqueRoles(teamMembers), [teamMembers]);
-  const filteredTeamMembers = useMemo(() => filterMembersForPicker(teamMembers, { searchQuery: globalSearch, roleFilter: teamDirectoryRoleFilter }), [teamMembers, globalSearch, teamDirectoryRoleFilter]);
+  const filteredTeamMembers = useMemo(() => filterMembersForPicker(teamMembers, { searchQuery:  searchSubmitted ? globalSearch : "", roleFilter: teamDirectoryRoleFilter }), [teamMembers, globalSearch,searchSubmitted, teamDirectoryRoleFilter]);
 
   useEffect(() => {
     if (!leadershipView) return;
@@ -122,7 +123,9 @@ export function useDashboardData() {
           .then((analyticsData) => setTeamAnalyticsList(analyticsData))
           .catch(() => {});
       } catch (err) { setError(normalizeErrorMessage(err, "Failed to load team members")); }
-      finally { setTeamLoading(false); }
+      finally { setTeamLoading(false);
+        resetSearch();
+       }
     }
     void loadTeam();
   }, [leadershipView, summary?.scope]);

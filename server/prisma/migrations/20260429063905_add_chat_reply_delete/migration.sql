@@ -1,2 +1,2 @@
 -- DropIndex
-DROP INDEX "ChatMessage_replyToId_idx";
+DROP INDEX IF EXISTS "ChatMessage_replyToId_idx";

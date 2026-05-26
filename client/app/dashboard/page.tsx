@@ -15,7 +15,7 @@ export default function DashboardPage() {
   const {
     user, loading, error, sessionError, retrySession, summary, teamLoading, analyticsLoading,
     selectedMemberId, selectedAnalytics, teamDirectoryRoleFilter, teamDirectoryRoleOptions,
-    filteredTeamMembers, overviewStats, leadershipView, globalSearch, setGlobalSearch,
+    filteredTeamMembers, overviewStats, leadershipView, globalSearch, setGlobalSearch, 
     setTeamDirectoryRoleFilter, setSelectedMemberId, workspaceStatus, workspaceProjects,
     workspaceUsers, selectedWorkspaceProjectId, workspaceActionLoading, meetResult, sheetResult,
     driveResult, workspaceLoading, workspaceMessage, activeDashboardTab, setActiveDashboardTab,
@@ -135,7 +135,7 @@ export default function DashboardPage() {
                     <h2 className="mt-2 text-2xl font-semibold text-[var(--text-main)]">Member performance</h2>
                     <p className="mt-2 max-w-2xl text-sm text-[var(--text-soft)]">Use the header search or the filters below to find people. Select a card to load attendance, progress, and tasks.</p>
                   </div>
-                  <MemberPickerToolbar searchQuery={globalSearch} onSearchChange={setGlobalSearch} roleFilter={teamDirectoryRoleFilter} onRoleFilterChange={setTeamDirectoryRoleFilter} roleOptions={teamDirectoryRoleOptions} />
+                  <MemberPickerToolbar searchQuery={globalSearch } onSearchChange={setGlobalSearch} roleFilter={teamDirectoryRoleFilter} onRoleFilterChange={setTeamDirectoryRoleFilter} roleOptions={teamDirectoryRoleOptions} />
                   {teamLoading ? <StatePanel title="Loading team directory" description="Fetching people and baseline analytics." />
                     : filteredTeamMembers.length === 0 ? <StatePanel title="No matching team members" description="Try a different search or clear the role filter." />
                     : <TeamAnalyticsPanel members={filteredTeamMembers} selectedMemberId={selectedMemberId} selectedAnalytics={selectedAnalytics} analyticsLoading={analyticsLoading} directoryTitle="Roster" directorySubtitle="Live roster and analytics" onSelect={setSelectedMemberId} />}

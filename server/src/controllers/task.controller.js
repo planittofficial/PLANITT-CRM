@@ -303,6 +303,7 @@ export async function getTasks(_req, res) {
     const projectFilter = _req.query.projectId
       ? { projectId: _req.query.projectId }
       : {};
+    const q = typeof _req.query.q === "string" ? _req.query.q.trim() : "";
     const roleWhere = isSuperAdmin(_req.user.role)
       ? {}
       : getDepartmentScopedTaskWhere(
@@ -310,10 +311,19 @@ export async function getTasks(_req, res) {
           _req.user.userId,
           _req.user.role
         );
-    const where = {
-      ...roleWhere,
-      ...projectFilter,
-    };
+    const searchWhere = q
+      ? {
+          OR: [
+            { title: { contains: q, mode: "insensitive" } },
+            { description: { contains: q, mode: "insensitive" } },
+            { project: { name: { contains: q, mode: "insensitive" } } },
+            { assignments: { some: { user: { name: { contains: q, mode: "insensitive" } } } } },
+          ],
+        }
+      : {};
+    const where = { AND: [roleWhere, projectFilter, searchWhere] };
+
+  
 
     const paginate = String(_req.query.paginate || "").toLowerCase() === "true";
     const limitRaw = Number(_req.query.limit);

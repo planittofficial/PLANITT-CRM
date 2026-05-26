@@ -376,6 +376,8 @@ function buildUserListWhere(req, { applySearch = true } = {}) {
           { name: { contains: q, mode: "insensitive" } },
           { email: { contains: q, mode: "insensitive" } },
           { designation: { contains: q, mode: "insensitive" } },
+          { department: { name: { contains: q, mode: "insensitive" } } },
+          ...(USER_ALLOWED_ROLES.includes(q.toUpperCase()) ? [{ role: q.toUpperCase() }] : []),
         ],
       }
     : null;
