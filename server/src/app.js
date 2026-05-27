@@ -27,6 +27,21 @@ const authLimiter = rateLimit({
 });
 
 app.use(helmet());
+
+// Dev-only request logging for local debugging.
+if (process.env.NODE_ENV !== "production") {
+  app.use((req, res, next) => {
+    const startedAt = Date.now();
+    res.on("finish", () => {
+      const duration = Date.now() - startedAt;
+      console.log(
+        `[HTTP] ${req.method} ${req.originalUrl} -> ${res.statusCode} (${duration}ms)`
+      );
+    });
+    next();
+  });
+}
+
 app.use(
   cors({
     origin(origin, callback) {

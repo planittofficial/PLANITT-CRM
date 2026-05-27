@@ -28,6 +28,80 @@ const statusStyles: Record<Task["status"], string> = {
   DONE: "bg-emerald-100 text-emerald-800 dark:bg-emerald-500/15 dark:text-emerald-200",
 };
 
+function formatDescription(description?: string | null) {
+  if (!description) return "No description";
+  const withoutDeadline = description.replace(/deadline\s*[:\-]\s*[^\n\r]+/gi, "");
+  const compact = withoutDeadline
+    .replace(/\r/g, "")
+    .replace(/\n+/g, " ")
+    .replace(/\s{2,}/g, " ")
+    .trim();
+  if (!compact) return "No description";
+  return compact;
+}
+
+function toDatetimeLocalValue(date: Date) {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const d = String(date.getDate()).padStart(2, "0");
+  const hh = String(date.getHours()).padStart(2, "0");
+  const mm = String(date.getMinutes()).padStart(2, "0");
+  return `${y}-${m}-${d}T${hh}:${mm}`;
+}
+
+function extractDeadlineValue(task: Task) {
+  const deadline = getDeadline(task);
+  return deadline ? toDatetimeLocalValue(deadline) : "";
+}
+
+function applyDeadlineToDescription(baseDescription: string, deadlineLocal: string) {
+  const cleaned = (baseDescription || "").replace(/deadline\s*[:\-]\s*[^\n\r]+/gi, "").trim();
+  if (!deadlineLocal.trim()) return cleaned;
+  const parsed = new Date(deadlineLocal);
+  if (Number.isNaN(parsed.getTime())) return cleaned;
+  const deadlineLine = `Deadline: ${parsed.toLocaleString()}`;
+  return cleaned ? `${cleaned}\n${deadlineLine}` : deadlineLine;
+}
+
+function getDeadline(task: Task) {
+  const source =
+    (task as Task & { deadline?: string | null; dueDate?: string | null; dueAt?: string | null })
+      .deadline ??
+    (task as Task & { deadline?: string | null; dueDate?: string | null; dueAt?: string | null })
+      .dueDate ??
+    (task as Task & { deadline?: string | null; dueDate?: string | null; dueAt?: string | null })
+      .dueAt ??
+    null;
+  if (source) {
+    const parsed = new Date(source);
+    if (!Number.isNaN(parsed.getTime())) return parsed;
+  }
+  const desc = task.description ?? "";
+  const match = desc.match(/deadline\s*[:\-]\s*([^\n\r]+)/i);
+  if (!match?.[1]) return null;
+  const parsed = new Date(match[1].trim());
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
+
+function getTimeLeftLabel(deadline: Date) {
+  const diffMs = deadline.getTime() - Date.now();
+  if (diffMs <= 0) return "Overdue";
+  const totalMins = Math.floor(diffMs / 60000);
+  const days = Math.floor(totalMins / (60 * 24));
+  const hours = Math.floor((totalMins % (60 * 24)) / 60);
+  const mins = totalMins % 60;
+  if (days > 0) return `${days}d ${hours}h left`;
+  if (hours > 0) return `${hours}h ${mins}m left`;
+  return `${mins}m left`;
+}
+
+function getDeadlineBadge(deadline: Date) {
+  const diffMs = deadline.getTime() - Date.now();
+  if (diffMs <= 0) return { label: "Overdue", className: "bg-rose-100 text-rose-700" };
+  if (diffMs <= 24 * 60 * 60 * 1000) return { label: "Due Soon", className: "bg-amber-100 text-amber-800" };
+  return { label: "Upcoming", className: "bg-emerald-100 text-emerald-700" };
+}
+
 export function TaskList({
   tasks,
   user,
@@ -46,7 +120,14 @@ export function TaskList({
   const [editForms, setEditForms] = useState<
     Record<
       string,
-      { title: string; description: string; userIds: string[]; checklistText: string; priority: TaskPriority; deadlineAt: string }
+      {
+        title: string;
+        description: string;
+        userIds: string[];
+        checklistText: string;
+        priority: TaskPriority;
+        deadlineLocal: string;
+      }
     >
   >({});
   const [issuePanelTaskId, setIssuePanelTaskId] = useState<string | null>(null);
@@ -165,7 +246,7 @@ export function TaskList({
         userIds: task.assignments.map((assignment) => assignment.userId),
         checklistText: task.checklistItems.map((item) => item.title).join("\n"),
         priority: task.priority ?? "MEDIUM",
-        deadlineAt: toLocalDateTimeInput(task.deadlineAt),
+        deadlineLocal: extractDeadlineValue(task),
       },
     }));
   };
@@ -268,12 +349,16 @@ export function TaskList({
 
     try {
       setSavingId(taskId);
+      const descriptionWithDeadline = applyDeadlineToDescription(
+        form.description,
+        form.deadlineLocal
+      );
       await apiPut(`/tasks/${taskId}`, {
         title: form.title,
-        description: form.description,
+        description: descriptionWithDeadline,
         userIds: form.userIds,
         priority: form.priority,
-        deadlineAt: form.deadlineAt || null,
+        deadlineAt: form.deadlineLocal ? new Date(form.deadlineLocal).toISOString() : null,
         checklistItems: form.checklistText
           .split("\n")
           .map((item) => item.trim())
@@ -320,8 +405,8 @@ export function TaskList({
             className="mb-3 flex flex-wrap items-center justify-between gap-2 border-b pb-3"
             style={{ borderColor: "var(--border)" }}
           >
-            <p className="text-sm font-semibold text-[var(--text-main)]">{group.label}</p>
-            <p className="text-xs text-[var(--text-soft)]">
+            <p className="text-sm font-semibold text-(--text-main)">{group.label}</p>
+            <p className="text-xs text-(--text-soft)">
               {group.tasks.length} task{group.tasks.length === 1 ? "" : "s"}
             </p>
           </div>
@@ -330,14 +415,13 @@ export function TaskList({
               const showAssigneeChips = !group.key.startsWith("user:");
               const showInlineStatusSelect = canManageTask(task) && !task.checklistItems.length;
               const showPrioritySelect = canManageTask(task);
-              const shouldShowTimer =
-                task.assignments.some((assignment) => assignment.userId === user.id) ||
-                task.assignedById === user.id;
-              const countdownLabel = shouldShowTimer ? getCountdownLabel(task.deadlineAt) : null;
+              const formattedDescription = formatDescription(task.description);
+              const deadline = getDeadline(task);
+              const deadlineBadge = deadline ? getDeadlineBadge(deadline) : null;
               return (
               <article
                 key={task.id}
-                className="rounded-lg border p-3 sm:p-4"
+                className="rounded-xl border p-4"
                 style={{
                   background: "var(--surface-soft)",
                   borderColor: "var(--border)",
@@ -345,13 +429,30 @@ export function TaskList({
                 }}
               >
                 <div className="space-y-3">
-                  <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-start">
                     <div className="min-w-0 flex-1">
+                      {deadline ? (
+                        <div className="mb-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
+                          <span className="font-semibold text-(--accent-strong)">
+                            {getTimeLeftLabel(deadline)}
+                          </span>
+                          <span className="text-(--text-soft)">
+                            Deadline: {deadline.toLocaleString()}
+                          </span>
+                          <span className={`rounded-md px-2 py-0.5 text-[10px] font-semibold ${deadlineBadge?.className ?? ""}`}>
+                            {deadlineBadge?.label}
+                          </span>
+                        </div>
+                      ) : (
+                        <div className="mb-2">
+                          <span className="rounded-md bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-700">No Deadline</span>
+                        </div>
+                      )}
                       <div className="flex flex-wrap items-start gap-x-2 gap-y-2">
-                        <h3 className="line-clamp-2 min-w-0 flex-1 text-base font-semibold leading-snug text-[var(--text-main)]">
+                        <h3 className="line-clamp-2 min-w-0 flex-1 text-base font-semibold leading-snug text-(--text-main)">
                           {task.title}
                         </h3>
-                        <div className="flex shrink-0 flex-wrap items-center gap-2">
+                        <div className="flex shrink-0 flex-wrap items-center gap-2 lg:hidden">
                         {!showPrioritySelect ? (
                           <span
                             className={`rounded-md px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide ${priorityBadgeClass[task.priority ?? "MEDIUM"]}`}
@@ -414,18 +515,74 @@ export function TaskList({
                         ) : null}
                         </div>
                       </div>
-                <p className="mt-1 text-sm leading-relaxed text-[var(--text-soft)]">{task.description || "No description"}</p>
-                {task.deadlineAt ? (
-                  <p className="mt-1 text-xs text-[var(--text-soft)]">
-                    Deadline: {new Date(task.deadlineAt).toLocaleString()}
-                  </p>
-                ) : null}
-                {countdownLabel ? (
-                  <p className="mt-1 text-xs font-semibold text-[var(--accent-strong)]">{countdownLabel}</p>
-                ) : null}
+                      <p className="mt-1 whitespace-pre-wrap wrap-break-word text-sm leading-relaxed text-(--text-soft)">
+                        {formattedDescription}
+                      </p>
               </div>
 
-              <div className="flex flex-wrap items-center gap-2">
+              <div className="flex flex-wrap items-center justify-start gap-2 lg:justify-end">
+                <div className="hidden shrink-0 flex-wrap items-center gap-2 lg:flex">
+                {!showPrioritySelect ? (
+                  <span
+                    className={`rounded-md px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide ${priorityBadgeClass[task.priority ?? "MEDIUM"]}`}
+                  >
+                    {TASK_PRIORITY_OPTIONS.find((o) => o.value === (task.priority ?? "MEDIUM"))?.label ??
+                      "Medium"}
+                  </span>
+                ) : null}
+                {!showInlineStatusSelect ? (
+                  <span className={`rounded-md px-2.5 py-1 text-[11px] font-bold ${statusStyles[task.status]}`}>
+                    {task.status.replace("_", " ")}
+                  </span>
+                ) : null}
+                {showPrioritySelect ? (
+                  <select
+                    value={task.priority ?? "MEDIUM"}
+                    disabled={savingId === task.id}
+                    onChange={(event) =>
+                      void handleTaskUpdate(task.id, {
+                        priority: event.target.value as TaskPriority,
+                      })
+                    }
+                    className="rounded-md border px-2 py-1 text-xs outline-none"
+                    style={{
+                      borderColor: "var(--border)",
+                      background: "var(--surface)",
+                      color: "var(--text-main)",
+                    }}
+                    title="Priority"
+                  >
+                    {TASK_PRIORITY_OPTIONS.map((opt) => (
+                      <option key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </option>
+                    ))}
+                  </select>
+                ) : null}
+                {showInlineStatusSelect ? (
+                  <select
+                    value={task.status}
+                    disabled={savingId === task.id}
+                    onChange={(event) =>
+                      void handleTaskUpdate(task.id, {
+                        status: event.target.value as Task["status"],
+                      })
+                    }
+                    className="rounded-md border px-2 py-1 text-xs outline-none"
+                    style={{
+                      borderColor: "var(--border)",
+                      background: "var(--surface)",
+                      color: "var(--text-main)",
+                    }}
+                  >
+                    {statuses.map((status) => (
+                      <option key={status} value={status}>
+                        {status.replace("_", " ")}
+                      </option>
+                    ))}
+                  </select>
+                ) : null}
+                </div>
                 {task.issues.some((issue) => Boolean(issue.managerResponse)) ? (
                   <button
                     type="button"
@@ -479,10 +636,10 @@ export function TaskList({
               </div>
             </div>
 
-            <div className="max-w-xl">
+            <div className="w-full">
               <div className="mb-1 flex items-center justify-between">
-                <p className="text-xs font-semibold text-[var(--text-soft)]">Progress</p>
-                <span className="text-xs font-semibold text-[var(--text-main)]">{task.progress}%</span>
+                <p className="text-xs font-semibold text-(--text-soft)">Progress</p>
+                <span className="text-xs font-semibold text-(--text-main)">{task.progress}%</span>
               </div>
               <div className="h-2 overflow-hidden rounded-full" style={{ background: "var(--surface-soft)" }}>
                 <div
@@ -527,7 +684,7 @@ export function TaskList({
                 </span>
               ))}
               {task.assignments.length > 3 ? (
-                <span className="text-xs text-[var(--text-faint)]">+{task.assignments.length - 3} more</span>
+                <span className="text-xs text-(--text-faint)">+{task.assignments.length - 3} more</span>
               ) : null}
             </div>
             ) : null}
@@ -552,7 +709,7 @@ export function TaskList({
                         userIds: [],
                         checklistText: "",
                         priority: "MEDIUM" as TaskPriority,
-                        deadlineAt: "",
+                        deadlineLocal: "",
                       }),
                       title: event.target.value,
                     },
@@ -573,7 +730,7 @@ export function TaskList({
                         userIds: [],
                         checklistText: "",
                         priority: "MEDIUM" as TaskPriority,
-                        deadlineAt: "",
+                        deadlineLocal: "",
                       }),
                       description: event.target.value,
                     },
@@ -582,7 +739,7 @@ export function TaskList({
               />
               {canEditTask ? (
                 <label className="grid gap-1.5">
-                  <span className="text-xs font-semibold text-[var(--text-soft)]">Priority</span>
+                  <span className="text-xs font-semibold text-(--text-soft)">Priority</span>
                   <select
                     className="h-11 rounded-md border px-3 text-sm outline-none"
                     style={{ borderColor: "var(--border)", background: "var(--surface)", color: "var(--text-main)" }}
@@ -595,10 +752,10 @@ export function TaskList({
                             title: "",
                             description: "",
                             userIds: [],
-                          checklistText: "",
-                          priority: "MEDIUM" as TaskPriority,
-                          deadlineAt: "",
-                        }),
+                            checklistText: "",
+                            priority: "MEDIUM" as TaskPriority,
+                            deadlineLocal: "",
+                          }),
                           priority: event.target.value as TaskPriority,
                         },
                       }))
@@ -613,12 +770,12 @@ export function TaskList({
                 </label>
               ) : null}
               <label className="grid gap-1.5">
-                <span className="text-xs font-semibold text-[var(--text-soft)]">Deadline</span>
+                <span className="text-xs font-semibold text-(--text-soft)">Deadline</span>
                 <input
                   type="datetime-local"
                   className="h-11 rounded-md border px-3 text-sm outline-none"
                   style={{ borderColor: "var(--border)", background: "var(--surface)", color: "var(--text-main)" }}
-                  value={editForms[task.id]?.deadlineAt ?? ""}
+                  value={editForms[task.id]?.deadlineLocal ?? ""}
                   onChange={(event) =>
                     setEditForms((current) => ({
                       ...current,
@@ -629,9 +786,9 @@ export function TaskList({
                           userIds: [],
                           checklistText: "",
                           priority: "MEDIUM" as TaskPriority,
-                          deadlineAt: "",
+                          deadlineLocal: "",
                         }),
-                        deadlineAt: event.target.value,
+                        deadlineLocal: event.target.value,
                       },
                     }))
                   }
@@ -652,7 +809,7 @@ export function TaskList({
                         userIds: [],
                         checklistText: "",
                         priority: "MEDIUM" as TaskPriority,
-                        deadlineAt: "",
+                        deadlineLocal: "",
                       }),
                       checklistText: event.target.value,
                     },
@@ -670,7 +827,7 @@ export function TaskList({
                   />
                   <div className="grid gap-2 sm:grid-cols-2">
                     {filteredAssignees.length === 0 ? (
-                      <p className="col-span-full rounded-md border px-3 py-4 text-sm text-[var(--text-soft)]" style={{ borderColor: "var(--border)" }}>
+                      <p className="col-span-full rounded-md border px-3 py-4 text-sm text-(--text-soft)" style={{ borderColor: "var(--border)" }}>
                         No matches. Adjust search or role filter.
                       </p>
                     ) : (
@@ -716,7 +873,7 @@ export function TaskList({
           {task.checklistItems.length ? (
             <div className="mt-4 border-t pt-4" style={{ borderColor: "var(--border)" }}>
               <div className="flex items-center justify-between gap-3">
-                <p className="text-xs font-semibold text-[var(--text-soft)]">Checklist</p>
+                <p className="text-xs font-semibold text-(--text-soft)">Checklist</p>
                 <button
                   type="button"
                   onClick={() => toggleChecklistPanel(task.id)}
@@ -771,9 +928,9 @@ export function TaskList({
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div>
-                      <p className="font-semibold text-[var(--text-main)]">{issue.title}</p>
-                      <p className="mt-1 text-sm text-[var(--text-soft)]">{issue.description}</p>
-                      <p className="mt-2 text-xs text-[var(--text-soft)]">
+                      <p className="font-semibold text-(--text-main)">{issue.title}</p>
+                      <p className="mt-1 text-sm text-(--text-soft)">{issue.description}</p>
+                      <p className="mt-2 text-xs text-(--text-soft)">
                         Reported by {issue.reporter.name} - {issue.status}
                       </p>
                     </div>
@@ -781,8 +938,8 @@ export function TaskList({
 
                   {issue.managerResponse ? (
                     <div className="mt-3 rounded-xl p-3 text-sm" style={{ background: "var(--surface)" }}>
-                      <p className="font-semibold text-[var(--text-main)]">Manager response</p>
-                      <p className="mt-1 text-[var(--text-soft)]">{issue.managerResponse}</p>
+                      <p className="font-semibold text-(--text-main)">Manager response</p>
+                      <p className="mt-1 text-(--text-soft)">{issue.managerResponse}</p>
                       <button
                         type="button"
                         className="mt-3 rounded-md border px-3 py-1.5 text-xs font-semibold"
@@ -893,16 +1050,16 @@ export function TaskList({
         </section>
       ))}
       {responsePreviewIssue ? (
-        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/45 p-4">
+        <div className="fixed inset-0 z-70 flex items-center justify-center bg-black/45 p-4">
           <div
             className="w-full max-w-lg rounded-xl border p-5"
             style={{ borderColor: "var(--border)", background: "var(--surface)" }}
           >
-            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-faint)]">Issue response</p>
-            <h4 className="mt-2 text-lg font-semibold text-[var(--text-main)]">{responsePreviewIssue.issueTitle}</h4>
-            <p className="mt-1 text-xs text-[var(--text-soft)]">Task: {responsePreviewIssue.taskTitle}</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-(--text-faint)">Issue response</p>
+            <h4 className="mt-2 text-lg font-semibold text-(--text-main)">{responsePreviewIssue.issueTitle}</h4>
+            <p className="mt-1 text-xs text-(--text-soft)">Task: {responsePreviewIssue.taskTitle}</p>
             <div className="mt-4 rounded-lg border p-3 text-sm" style={{ borderColor: "var(--border)", background: "var(--surface-soft)" }}>
-              <p className="text-[var(--text-main)]">{responsePreviewIssue.response}</p>
+              <p className="text-(--text-main)">{responsePreviewIssue.response}</p>
             </div>
             <div className="mt-4 flex justify-end">
               <button
@@ -920,3 +1077,4 @@ export function TaskList({
     </div>
   );
 }
+

@@ -300,6 +300,9 @@ export async function createTask(req, res) {
 
 export async function getTasks(_req, res) {
   try {
+    const actorRole = String(_req.user?.role ?? "").trim().toUpperCase();
+    const actorUserId = String(_req.user?.userId ?? "").trim();
+
     const projectFilter = _req.query.projectId
       ? { projectId: _req.query.projectId }
       : {};
@@ -324,6 +327,28 @@ export async function getTasks(_req, res) {
     const where = { AND: [roleWhere, projectFilter, searchWhere] };
 
   
+    const isLeadership =
+      actorRole === "SUPERADMIN" || actorRole === "ADMIN" || actorRole === "MANAGER";
+
+    if (!isLeadership && !actorUserId) {
+      return res.status(401).json({ error: "Unauthorized user context" });
+    }
+
+    const roleWhere = isLeadership
+      ? {}
+      : {
+          project: {
+            members: {
+              some: {
+                userId: actorUserId,
+              },
+            },
+          },
+        };
+    const where = {
+      ...roleWhere,
+      ...projectFilter,
+    };
 
     const paginate = String(_req.query.paginate || "").toLowerCase() === "true";
     const limitRaw = Number(_req.query.limit);
