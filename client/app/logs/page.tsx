@@ -6,6 +6,7 @@ import { renderSessionGate } from "@/components/shared/session-gate";
 import { StatePanel } from "@/components/shared/state-panel";
 import { useSession } from "@/hooks/use-session";
 import { apiGet } from "@/lib/api";
+import { useCrmSearch } from "@/components/providers/crm-search-provider";
 import type { ActivityLogsResponse, UserRole } from "@/types/crm";
 
 const PAGE_SIZE = 40;
@@ -36,15 +37,17 @@ export default function LogsPage() {
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
   const [offset, setOffset] = useState(0);
+  const { globalSearch, searchSubmitted } = useCrmSearch();
 
-  const loadLogs = async (nextOffset = 0) => {
+  const loadLogs = async (nextOffset = 0, qOverride?: string) => {
     try {
       setLoading(true);
       setError("");
       const params = new URLSearchParams();
       params.set("limit", String(PAGE_SIZE));
       params.set("offset", String(nextOffset));
-      if (q.trim()) params.set("q", q.trim());
+      const effectiveQ = qOverride ?? q;
+      if (effectiveQ.trim()) params.set("q", effectiveQ.trim());
       if (role) params.set("role", role);
       if (method) params.set("method", method);
       if (statusCode.trim()) params.set("statusCode", statusCode.trim());
@@ -67,6 +70,13 @@ export default function LogsPage() {
     if (!user) return;
     void loadLogs(0);
   }, [user]);
+
+  useEffect(() => {
+    if (!searchSubmitted) return;
+    const query = globalSearch.trim();
+    setQ(query);
+    void loadLogs(0, query);
+  }, [globalSearch, searchSubmitted]);
 
   const statusSummary = useMemo(() => {
     const logs = data?.items ?? [];

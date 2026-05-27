@@ -10,6 +10,7 @@ import { useSession } from "@/hooks/use-session";
 import { apiDelete, apiGet, apiPost, apiPostForm, apiPut } from "@/lib/api";
 import { CreateMemberPanel, type CreateMemberForm } from "@/components/employees/create-member-panel";
 import { MemberRoster } from "@/components/employees/member-roster";
+import { useCrmSearch } from "@/components/providers/crm-search-provider";
 import type { BulkUserUploadResult, CRMUser, Department, UserRole } from "@/types/crm";
 
 type PaginatedResponse<T> = { items: T[]; total: number; hasMore: boolean; nextOffset: number };
@@ -50,12 +51,18 @@ export default function EmployeesPage() {
   const [deletingId, setDeletingId] = useState("");
   const [directorySearchQuery, setDirectorySearchQuery] = useState("");
   const [directoryRoleFilter, setDirectoryRoleFilter] = useState<MemberRoleFilter>("ALL");
+  const { globalSearch, searchSubmitted } = useCrmSearch();
 
   const availableRoles: UserRole[] = user?.role === "SUPERADMIN" ? ["SUPERADMIN", ...BASE_ROLES] : BASE_ROLES;
   const createRoleOptions: UserRole[] = user?.role === "SUPERADMIN" ? ["SUPERADMIN", ...BASE_ROLES] : user?.role === "MANAGER" ? ["EMPLOYEE", "INTERN"] : BASE_ROLES;
   const directoryRoleOptions: UserRole[] = user?.role === "MANAGER" ? ["EMPLOYEE", "INTERN"] : availableRoles;
   const directoryRoleFilterOptions = useMemo(() => sortedUniqueRoles(users), [users]);
   const filteredDirectoryUsers = useMemo(() => filterMembersForPicker(users, { searchQuery: directorySearchQuery, roleFilter: directoryRoleFilter }), [users, directorySearchQuery, directoryRoleFilter]);
+
+  useEffect(() => {
+    if (!searchSubmitted) return;
+    setDirectorySearchQuery(globalSearch.trim());
+  }, [globalSearch, searchSubmitted]);
 
   const loadTeam = async (append = false) => {
     const offset = append ? nextUserOffset : 0;

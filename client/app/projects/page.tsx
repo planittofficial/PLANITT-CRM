@@ -1,10 +1,12 @@
 "use client";
 
+import { useDeferredValue, useEffect, useMemo } from "react";
 import { CRMShell } from "@/components/layout/crm-shell";
 import { MemberPickerToolbar } from "@/components/shared/member-picker-toolbar";
 import { StatePanel } from "@/components/shared/state-panel";
 import { TaskKanban } from "@/components/projects/task-kanban";
 import { useProjectsData, TASK_PRIORITY_OPTIONS } from "@/hooks/use-projects-data";
+import { useCrmSearch } from "@/components/providers/crm-search-provider";
 
 const FIELD_STYLE = { borderColor: "var(--border)", background: "var(--surface-soft)", color: "var(--text-main)" } as const;
 
@@ -13,6 +15,8 @@ function Surface({ children }: { children: React.ReactNode }) {
 }
 
 export default function ProjectsPage() {
+  const { globalSearch, searchSubmitted } = useCrmSearch();
+  const projectSearch = useDeferredValue(globalSearch.trim().toLowerCase());
   const {
     user, loading, error, notice, sessionGate, projects, departments, team, selectedProjectId, setSelectedProjectId,
     hasMoreProjects, loadingMoreProjects, setLoadingMoreProjects, loadProjects, projectForm, setProjectForm,
@@ -23,6 +27,36 @@ export default function ProjectsPage() {
     projectMemberDraftIds, toggleProjectMemberDraft, savingProjectMembers, saveProjectMembers,
     groupedTasks, projectAnalytics, selectedProject,
   } = useProjectsData();
+  const visibleProjects = useMemo(() => {
+    if (!searchSubmitted || !projectSearch) return projects;
+    return projects.filter((project) => {
+      const inName = project.name.toLowerCase().includes(projectSearch);
+      const inDesc = (project.description ?? "").toLowerCase().includes(projectSearch);
+      const inDept = (project.department?.name ?? "").toLowerCase().includes(projectSearch);
+      const inOwner = (project.owner?.name ?? "").toLowerCase().includes(projectSearch);
+      return inName || inDesc || inDept || inOwner;
+    });
+  }, [projects, projectSearch, searchSubmitted]);
+  const visibleGroupedTasks = useMemo(() => {
+    if (!searchSubmitted || !projectSearch) return groupedTasks;
+    const match = (task: (typeof groupedTasks)["TODO"][number]) => {
+      const inTitle = task.title.toLowerCase().includes(projectSearch);
+      const inDesc = (task.description ?? "").toLowerCase().includes(projectSearch);
+      const inAssignee = task.assignments.some((a) => a.user.name.toLowerCase().includes(projectSearch));
+      return inTitle || inDesc || inAssignee;
+    };
+    return {
+      TODO: groupedTasks.TODO.filter(match),
+      IN_PROGRESS: groupedTasks.IN_PROGRESS.filter(match),
+      DONE: groupedTasks.DONE.filter(match),
+    };
+  }, [groupedTasks, projectSearch, searchSubmitted]);
+
+  useEffect(() => {
+    if (!visibleProjects.length) return;
+    if (visibleProjects.some((project) => project.id === selectedProjectId)) return;
+    setSelectedProjectId(visibleProjects[0].id);
+  }, [selectedProjectId, setSelectedProjectId, visibleProjects]);
 
   if (sessionGate) return sessionGate;
   if (!user) return null;
@@ -54,7 +88,7 @@ export default function ProjectsPage() {
             <Surface>
               <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[var(--text-faint)]">All boards</p>
               <div className="mt-4 space-y-3">
-                {projects.map((project) => {
+                {visibleProjects.map((project) => {
                   const sel = selectedProjectId === project.id;
                   return (
                     <button key={project.id} type="button" onClick={() => setSelectedProjectId(project.id)} className="w-full rounded-2xl border px-4 py-4 text-left transition" style={sel ? { borderColor: "#0f172a", background: "#0f172a", color: "#ffffff" } : { borderColor: "var(--border)", background: "var(--surface-soft)", color: "var(--text-main)" }}>
@@ -173,7 +207,7 @@ export default function ProjectsPage() {
             ) : null}
 
             <TaskKanban
-              groupedTasks={groupedTasks}
+              groupedTasks={visibleGroupedTasks}
               editingTaskId={editingTaskId} editTaskForm={editTaskForm}
               filteredAssignees={filteredProjectAssignees}
               assignQuery={projectAssignQuery} onAssignQueryChange={setProjectAssignQuery}

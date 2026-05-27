@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import { CRMShell } from "@/components/layout/crm-shell";
 import { AttendanceCard } from "@/components/modules/attendance-card";
 import { MemberPickerToolbar } from "@/components/shared/member-picker-toolbar";
@@ -8,14 +9,16 @@ import { renderSessionGate } from "@/components/shared/session-gate";
 import { Surface, buildLinePath, SummaryStatCard, LineChartCard, ActivityBarsCard, InsightTicker, PerformanceBars, HeatmapGrid, formatRole } from "@/components/dashboard/chart-widgets";
 import { TeamAnalyticsPanel, DepartmentWisePanel } from "@/components/dashboard/team-analytics-panel";
 import { GoogleWorkspacePanel } from "@/components/dashboard/google-workspace-panel";
+import { useCrmSearch } from "@/components/providers/crm-search-provider";
 import { canUseGoogleWorkspace, useDashboardData } from "@/hooks/use-dashboard-data";
 import type { EmployeeDashboardSummary } from "@/types/crm";
 
 export default function DashboardPage() {
+  const { globalSearch, searchSubmitted } = useCrmSearch();
   const {
     user, loading, error, sessionError, retrySession, summary, teamLoading, analyticsLoading,
     selectedMemberId, selectedAnalytics, teamDirectoryRoleFilter, teamDirectoryRoleOptions,
-    filteredTeamMembers, overviewStats, leadershipView, globalSearch, setGlobalSearch, 
+    filteredTeamMembers, overviewStats, leadershipView, setGlobalSearch,
     setTeamDirectoryRoleFilter, setSelectedMemberId, workspaceStatus, workspaceProjects,
     workspaceUsers, selectedWorkspaceProjectId, workspaceActionLoading, meetResult, sheetResult,
     driveResult, workspaceLoading, workspaceMessage, activeDashboardTab, setActiveDashboardTab,
@@ -59,6 +62,38 @@ export default function DashboardPage() {
     { label: "Attendance pulse", value: `${attendanceRate}% live participation`, tone: (attendanceRate >= 75 ? "positive" : attendanceRate <= 55 ? "warning" : "neutral") as "neutral" | "positive" | "warning" },
     { label: "Throughput forecast", value: `${forecastCompleted} completed by next week`, tone: (forecastCompletionRate >= completionRate ? "positive" : "neutral") as "neutral" | "positive" | "warning" },
   ];
+
+  useEffect(() => {
+    if (!searchSubmitted) return;
+    const q = globalSearch.trim().toLowerCase();
+    if (!q) return;
+
+    const jump = (id: string) => {
+      setTimeout(() => {
+        document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 120);
+    };
+
+    if (q.includes("attendance") || q.includes("attendence")) {
+      setActiveDashboardTab("analytics");
+      jump("analytics-section");
+      return;
+    }
+    if (q.includes("team") || q.includes("member")) {
+      setActiveDashboardTab("analytics");
+      jump("team-directory");
+      return;
+    }
+    if (q.includes("analytics") || q.includes("overview") || q.includes("metrics")) {
+      setActiveDashboardTab("analytics");
+      jump("overview-section");
+      return;
+    }
+    if (q.includes("workspace") || q.includes("google") || q.includes("meet") || q.includes("sheet") || q.includes("drive")) {
+      setActiveDashboardTab("workspace");
+      jump("workspace-section");
+    }
+  }, [globalSearch, searchSubmitted, setActiveDashboardTab]);
 
   return (
     <CRMShell user={user}>
