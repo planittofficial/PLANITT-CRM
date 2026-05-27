@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { apiPost } from "@/lib/api";
+import { showToast } from "@/hooks/use-toast";
 
 type AttendanceCardProps = {
   initialCheckedIn?: boolean;
@@ -29,14 +30,14 @@ export function AttendanceCard({ initialCheckedIn = false }: AttendanceCardProps
       if (checkedIn) {
         await apiPost("/attendance/checkout");
         setCheckedIn(false);
-        setMessage("Checked out successfully.");
+        showToast("Checked out successfully." , "error");
         window.dispatchEvent(new CustomEvent("attendance:local-updated"));
         return;
       }
 
       await apiPost("/attendance/checkin");
       setCheckedIn(true);
-      setMessage("Checked in successfully.");
+      showToast("Checked in successfully." , "success");
       window.dispatchEvent(new CustomEvent("attendance:local-updated"));
     } catch (error) {
       const err = error as Error & { status?: number };

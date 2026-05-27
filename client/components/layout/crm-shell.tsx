@@ -5,6 +5,11 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { apiGet, apiPost } from "@/lib/api";
 import { clearToken } from "@/lib/auth";
+import {
+ showToast
+}
+from
+"@/hooks/use-toast";
 import { useCrmSearch } from "@/components/providers/crm-search-provider";
 import { useTheme } from "@/components/providers/theme-provider";
 import { useNotifications } from "@/hooks/use-notifications";
@@ -230,11 +235,31 @@ export function CRMShell({ children, user }: CRMShellProps) {
       if (checkedIn) {
         await apiPost("/attendance/checkout");
         setCheckedIn(false);
+        showToast(
+        "Checked out successfully.",
+        "success"
+      );
       } else {
         await apiPost("/attendance/checkin");
         setCheckedIn(true);
+        showToast(
+        "Checked in successfully.",
+        "success"
+      );
+
       }
       window.dispatchEvent(new CustomEvent("attendance:local-updated"));
+       } catch (err) {
+
+    showToast(
+      err instanceof Error
+        ? err.message
+        : checkedIn
+        ? "Failed to check out"
+        : "Failed to check in",
+
+      "error"
+    );
     } finally {
       setAttendanceLoading(false);
     }

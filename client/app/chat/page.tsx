@@ -16,6 +16,7 @@ import { apiGet, apiPost } from "@/lib/api";
 import { normalizeErrorMessage } from "@/lib/error-message";
 import { roomKey } from "@/components/chat/chat-utils";
 import type { CRMUser, ChatRoomsResponse } from "@/types/crm";
+import { showToast } from "@/hooks/use-toast";
 
 export default function ChatPage() {
   const { user, loading: sessionLoading, error: sessionError, retry: retrySession } = useSession();
@@ -66,7 +67,7 @@ export default function ChatPage() {
         const first = data.departments[0] ?? data.projects[0] ?? data.groups[0];
         setSelectedKey((cur) => cur || (first ? roomKey(first) : ""));
       } catch (err) {
-        setError(normalizeErrorMessage(err, "Failed to load chat rooms"));
+        showToast(normalizeErrorMessage(err, "Failed to load chat rooms" ), "error");
       } finally {
         setLoading(false);
       }
@@ -101,8 +102,12 @@ export default function ChatPage() {
     try {
       await apiPost<{ success: boolean }>(`/chat/clear/${selectedRoom.type}/${selectedRoom.id}`);
       messages_.setMessages([]);
+      showToast(
+"Chat cleared",
+"success"
+);
     } catch (err) {
-      setError(normalizeErrorMessage(err, "Failed to clear chat"));
+      showToast(normalizeErrorMessage(err, "Failed to clear chat") , "error");
     }
   };
 

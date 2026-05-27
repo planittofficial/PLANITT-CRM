@@ -8,6 +8,7 @@ import { useSession } from "@/hooks/use-session";
 import { apiGet } from "@/lib/api";
 import { useCrmSearch } from "@/components/providers/crm-search-provider";
 import type { ActivityLogsResponse, UserRole } from "@/types/crm";
+import { showToast } from "@/hooks/use-toast";
 
 const PAGE_SIZE = 40;
 
@@ -59,7 +60,7 @@ export default function LogsPage() {
       setData(result);
       setOffset(nextOffset);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load logs");
+      showToast(err instanceof Error ? err.message : "Failed to load logs" , "error");
       setData(null);
     } finally {
       setLoading(false);

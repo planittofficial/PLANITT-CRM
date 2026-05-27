@@ -15,7 +15,12 @@ import { apiGet, apiPost } from "@/lib/api";
 import { getTaskAssignableRoles, isAdminRole } from "@/lib/dashboard";
 import { useSearchParams } from "next/navigation";
 import { TASK_PRIORITY_OPTIONS } from "@/lib/task-groups";
-import type { CRMUser, Project, Task, TaskPriority } from "@/types/crm";
+import {
+ showToast
+}
+from
+"@/hooks/use-toast";
+import type { CRMUser, Task, Project ,TaskPriority } from "@/types/crm";
 type PaginatedResponse<T> = { items: T[]; total: number; hasMore: boolean; nextOffset: number };
 
 function Surface({ children, className = "" }: { children: ReactNode; className?: string }) {
@@ -86,7 +91,7 @@ useCrmSearch();
   );
 
   const directory = usePaginatedDirectoryUsers({
-    limit: 16,
+    limit: 100,
     roleFilter: assignPickerRole,
     searchQuery: assignPickerQuery,
     enabled: Boolean(user && isAdminRole(user.role)),
@@ -211,7 +216,7 @@ useCrmSearch();
         setError("");
         await Promise.all([loadTasks(false), loadProjects()]);
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to load tasks");
+        setError(err instanceof Error ? err.message : "Failed to load tasks" ); showToast(err instanceof Error ? err.message : "Failed to load tasks" , "error" );
       } finally {
         setLoading(false);
       }
@@ -254,11 +259,21 @@ useCrmSearch();
           .filter(Boolean),
       });
       setForm({ title: "", description: "", userIds: [], progress: 0, checklistText: "", priority: "MEDIUM", deadlineAt: "" });
-      setNotice("Task created successfully.");
-      await loadTasks(false);
+      showToast(
+        "Task created successfully.",
+        "success"
+      );      
+await loadTasks(false);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to create task");
-    } finally {
+setError(
+  err instanceof Error
+    ? err.message
+    : "Failed to create task"
+);   showToast(
+  err instanceof Error
+    ? err.message
+    : "Failed to create task" , "error"
+); } finally {
       setCreating(false);
     }
   };
