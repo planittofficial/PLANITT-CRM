@@ -184,21 +184,15 @@ useCrmSearch();
       limit: "30",
       offset: String(offset),
     });
-    if (
-  searchSubmitted &&
-  taskSearch
-) {
-  params.set(
-    "q",
-    taskSearch
-  );
-}
+
+    if (selectedProjectId !== "ALL") {
+      params.set("projectId", selectedProjectId);
+    }
+    if (searchSubmitted && taskSearch) {
+      params.set("q", taskSearch);
+    }
+
     const data = await apiGet<PaginatedResponse<Task>>(`/tasks?${params.toString()}`);
-    const projectFilter =
-      selectedProjectId !== "ALL" ? `&projectId=${encodeURIComponent(selectedProjectId)}` : "";
-    const data = await apiGet<PaginatedResponse<Task>>(
-      `/tasks?paginate=true&limit=30&offset=${offset}${projectFilter}`
-    );
     setTasks((current) => (append ? [...current, ...data.items] : data.items));
     setTasksTotal(data.total);
     setHasMoreTasks(data.hasMore);
@@ -211,7 +205,6 @@ useCrmSearch();
   };
 
   useEffect(() => {
-    if (!searchSubmitted) return;
     async function fetchData() {
       try {
         setLoading(true);
@@ -227,8 +220,7 @@ useCrmSearch();
     if (user) {
       void fetchData();
     }
-  }, [user, taskSearch]);
-  }, [user, selectedProjectId]);
+  }, [user, selectedProjectId, taskSearch, searchSubmitted]);
 
   useRealtimeRefresh(user, ["task:updated", "issue:updated", "org:updated"], async () => {
     await loadTasks(false);
@@ -455,7 +447,7 @@ useCrmSearch();
                         className="rounded-xl border px-4 py-2 text-xs font-semibold disabled:opacity-60"
                         style={{ borderColor: "var(--border)", color: "var(--text-main)" }}
                       >
-                        {directory.loadingMore ? "Loading…" : "Load more people"}
+                        {directory.loadingMore ? "Loading..." : "Load more people"}
                       </button>
                     </div>
                   ) : null}
@@ -586,8 +578,7 @@ useCrmSearch();
             
 
             <div className="mt-6 max-h-[min(70vh,900px)] overflow-y-auto pr-1">
-              {!loading && tasks.length > 0 ? (
-              {visibleTasks.length ? (
+              {!loading && visibleTasks.length ? (
                 <TaskList
                   tasks={visibleTasks}
                   user={user}
@@ -622,7 +613,7 @@ useCrmSearch();
                     style={{ background: "var(--accent-strong)" }}
                   >
                     {loadingMore
-                      ? "Loading…"
+                      ? "Loading..."
                       : `Load more tasks (${Math.max(0, tasksTotal - tasks.length)} remaining)`}
                   </button>
                 </div>
@@ -642,4 +633,5 @@ export default function TasksPage() {
     </Suspense>
   );
 }
+
 
