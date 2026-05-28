@@ -34,7 +34,10 @@ export function authMiddleware(req, res, next) {
     const secret = getJwtSecret();
     const decoded = jwt.verify(token, secret);
 
-    req.user = decoded;
+    req.user = {
+      ...decoded,
+      authProvider: decoded.authProvider ?? "password",
+    };
 
     const role = req.user?.role;
     const method = String(req.method || "").toUpperCase();

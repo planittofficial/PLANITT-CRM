@@ -54,6 +54,7 @@ export type CRMUser = {
   id: string;
   name: string;
   email: string;
+  avatarUrl?: string | null;
   role: UserRole;
   designation?: string | null;
   departmentId?: string | null;
@@ -66,6 +67,7 @@ export type CRMUser = {
     role: UserRole;
   } | null;
   createdAt?: string;
+  authProvider?: "google" | "password";
 };
 
 export type ChatRoom = {
@@ -78,6 +80,8 @@ export type ChatRoom = {
     id: string;
     name: string;
     role: UserRole;
+    avatarUrl?: string | null;
+    authProvider?: "google" | "password";
   } | null;
   unreadCount?: number;
   lastMessagePreview?: string;
@@ -112,6 +116,8 @@ export type ChatGroupMember = {
     name: string;
     email: string;
     role: UserRole;
+    avatarUrl?: string | null;
+    authProvider?: "google" | "password";
   };
   createdAt: string;
 };
@@ -140,6 +146,8 @@ export type ChatMessage = {
       name: string;
       email: string;
       role: UserRole;
+      avatarUrl?: string | null;
+      authProvider?: "google" | "password";
     };
   } | null;
   createdAt: string;
@@ -148,6 +156,8 @@ export type ChatMessage = {
     name: string;
     email: string;
     role: UserRole;
+    avatarUrl?: string | null;
+    authProvider?: "google" | "password";
   };
 };
 

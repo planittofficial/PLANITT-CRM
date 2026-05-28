@@ -1,6 +1,7 @@
 "use client";
 
 import { MemberPickerToolbar, type MemberRoleFilter } from "@/components/shared/member-picker-toolbar";
+import { UserAvatar } from "@/components/shared/user-avatar";
 import type { CRMUser, Department, UserRole } from "@/types/crm";
 
 const FIELD_STYLE = { borderColor: "var(--border)", background: "var(--surface-soft)", color: "var(--text-main)" } as const;
@@ -59,8 +60,18 @@ export function MemberRoster({ users, filteredUsers, departments, managers, data
                   return (
                     <tr key={member.id} className="border-t" style={{ borderColor: "var(--border)" }}>
                       <td className="px-4 py-3 align-top sm:px-5 sm:py-4">
-                        <div className="font-medium text-[var(--text-main)]">{member.name}</div>
-                        <div className="mt-1 text-xs font-medium text-[var(--text-faint)]">{member.designation?.trim() || "No designation"}</div>
+                        <div className="flex items-center gap-3">
+                          <UserAvatar
+                            name={member.name}
+                            avatarUrl={member.avatarUrl}
+                            authProvider={member.authProvider}
+                            className="h-9 w-9 shrink-0 rounded-full text-[10px]"
+                          />
+                          <div>
+                            <div className="font-medium text-[var(--text-main)]">{member.name}</div>
+                            <div className="mt-1 text-xs font-medium text-[var(--text-faint)]">{member.designation?.trim() || "No designation"}</div>
+                          </div>
+                        </div>
                       </td>
                       <td className="px-4 py-3 align-top sm:px-5 sm:py-4">
                         {canEditEmail(member) ? (

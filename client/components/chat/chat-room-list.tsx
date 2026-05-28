@@ -1,5 +1,6 @@
 "use client";
 
+import { UserAvatar } from "@/components/shared/user-avatar";
 import type { ChatRoom, ChatRoomsResponse } from "@/types/crm";
 import { roomKey } from "./chat-utils";
 
@@ -31,17 +32,29 @@ function RoomButton({
           : "var(--surface-soft)",
       }}
     >
-      <div className="flex items-center justify-between gap-2">
-        <p className="text-sm font-semibold text-[var(--text-main)]">{room.name}</p>
-        {!!room.unreadCount && (
-          <span className="rounded-full bg-[var(--accent)] px-2 py-0.5 text-[10px] font-semibold text-white">
-            {room.unreadCount}
-          </span>
-        )}
+      <div className="flex items-center gap-3">
+        {room.isDirect && room.directPeer ? (
+          <UserAvatar
+            name={room.directPeer.name}
+            avatarUrl={room.directPeer.avatarUrl}
+            authProvider={room.directPeer.authProvider}
+            className="h-9 w-9 shrink-0 rounded-full text-[10px]"
+          />
+        ) : null}
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center justify-between gap-2">
+            <p className="truncate text-sm font-semibold text-[var(--text-main)]">{room.name}</p>
+            {!!room.unreadCount && (
+              <span className="rounded-full bg-[var(--accent)] px-2 py-0.5 text-[10px] font-semibold text-white">
+                {room.unreadCount}
+              </span>
+            )}
+          </div>
+          <p className="mt-1 truncate text-xs text-[var(--text-soft)]">
+            {room.lastMessagePreview || room.subtitle}
+          </p>
+        </div>
       </div>
-      <p className="mt-1 truncate text-xs text-[var(--text-soft)]">
-        {room.lastMessagePreview || room.subtitle}
-      </p>
     </button>
   );
 }

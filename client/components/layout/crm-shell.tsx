@@ -51,6 +51,50 @@ function initials(name: string) {
     .join("");
 }
 
+function UserAvatar({
+  name,
+  avatarUrl,
+  authProvider,
+  className,
+}: {
+  name: string;
+  avatarUrl?: string | null;
+  authProvider?: CRMUser["authProvider"];
+  className: string;
+}) {
+  const [imageFailed, setImageFailed] = useState(false);
+
+  useEffect(() => {
+    setImageFailed(false);
+  }, [avatarUrl, authProvider]);
+
+  const showPhoto = authProvider === "google" && Boolean(avatarUrl) && !imageFailed;
+
+  if (showPhoto) {
+    return (
+      <img
+        src={avatarUrl as string}
+        alt={`${name} profile picture`}
+        className={`block ${className} object-cover`}
+        referrerPolicy="no-referrer"
+        onError={() => setImageFailed(true)}
+      />
+    );
+  }
+
+  return (
+    <div
+      className={`flex items-center justify-center font-bold text-white ${className}`}
+      style={{
+        background: "linear-gradient(135deg, rgba(255,255,255,0.24), rgba(255,255,255,0.12))",
+      }}
+      aria-label={`${name} default avatar`}
+    >
+      <span>{initials(name)}</span>
+    </div>
+  );
+}
+
 function CRMShellHeaderSearch() {
   const { globalSearch, setGlobalSearch , submitSearch ,searchNoResult ,setSearchNoResult} = useCrmSearch();
   const router = useRouter();
@@ -357,9 +401,12 @@ export function CRMShell({ children, user }: CRMShellProps) {
 
             <div className="mt-auto rounded-lg border border-white/12 bg-white/8 p-3">
               <div className="flex items-center gap-3">
-                <div className="crm-avatar flex h-9 w-9 items-center justify-center rounded-full text-xs font-bold">
-                  {initials(user.name)}
-                </div>
+                <UserAvatar
+                  name={user.name}
+                  avatarUrl={user.avatarUrl}
+                  authProvider={user.authProvider}
+                  className="crm-avatar h-9 w-9 rounded-full text-xs"
+                />
                 <div className="min-w-0">
                   <p className="truncate text-sm font-semibold text-white">{user.name}</p>
                   <p className="text-xs text-white/60">{roleLabel[user.role]}</p>
@@ -518,9 +565,12 @@ export function CRMShell({ children, user }: CRMShellProps) {
                     </div>
                   ) : null}
                 </div>
-                <div className="crm-avatar flex h-10 w-10 items-center justify-center rounded-full text-xs font-bold">
-                  {initials(user.name)}
-                </div>
+                <UserAvatar
+                  name={user.name}
+                  avatarUrl={user.avatarUrl}
+                  authProvider={user.authProvider}
+                  className="crm-avatar h-10 w-10 rounded-full text-xs"
+                />
               </div>
             </div>
           </header>

@@ -1,6 +1,7 @@
 "use client";
 
-import { Surface, getInitials, formatRole, rosterRolePillStyle, LineChartCard, HeatmapGrid } from "./chart-widgets";
+import { UserAvatar } from "@/components/shared/user-avatar";
+import { Surface, formatRole, rosterRolePillStyle, LineChartCard, HeatmapGrid } from "./chart-widgets";
 import { StatusBreakdownCard, TaskSummaryList } from "./data-panels";
 import { StatePanel } from "@/components/shared/state-panel";
 import type { CRMUser, DashboardSummary, UserAnalyticsSummary } from "@/types/crm";
@@ -13,9 +14,13 @@ function TeamMemberCard({ member, active, onClick }: { member: CRMUser; active: 
     <button type="button" onClick={onClick} className="group w-full rounded-2xl border px-3 py-2.5 text-left transition hover:opacity-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-strong)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--surface)]"
       style={{ borderWidth: active ? 2 : 1, borderStyle: "solid", borderColor: active ? "var(--accent-strong)" : "var(--border)", background: active ? "linear-gradient(180deg, color-mix(in srgb, var(--accent) 14%, var(--surface)) 0%, var(--surface) 100%)" : "var(--surface)", boxShadow: active ? "0 0 0 1px color-mix(in srgb, var(--accent-strong) 25%, transparent), 0 12px 28px rgba(37, 99, 235, 0.12)" : "0 1px 0 color-mix(in srgb, var(--border) 40%, transparent)" }}>
       <div className="flex items-center gap-3">
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-xs font-bold tracking-tight" style={{ background: active ? "color-mix(in srgb, var(--accent) 22%, var(--surface))" : "color-mix(in srgb, var(--accent) 12%, var(--surface-soft))", color: "var(--accent-strong)" }}>
-          {getInitials(member.name)}
-        </div>
+        <UserAvatar
+          name={member.name}
+          avatarUrl={member.avatarUrl}
+          authProvider={member.authProvider}
+          className="h-10 w-10 shrink-0 rounded-xl text-xs"
+          imageClassName="rounded-xl"
+        />
         <div className="min-w-0 flex-1">
           <div className="flex items-start justify-between gap-2">
             <div className="min-w-0">
