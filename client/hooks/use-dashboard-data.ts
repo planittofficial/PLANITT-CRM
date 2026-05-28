@@ -8,6 +8,7 @@ import { useSession } from "@/hooks/use-session";
 import { apiDelete, apiGet, apiPost } from "@/lib/api";
 import { normalizeErrorMessage } from "@/lib/error-message";
 import type { CRMUser, DashboardSummary, EmployeeDashboardSummary, GoogleDriveFolderResult, GoogleMeetSessionResult, GoogleProjectSheetResult, GoogleWorkspaceStatus, Project, UserAnalyticsSummary } from "@/types/crm";
+import { showToast } from "./use-toast";
 
 export type WorkspaceActionLoading = "" | "meet" | "sheets" | "drive";
 const TEAM_ANALYTICS_PRELOAD_LIMIT = 8;
@@ -82,7 +83,7 @@ export function useDashboardData() {
   useEffect(() => {
     async function loadSummary() {
       try { const d = await apiGet<DashboardSummary>("/dashboard/summary"); setSummary(d); setError(""); }
-      catch (err) { setError(normalizeErrorMessage(err, "Failed to load dashboard")); }
+      catch (err) { setError(normalizeErrorMessage(err, "Failed to load dashboard") ); }
     }
     if (user) void loadSummary();
   }, [user]);
@@ -95,7 +96,7 @@ export function useDashboardData() {
           setSummary(d);
           setError("");
         })
-        .catch((err) => setError(normalizeErrorMessage(err, "Failed to refresh dashboard")));
+        .catch((err) => showToast(normalizeErrorMessage(err, "Failed to refresh dashboard"),"error"));
     };
 
     window.addEventListener("attendance:local-updated", onLocalAttendanceUpdate);
@@ -122,7 +123,7 @@ export function useDashboardData() {
         )
           .then((analyticsData) => setTeamAnalyticsList(analyticsData))
           .catch(() => {});
-      } catch (err) { setError(normalizeErrorMessage(err, "Failed to load team members")); }
+      } catch (err) { setError(normalizeErrorMessage(err, "Failed to load team members" )); showToast(normalizeErrorMessage(err, "Failed to load team members" ),"error"); }
       finally { setTeamLoading(false);
         resetSearch();
        }
@@ -137,7 +138,7 @@ export function useDashboardData() {
         setAnalyticsLoading(true);
         const d = await apiGet<UserAnalyticsSummary>(`/users/${selectedMemberId}/analytics`);
         setSelectedAnalytics(d);
-      } catch (err) { setError(normalizeErrorMessage(err, "Failed to load member analytics")); }
+      } catch (err) { setError(normalizeErrorMessage(err, "Failed to load member analytics")); showToast(normalizeErrorMessage(err, "Failed to load member analytics") , "error"); }
       finally { setAnalyticsLoading(false); }
     }
     void loadAnalytics();

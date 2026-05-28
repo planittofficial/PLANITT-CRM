@@ -7,6 +7,7 @@ import { setToken } from "@/lib/auth";
 import { resolveApiBaseUrl } from "@/lib/api";
 import { normalizeLoginEmail } from "@/lib/normalize-email";
 import { parseApiJsonBody } from "@/lib/parse-api-response";
+import { showToast } from "@/hooks/use-toast";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -38,9 +39,9 @@ export default function LoginPage() {
     }
 
     if (state === "user_not_found") {
-      setError("Google account is not registered in CRM yet. Ask admin to create your user first.");
+      showToast("Google account is not registered in CRM yet. Ask admin to create your user first." , "error");
     } else if (state === "denied") {
-      setError("Google login was cancelled.");
+      showToast("Google login was cancelled." , "error");
     } else if (
       state === "missing_config" ||
       state === "token_failed" ||
@@ -48,7 +49,7 @@ export default function LoginPage() {
       state === "missing_code" ||
       state === "email_missing"
     ) {
-      setError(GOOGLE_FRIENDLY_ERROR);
+      showToast(GOOGLE_FRIENDLY_ERROR , "error");
     }
   }, [router]);
 
@@ -59,7 +60,7 @@ export default function LoginPage() {
 
       const normalizedEmail = normalizeLoginEmail(email);
       if (!normalizedEmail || !password) {
-        setError("Enter your email and password.");
+        showToast("Enter your email and password." , "error");
         return;
       }
 
@@ -96,7 +97,7 @@ export default function LoginPage() {
           `Cannot reach the API. Confirm the backend is running and NEXT_PUBLIC_API_URL points to it (${resolveApiBaseUrl()}).`
         );
       } else {
-        setError(err instanceof Error ? err.message : "Login failed");
+        showToast(err instanceof Error ? err.message : "Login failed" , "error");
       }
     } finally {
       setLoading(false);
@@ -119,7 +120,7 @@ export default function LoginPage() {
 
       window.location.href = data.authUrl;
     } catch (_err) {
-      setError(GOOGLE_FRIENDLY_ERROR);
+      showToast(GOOGLE_FRIENDLY_ERROR , "error");
       setGoogleLoading(false);
     }
   };

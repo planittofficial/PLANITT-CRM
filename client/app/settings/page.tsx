@@ -8,6 +8,7 @@ import { renderSessionGate } from "@/components/shared/session-gate";
 import { useSession } from "@/hooks/use-session";
 import { apiGet, apiPut } from "@/lib/api";
 import type { CRMUser } from "@/types/crm";
+import { showToast } from "@/hooks/use-toast";
 
 export default function SettingsPage() {
   const { user, loading, error: sessionError, retry: retrySession } = useSession();
@@ -32,8 +33,8 @@ export default function SettingsPage() {
           designation: data.designation ?? "",
           password: "",
         });
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to load profile");
+      } catch (err) { setError(err instanceof Error ? err.message : "Failed to load profile");
+        showToast(err instanceof Error ? err.message : "Failed to load profile" , "error");
       }
     }
 
@@ -54,9 +55,9 @@ export default function SettingsPage() {
       });
       setProfile(updated);
       setForm((current) => ({ ...current, password: "" }));
-      setNotice("Profile updated successfully.");
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to update profile");
+      showToast("Profile updated successfully.", "success");
+    } catch (err) { 
+      showToast(err instanceof Error ? err.message : "Failed to update profile" , "error");
     } finally {
       setSaving(false);
     }

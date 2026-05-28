@@ -9,6 +9,7 @@ import { useRealtimeRefresh } from "@/hooks/use-realtime-refresh";
 import { useSession } from "@/hooks/use-session";
 import { apiGet, apiPost } from "@/lib/api";
 import type { CRMUser, Department } from "@/types/crm";
+import { showToast } from "@/hooks/use-toast";
 type PaginatedResponse<T> = { items: T[]; total: number; hasMore: boolean; nextOffset: number };
 
 function Surface({ children }: { children: ReactNode }) {
@@ -70,7 +71,7 @@ export default function DepartmentsPage() {
       try {
         await loadData(false);
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to load departments");
+        showToast(err instanceof Error ? err.message : "Failed to load departments" , "error");
       } finally {
         setDataLoading(false);
       }
@@ -98,9 +99,9 @@ export default function DepartmentsPage() {
         headId: "",
       });
       await loadData(false);
-      setNotice("Department created successfully.");
+      showToast("Department created successfully.", "success");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to create department");
+      showToast(err instanceof Error ? err.message : "Failed to create department" , "error");
     } finally {
       setCreating(false);
     }
