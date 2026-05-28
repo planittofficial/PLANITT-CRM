@@ -8,6 +8,7 @@ import type {
   ChatMediaTypeFilter,
   ChatRoom,
 } from "@/types/crm";
+import { UserAvatar } from "@/components/shared/user-avatar";
 import { formatTime, resolveAttachmentUrl } from "./chat-utils";
 
 /* ─── Create Group Modal ─────────────────────────────────── */
@@ -72,14 +73,21 @@ export function CreateGroupModal({
           style={{ borderColor: "var(--border)" }}
         >
           {users.map((member) => (
-            <label key={member.id} className="flex items-center gap-2 px-2 py-1 text-sm">
+            <label key={member.id} className="flex items-center gap-3 px-2 py-1 text-sm">
               <input
                 type="checkbox"
                 checked={groupMemberIds.includes(member.id)}
                 onChange={(e) => onToggleMember(member.id, e.target.checked)}
               />
-              <span>
-                {member.name} ({member.role})
+              <UserAvatar
+                name={member.name}
+                avatarUrl={member.avatarUrl}
+                authProvider={member.authProvider}
+                className="h-7 w-7 shrink-0 rounded-full text-[9px]"
+              />
+              <span className="min-w-0">
+                <span className="block truncate">{member.name}</span>
+                <span className="block text-xs text-[var(--text-faint)]">{member.role}</span>
               </span>
             </label>
           ))}
@@ -234,9 +242,17 @@ export function GroupSettingsDrawer({
                 className="flex items-center justify-between rounded-lg border px-3 py-2 text-sm"
                 style={{ borderColor: "var(--border)" }}
               >
-                <span>
-                  {member.user.name} ({member.user.role})
-                </span>
+                <div className="flex min-w-0 items-center gap-2">
+                  <UserAvatar
+                    name={member.user.name}
+                    avatarUrl={member.user.avatarUrl}
+                    authProvider={member.user.authProvider}
+                    className="h-7 w-7 shrink-0 rounded-full text-[9px]"
+                  />
+                  <span className="truncate">
+                    {member.user.name} ({member.user.role})
+                  </span>
+                </div>
                 <button
                   type="button"
                   onClick={() => onRemoveMember(member.userId)}
@@ -257,10 +273,18 @@ export function GroupSettingsDrawer({
                   key={u.id}
                   type="button"
                   onClick={() => onAddMember(u.id)}
-                  className="block w-full rounded-lg px-2 py-1 text-left text-sm hover:bg-[var(--surface-soft)]"
+                  className="flex w-full items-center gap-2 rounded-lg px-2 py-1 text-left text-sm hover:bg-[var(--surface-soft)]"
                   style={{ color: "var(--text-main)" }}
                 >
-                  Add {u.name} ({u.role})
+                  <UserAvatar
+                    name={u.name}
+                    avatarUrl={u.avatarUrl}
+                    authProvider={u.authProvider}
+                    className="h-7 w-7 shrink-0 rounded-full text-[9px]"
+                  />
+                  <span className="truncate">
+                    Add {u.name} ({u.role})
+                  </span>
                 </button>
               ))}
             </div>

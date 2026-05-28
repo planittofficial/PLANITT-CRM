@@ -1,10 +1,10 @@
 "use client";
 
 import type { ChatMessage, CRMUser } from "@/types/crm";
+import { UserAvatar } from "@/components/shared/user-avatar";
 import {
   formatTime,
   resolveAttachmentUrl,
-  initials,
   extractUrls,
   getUrlLabel,
 } from "./chat-utils";
@@ -36,12 +36,12 @@ export function ChatMessageBubble({
   return (
     <article className={`flex items-end gap-2 ${own ? "justify-end" : "justify-start"}`}>
       {!own && (
-        <div
-          className="mb-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[10px] font-bold text-white"
-          style={{ background: "var(--accent)" }}
-        >
-          {initials(message.author.name)}
-        </div>
+        <UserAvatar
+          name={message.author.name}
+          avatarUrl={message.author.avatarUrl}
+          authProvider={message.author.authProvider}
+          className="mb-1 h-8 w-8 shrink-0 rounded-full text-[10px]"
+        />
       )}
       <div
         className="relative max-w-[760px] rounded-2xl border px-4 py-3"
