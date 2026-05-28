@@ -12,6 +12,7 @@ import { MemberPickerToolbar, type MemberRoleFilter } from "@/components/shared/
 import { LoadingRows } from "@/components/shared/loading-skeleton";
 import { usePaginatedDirectoryUsers } from "@/hooks/use-paginated-directory-users";
 import { apiGet, apiPost } from "@/lib/api";
+import { Skeleton } from "@/components/shared/skeleton";
 import { getTaskAssignableRoles, isAdminRole } from "@/lib/dashboard";
 import { useSearchParams } from "next/navigation";
 import { TASK_PRIORITY_OPTIONS } from "@/lib/task-groups";
@@ -587,7 +588,19 @@ setError(
               </div>
             ) : null}
 
-            {loading ? <p className="mt-6 text-sm text-(--text-soft)">Loading tasks...</p> : null}
+            {loading ? (
+
+  <div className="mt-6 space-y-4">
+
+    <Skeleton className="h-32 w-full" />
+
+    <Skeleton className="h-32 w-full" />
+
+    <Skeleton className="h-32 w-full" />
+
+  </div>
+
+) : null}
             {!loading && error ? <p className="mt-6 text-sm font-medium text-rose-600">{error}</p> : null}
 
             
