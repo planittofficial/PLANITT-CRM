@@ -194,12 +194,74 @@ export function useNotifications(user: CRMUser) {
       }
     };
 
+    const handleLeaveEvent = (eventType: string, payload: any = {}) => {
+      if (payload.actorId === user.id) {
+        return;
+      }
+
+      const assignedUserIds: string[] = Array.isArray(payload.assignedUserIds) ? payload.assignedUserIds : [];
+      const notifyRoles: string[] = Array.isArray(payload.notifyRoles) ? payload.notifyRoles : [];
+      const shouldNotify = assignedUserIds.includes(user.id) || notifyRoles.includes(user.role);
+      if (!shouldNotify) {
+        return;
+      }
+
+      const leaveHref = `/leaves/${payload.leaveId ?? ""}`;
+      if (eventType === "created") {
+        push({
+          title: "Leave Request Submitted",
+          message: payload.leaveId ? "A new leave request is awaiting approval." : "A leave request was submitted.",
+          href: leaveHref,
+        });
+        return;
+      }
+
+      if (eventType === "updated") {
+        push({
+          title: "Leave Request Updated",
+          message: payload.leaveId ? "A leave request was updated." : "A leave request has been updated.",
+          href: leaveHref,
+        });
+        return;
+      }
+
+      if (eventType === "status") {
+        push({
+          title: "Leave Status Changed",
+          message: payload.leaveId ? "A leave request status has changed." : "A leave request status changed.",
+          href: leaveHref,
+        });
+        return;
+      }
+
+      if (eventType === "comment") {
+        push({
+          title: "Leave Comment Added",
+          message: payload.leaveId ? "A new comment was posted on a leave request." : "A leave request received a comment.",
+          href: leaveHref,
+        });
+      }
+    };
+
+    const handleLeaveCreated = (payload: any) => handleLeaveEvent("created", payload);
+    const handleLeaveUpdated = (payload: any) => handleLeaveEvent("updated", payload);
+    const handleLeaveStatus = (payload: any) => handleLeaveEvent("status", payload);
+    const handleLeaveComment = (payload: any) => handleLeaveEvent("comment", payload);
+
     socket.on("task:updated", handleTaskUpdated);
     socket.on("issue:updated", handleIssueUpdated);
+    socket.on("leave:created", handleLeaveCreated);
+    socket.on("leave:updated", handleLeaveUpdated);
+    socket.on("leave:status", handleLeaveStatus);
+    socket.on("leave:comment", handleLeaveComment);
 
     return () => {
       socket.off("task:updated", handleTaskUpdated);
       socket.off("issue:updated", handleIssueUpdated);
+      socket.off("leave:created", handleLeaveCreated);
+      socket.off("leave:updated", handleLeaveUpdated);
+      socket.off("leave:status", handleLeaveStatus);
+      socket.off("leave:comment", handleLeaveComment);
     };
   }, [socket, user.id, user.role]);
 

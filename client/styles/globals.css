@@ -74,23 +74,6 @@ textarea {
   font: inherit;
 }
 
-.crm-shell-dark {
-  --app-bg: #07111f;
-  --app-bg-accent: #0d1a2c;
-  --surface: rgba(13, 25, 43, 0.94);
-  --surface-strong: #101d31;
-  --surface-soft: #0a1525;
-  --border: rgba(148, 163, 184, 0.16);
-  --text-main: #f7faff;
-  --text-soft: #aab6ca;
-  --text-faint: #71809a;
-  --sidebar: #050b16;
-  --sidebar-elevated: #111d31;
-  --accent: #4f7dff;
-  --accent-strong: #3268ff;
-  --shadow-soft: 0 18px 52px rgba(0, 0, 0, 0.32);
-}
-
 .crm-input {
   border: 1px solid var(--border);
   background: var(--surface-soft);

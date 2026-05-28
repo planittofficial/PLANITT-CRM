@@ -14,6 +14,8 @@ import {
   DEFAULT_CRM_THEME,
   type CRMThemeMode,
   readStoredTheme,
+  persistTheme,
+  applyDocumentTheme,
 } from "@/lib/theme-storage";
 
 type ThemeContextValue = {
@@ -33,7 +35,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     const stored = readStoredTheme();
     const next = stored ?? DEFAULT_CRM_THEME;
     setThemeState(next);
-    document.documentElement.dataset.theme = next;
+    applyDocumentTheme(next);
   }, []);
 
   useEffect(() => {
@@ -43,7 +45,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       }
       const next = readStoredTheme() ?? DEFAULT_CRM_THEME;
       setThemeState(next);
-      document.documentElement.dataset.theme = next;
+      applyDocumentTheme(next);
     }
 
     window.addEventListener("storage", handleStorage);
@@ -52,10 +54,8 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
   const setTheme = useCallback((nextTheme: CRMThemeMode) => {
     setThemeState(nextTheme);
-    document.documentElement.dataset.theme = nextTheme;
-    if (typeof window !== "undefined") {
-      window.localStorage.setItem(CRM_THEME_STORAGE_KEY, nextTheme);
-    }
+    applyDocumentTheme(nextTheme);
+    persistTheme(nextTheme);
   }, []);
 
   const value = useMemo(

@@ -49,6 +49,7 @@ export default function RootLayout({
       var raw = window.localStorage.getItem(key);
       var theme = raw === 'dark' || raw === 'light' ? raw : 'light';
       document.documentElement.dataset.theme = theme;
+      document.documentElement.classList.toggle('dark', theme === 'dark');
     } catch (_) {}
   `;
 
