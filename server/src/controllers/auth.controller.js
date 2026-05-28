@@ -73,7 +73,7 @@ export async function signup(req, res) {
     const hashed = await bcrypt.hash(password, 10);
 
     const user = await prisma.user.create({
-      data: { name, email, password: hashed, role: "EMPLOYEE" },
+      data: { name, email, password: hashed, role: "EMPLOYEE", authProvider: PASSWORD_AUTH_PROVIDER },
       select: {
         id: true,
         name: true,
@@ -297,7 +297,7 @@ export async function handleGoogleLoginCallback(req, res) {
 
     const user = await prisma.user.update({
       where: { email },
-      data: { avatarUrl },
+      data: { avatarUrl, authProvider: GOOGLE_AUTH_PROVIDER },
       select: {
         id: true,
         name: true,
