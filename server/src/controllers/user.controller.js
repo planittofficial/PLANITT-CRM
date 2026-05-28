@@ -11,6 +11,7 @@ function toPublicUserSelect() {
     id: true,
     name: true,
     email: true,
+    avatarUrl: true,
     role: true,
     designation: true,
     departmentId: true,

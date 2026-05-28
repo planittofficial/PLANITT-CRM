@@ -8,6 +8,14 @@ const GROUP_ADMIN_ROLES = ["SUPERADMIN", "ADMIN", "MANAGER"];
 const ACCESS_CACHE_TTL_MS = 30_000;
 const accessCache = new Map();
 const DIRECT_GROUP_PREFIX = "DM::";
+const CHAT_USER_SELECT = {
+  id: true,
+  name: true,
+  email: true,
+  role: true,
+  avatarUrl: true,
+  authProvider: true,
+};
 
 function isLeadership(user) {
   return LEADERSHIP_ROLES.includes(user.role);
@@ -263,11 +271,7 @@ export async function getChatRooms(req, res) {
             select: {
               userId: true,
               user: {
-                select: {
-                  id: true,
-                  name: true,
-                  role: true,
-                },
+                select: CHAT_USER_SELECT,
               },
             },
           },
@@ -429,6 +433,8 @@ export async function getChatRooms(req, res) {
                 id: peer.id,
                 name: peer.name,
                 role: peer.role,
+                avatarUrl: peer.avatarUrl ?? null,
+                authProvider: peer.authProvider ?? "password",
               }
             : null,
           ...roomMeta("GROUP", group.id),
@@ -477,12 +483,7 @@ export async function getChatMessages(req, res) {
       take: limit + 1,
       include: {
         author: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-            role: true,
-          },
+          select: CHAT_USER_SELECT,
         },
         replyTo: {
           select: {
@@ -492,12 +493,7 @@ export async function getChatMessages(req, res) {
             attachmentFileName: true,
             isDeleted: true,
             author: {
-              select: {
-                id: true,
-                name: true,
-                email: true,
-                role: true,
-              },
+              select: CHAT_USER_SELECT,
             },
           },
         },
@@ -591,12 +587,7 @@ export async function createChatMessage(req, res) {
       },
       include: {
         author: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-            role: true,
-          },
+          select: CHAT_USER_SELECT,
         },
         replyTo: {
           select: {
@@ -606,12 +597,7 @@ export async function createChatMessage(req, res) {
             attachmentFileName: true,
             isDeleted: true,
             author: {
-              select: {
-                id: true,
-                name: true,
-                email: true,
-                role: true,
-              },
+              select: CHAT_USER_SELECT,
             },
           },
         },
@@ -722,12 +708,7 @@ export async function deleteChatMessage(req, res) {
       },
       include: {
         author: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-            role: true,
-          },
+          select: CHAT_USER_SELECT,
         },
         replyTo: {
           select: {
@@ -737,12 +718,7 @@ export async function deleteChatMessage(req, res) {
             attachmentFileName: true,
             isDeleted: true,
             author: {
-              select: {
-                id: true,
-                name: true,
-                email: true,
-                role: true,
-              },
+              select: CHAT_USER_SELECT,
             },
           },
         },
@@ -906,12 +882,7 @@ export async function getChatGroupMembers(req, res) {
       where: { groupId },
       include: {
         user: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-            role: true,
-          },
+          select: CHAT_USER_SELECT,
         },
       },
       orderBy: { createdAt: "asc" },
@@ -1018,7 +989,7 @@ export async function addChatGroupMembers(req, res) {
     const members = await prisma.chatGroupMember.findMany({
       where: { groupId },
       include: {
-        user: { select: { id: true, name: true, email: true, role: true } },
+        user: { select: CHAT_USER_SELECT },
       },
       orderBy: { createdAt: "asc" },
     });
@@ -1128,12 +1099,7 @@ export async function getChatMedia(req, res) {
       orderBy: { createdAt: "desc" },
       include: {
         author: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-            role: true,
-          },
+          select: CHAT_USER_SELECT,
         },
       },
       take: 250,
@@ -1152,12 +1118,7 @@ export async function deleteChatMedia(req, res) {
       where: { id: messageId },
       include: {
         author: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-            role: true,
-          },
+          select: CHAT_USER_SELECT,
         },
         replyTo: {
           select: {
@@ -1167,12 +1128,7 @@ export async function deleteChatMedia(req, res) {
             attachmentFileName: true,
             isDeleted: true,
             author: {
-              select: {
-                id: true,
-                name: true,
-                email: true,
-                role: true,
-              },
+              select: CHAT_USER_SELECT,
             },
           },
         },
@@ -1217,12 +1173,7 @@ export async function deleteChatMedia(req, res) {
       },
       include: {
         author: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-            role: true,
-          },
+          select: CHAT_USER_SELECT,
         },
         replyTo: {
           select: {
@@ -1232,12 +1183,7 @@ export async function deleteChatMedia(req, res) {
             attachmentFileName: true,
             isDeleted: true,
             author: {
-              select: {
-                id: true,
-                name: true,
-                email: true,
-                role: true,
-              },
+              select: CHAT_USER_SELECT,
             },
           },
         },
@@ -1263,12 +1209,7 @@ export async function deleteChatMediaBulk(req, res) {
       where: { id: { in: uniqueMessageIds } },
       include: {
         author: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-            role: true,
-          },
+          select: CHAT_USER_SELECT,
         },
         replyTo: {
           select: {
@@ -1278,12 +1219,7 @@ export async function deleteChatMediaBulk(req, res) {
             attachmentFileName: true,
             isDeleted: true,
             author: {
-              select: {
-                id: true,
-                name: true,
-                email: true,
-                role: true,
-              },
+              select: CHAT_USER_SELECT,
             },
           },
         },
@@ -1326,31 +1262,21 @@ export async function deleteChatMediaBulk(req, res) {
           messageType: "TEXT",
         },
         include: {
-          author: {
-            select: {
-              id: true,
-              name: true,
-              email: true,
-              role: true,
-            },
-          },
-          replyTo: {
-            select: {
+        author: {
+          select: CHAT_USER_SELECT,
+        },
+        replyTo: {
+          select: {
               id: true,
               content: true,
               messageType: true,
-              attachmentFileName: true,
-              isDeleted: true,
-              author: {
-                select: {
-                  id: true,
-                  name: true,
-                  email: true,
-                  role: true,
-                },
-              },
+            attachmentFileName: true,
+            isDeleted: true,
+            author: {
+              select: CHAT_USER_SELECT,
             },
           },
+        },
         },
       });
       emitCRMEvent("chat:message:update", toMessagePayload(updated));

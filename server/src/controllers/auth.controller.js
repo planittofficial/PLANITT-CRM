@@ -12,6 +12,23 @@ function normalizeEmail(email) {
 
 const GOOGLE_AUTH_BASE_URL = "https://accounts.google.com/o/oauth2/v2/auth";
 const GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token";
+const GOOGLE_AUTH_PROVIDER = "google";
+const PASSWORD_AUTH_PROVIDER = "password";
+
+function buildSessionUser(user, authProvider = PASSWORD_AUTH_PROVIDER) {
+  return {
+    id: user.id,
+    name: user.name,
+    email: user.email,
+    role: user.role,
+    designation: user.designation ?? null,
+    avatarUrl: user.avatarUrl ?? null,
+    department: user.department ?? null,
+    manager: user.manager ?? null,
+    createdAt: user.createdAt ?? null,
+    authProvider,
+  };
+}
 
 function getGoogleLoginConfig() {
   return {
@@ -22,13 +39,14 @@ function getGoogleLoginConfig() {
   };
 }
 
-function signToken(user) {
+function signToken(user, authProvider = PASSWORD_AUTH_PROVIDER) {
   const secret = getJwtSecret();
   return jwt.sign(
     {
       userId: user.id,
       role: user.role,
       email: user.email,
+      authProvider,
     },
     secret,
     { expiresIn: "7d" }
@@ -62,6 +80,7 @@ export async function signup(req, res) {
         email: true,
         role: true,
         designation: true,
+        avatarUrl: true,
         department: {
           select: {
             id: true,
@@ -83,7 +102,7 @@ export async function signup(req, res) {
     const token = signToken(user);
     setAuthCookie(res, token);
 
-    return res.status(201).json({ token, user });
+    return res.status(201).json({ token, user: buildSessionUser(user, PASSWORD_AUTH_PROVIDER) });
   } catch (err) {
     return sendSafeError(res, err, "Unable to create account");
   }
@@ -124,15 +143,10 @@ export async function login(req, res) {
 
     return res.json({
       token,
-      user: {
-        id: user.id,
-        name: user.name,
-        email: user.email,
-        role: user.role,
-        designation: user.designation,
-        department: user.department,
-        manager: user.manager,
-      },
+      user: buildSessionUser({
+        ...user,
+        avatarUrl: user.avatarUrl ?? null,
+      }, PASSWORD_AUTH_PROVIDER),
     });
   } catch (err) {
     return sendSafeError(res, err, "Unable to login");
@@ -149,6 +163,7 @@ export async function getCurrentUser(req, res) {
         email: true,
         role: true,
         designation: true,
+        avatarUrl: true,
         department: {
           select: {
             id: true,
@@ -171,7 +186,7 @@ export async function getCurrentUser(req, res) {
       return res.status(404).json({ error: "User not found" });
     }
 
-    return res.json(user);
+    return res.json(buildSessionUser(user, req.user.authProvider ?? PASSWORD_AUTH_PROVIDER));
   } catch (err) {
     return sendSafeError(res, err, "Unable to fetch current user");
   }
@@ -263,21 +278,36 @@ export async function handleGoogleLoginCallback(req, res) {
       return res.redirect(`${loginUrl}?google=email_missing`);
     }
 
-    const user = await prisma.user.findUnique({
+    const avatarUrl = typeof idTokenPayload.picture === "string" ? idTokenPayload.picture : null;
+
+    const existingUser = await prisma.user.findUnique({
       where: { email },
       select: {
         id: true,
         name: true,
         email: true,
         role: true,
+        avatarUrl: true,
       },
     });
 
-    if (!user) {
+    if (!existingUser) {
       return res.redirect(`${loginUrl}?google=user_not_found`);
     }
 
-    const appToken = signToken(user);
+    const user = await prisma.user.update({
+      where: { email },
+      data: { avatarUrl },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        role: true,
+        avatarUrl: true,
+      },
+    });
+
+    const appToken = signToken(user, GOOGLE_AUTH_PROVIDER);
     setAuthCookie(res, appToken);
     const tokenQuery = new URLSearchParams({
       google: "connected",
