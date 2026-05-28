@@ -40,6 +40,46 @@ model User {
   department                Department?                @relation("DepartmentMembers", fields: [departmentId], references: [id])
   manager                   User?                      @relation("ManagerReports", fields: [managerId], references: [id])
   directReports             User[]                     @relation("ManagerReports")
+  leaveRequests             LeaveRequest[]            @relation("UserLeaveRequests")
+  managedLeaveRequests      LeaveRequest[]            @relation("ManagerLeaveRequests")
+  leaveComments             LeaveComment[]
+}
+
+model LeaveType {
+  id          String         @id @default(cuid())
+  name        String         @unique
+  description String?
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+  leaveRequests LeaveRequest[]
+}
+
+model LeaveRequest {
+  id           String       @id @default(cuid())
+  userId       String
+  managerId    String?
+  leaveTypeId  String
+  startDate    DateTime
+  endDate      DateTime
+  reason       String?
+  attachmentUrl String?
+  status       LeaveStatus  @default(PENDING)
+  requestedAt  DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+  user         User         @relation("UserLeaveRequests", fields: [userId], references: [id], onDelete: Cascade)
+  manager      User?        @relation("ManagerLeaveRequests", fields: [managerId], references: [id])
+  leaveType    LeaveType    @relation(fields: [leaveTypeId], references: [id], onDelete: Restrict)
+  comments     LeaveComment[]
+}
+
+model LeaveComment {
+  id             String       @id @default(cuid())
+  leaveRequestId String
+  authorId       String
+  message        String
+  createdAt      DateTime     @default(now())
+  leaveRequest   LeaveRequest @relation(fields: [leaveRequestId], references: [id], onDelete: Cascade)
+  author         User         @relation(fields: [authorId], references: [id], onDelete: Cascade)
 }
 
 model Department {
@@ -293,6 +333,15 @@ enum TaskPriority {
   MEDIUM
   HIGH
   URGENT
+}
+
+enum LeaveStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  MORE_INFORMATION
+  ALTERNATIVE_SUGGESTED
+  CANCELLED
 }
 
 enum ChatChannelType {

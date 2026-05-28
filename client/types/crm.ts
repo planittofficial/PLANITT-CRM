@@ -212,6 +212,57 @@ export type Task = {
   }>;
 };
 
+export type LeaveStatus =
+  | "PENDING"
+  | "APPROVED"
+  | "REJECTED"
+  | "MORE_INFORMATION"
+  | "ALTERNATIVE_SUGGESTED"
+  | "CANCELLED";
+
+export type LeaveType = {
+  id: string;
+  name: string;
+  description?: string | null;
+};
+
+export type LeaveComment = {
+  id: string;
+  message: string;
+  createdAt: string;
+  author: {
+    id: string;
+    name: string;
+    email: string;
+    role: UserRole;
+  };
+};
+
+export type LeaveRequest = {
+  id: string;
+  user: {
+    id: string;
+    name: string;
+    email: string;
+    role: UserRole;
+  };
+  manager?: {
+    id: string;
+    name: string;
+    email: string;
+    role: UserRole;
+  } | null;
+  leaveType: LeaveType;
+  startDate: string;
+  endDate: string;
+  reason?: string | null;
+  attachmentUrl?: string | null;
+  status: LeaveStatus;
+  requestedAt: string;
+  updatedAt: string;
+  comments?: LeaveComment[];
+};
+
 export type AdminDashboardSummary = {
   scope: "superadmin" | "admin";
   metrics: {

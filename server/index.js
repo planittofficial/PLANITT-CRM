@@ -44,7 +44,17 @@ async function connectDatabaseWithRetry(maxAttempts = 5) {
 
 async function start() {
   getJwtSecret();
-  await connectDatabaseWithRetry();
+  try {
+    await connectDatabaseWithRetry();
+  } catch (err) {
+    if (process.env.NODE_ENV === "production") {
+      throw err;
+    }
+    console.error(
+      "Unable to connect to database after multiple attempts. Starting server in degraded mode; some API routes may fail."
+    );
+  }
+
   server.listen(port, () => {
     console.log(`CRM API running on http://localhost:${port}`);
   });

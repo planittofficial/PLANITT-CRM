@@ -140,6 +140,14 @@ function toPercent(numerator, denominator) {
   return Math.round((numerator / denominator) * 100);
 }
 
+async function runSequentially(tasks) {
+  const results = [];
+  for (const task of tasks) {
+    results.push(await task());
+  }
+  return results;
+}
+
 async function getLeadershipUpdates(limit = 8) {
   const issues = await prisma.taskIssue.findMany({
     where: {
@@ -218,32 +226,32 @@ export async function getDashboardSummary(req, res) {
         projectsWithTasks,
         taskIssues,
         attendanceWithDepartments,
-      ] = await Promise.all([
-        prisma.user.count({
+      ] = await runSequentially([
+        () => prisma.user.count({
           where: { role: { in: ["EMPLOYEE", "MANAGER", "ADMIN", "SUPERADMIN"] } },
         }),
-        prisma.user.count({
+        () => prisma.user.count({
           where: { role: "INTERN" },
         }),
-        prisma.task.count(),
-        prisma.task.count({
+        () => prisma.task.count(),
+        () => prisma.task.count({
           where: { status: "DONE" },
         }),
-        prisma.attendance.count({
+        () => prisma.attendance.count({
           where: { checkOut: null },
         }),
-        prisma.attendance.findFirst({
+        () => prisma.attendance.findFirst({
           where: {
             userId: req.user.userId,
             checkOut: null,
           },
           select: { id: true },
         }),
-        prisma.department.count(),
-        prisma.user.count({
+        () => prisma.department.count(),
+        () => prisma.user.count({
           where: { role: { in: ["MANAGER", "ADMIN", "SUPERADMIN"] } },
         }),
-        prisma.department.findMany({
+        () => prisma.department.findMany({
           orderBy: { name: "asc" },
           include: {
             head: {
@@ -260,7 +268,7 @@ export async function getDashboardSummary(req, res) {
             },
           },
         }),
-        prisma.task.findMany({
+        () => prisma.task.findMany({
           include: {
             assignments: {
               include: {
@@ -275,7 +283,7 @@ export async function getDashboardSummary(req, res) {
             },
           },
         }),
-        prisma.task.findMany({
+        () => prisma.task.findMany({
           orderBy: { createdAt: "desc" },
           take: 6,
           include: {
@@ -316,22 +324,22 @@ export async function getDashboardSummary(req, res) {
             },
           },
         }),
-        prisma.attendance.findMany({
+        () => prisma.attendance.findMany({
           where: { date: { gte: heatmapStart } },
           select: { date: true, checkIn: true, checkOut: true },
         }),
-        prisma.attendance.findMany({
+        () => prisma.attendance.findMany({
           where: { date: { gte: trendStart } },
           select: { date: true, checkIn: true, checkOut: true },
         }),
-        prisma.task.findMany({
+        () => prisma.task.findMany({
           where: {
             OR: [{ createdAt: { gte: trendStart } }, { updatedAt: { gte: trendStart } }],
           },
           select: { createdAt: true, updatedAt: true, progress: true, status: true },
         }),
-        getLeadershipUpdates(8),
-        prisma.user.findMany({
+        () => getLeadershipUpdates(8),
+        () => prisma.user.findMany({
           where: {
             role: { in: ["EMPLOYEE", "INTERN", "MANAGER", "ADMIN"] },
           },
@@ -341,7 +349,7 @@ export async function getDashboardSummary(req, res) {
             departmentId: true,
           },
         }),
-        prisma.project.findMany({
+        () => prisma.project.findMany({
           select: {
             id: true,
             departmentId: true,
@@ -353,7 +361,7 @@ export async function getDashboardSummary(req, res) {
             },
           },
         }),
-        prisma.taskIssue.findMany({
+        () => prisma.taskIssue.findMany({
           select: {
             id: true,
             status: true,
@@ -372,7 +380,7 @@ export async function getDashboardSummary(req, res) {
             },
           },
         }),
-        prisma.attendance.findMany({
+        () => prisma.attendance.findMany({
           where: { date: { gte: trendStart } },
           select: {
             date: true,
@@ -625,8 +633,8 @@ export async function getDashboardSummary(req, res) {
     }
 
     const [myTasks, completedTasks, pendingTasks, activeAttendance, myRecentTasks, myAttendance, myTrendTasks, updatesFeed] =
-      await Promise.all([
-        prisma.task.count({
+      await runSequentially([
+        () => prisma.task.count({
           where: {
             assignments: {
               some: {
@@ -635,7 +643,7 @@ export async function getDashboardSummary(req, res) {
             },
           },
         }),
-        prisma.task.count({
+        () => prisma.task.count({
           where: {
             status: "DONE",
             assignments: {
@@ -645,7 +653,7 @@ export async function getDashboardSummary(req, res) {
             },
           },
         }),
-        prisma.task.count({
+        () => prisma.task.count({
           where: {
             status: { in: ["TODO", "IN_PROGRESS"] },
             assignments: {
@@ -655,14 +663,14 @@ export async function getDashboardSummary(req, res) {
             },
           },
         }),
-        prisma.attendance.findFirst({
+        () => prisma.attendance.findFirst({
           where: {
             userId: req.user.userId,
             checkOut: null,
           },
           orderBy: { checkIn: "desc" },
         }),
-        prisma.task.findMany({
+        () => prisma.task.findMany({
           where: {
             assignments: {
               some: {
@@ -710,7 +718,7 @@ export async function getDashboardSummary(req, res) {
             },
           },
         }),
-        prisma.attendance.findMany({
+        () => prisma.attendance.findMany({
           where: {
             userId: req.user.userId,
             date: { gte: heatmapStart },
@@ -721,7 +729,7 @@ export async function getDashboardSummary(req, res) {
             checkOut: true,
           },
         }),
-        prisma.task.findMany({
+        () => prisma.task.findMany({
           where: {
             assignments: {
               some: {
@@ -732,7 +740,7 @@ export async function getDashboardSummary(req, res) {
           },
           select: { createdAt: true, updatedAt: true, progress: true, status: true },
         }),
-        prisma.taskIssue.findMany({
+        () => prisma.taskIssue.findMany({
           where: {
             task: {
               assignments: {

@@ -93,6 +93,17 @@ Planitt CRM is designed for a company that needs one place to manage daily work:
 - [x] Manager/admin responses to reported blockers
 - [x] Real-time task refresh events
 
+### Leave Management
+
+- [x] Create leave requests with type, start/end dates, reason, and attachment support
+- [x] Department head fallback routing when no direct manager exists
+- [x] Role-based permission checks for requester, manager, admin, and superadmin access
+- [x] Leave request detail view with approval/rejection/more-info workflow
+- [x] Add comments and threaded discussion to leave requests
+- [x] Leave list page with search and status filters
+- [x] Real-time leave notifications for assigned users and requesters
+- [x] REST APIs for leave types, requests, status updates, comments, and attachments
+
 ### Attendance
 
 - [x] Daily check-in

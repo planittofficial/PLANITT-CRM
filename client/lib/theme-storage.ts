@@ -38,3 +38,11 @@ export function persistTheme(mode: CRMThemeMode) {
   }
   window.localStorage.setItem(CRM_THEME_STORAGE_KEY, mode);
 }
+
+export function applyDocumentTheme(mode: CRMThemeMode) {
+  if (typeof document === "undefined") {
+    return;
+  }
+  document.documentElement.dataset.theme = mode;
+  document.documentElement.classList.toggle("dark", mode === "dark");
+}

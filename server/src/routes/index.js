@@ -10,6 +10,7 @@ import integrationRouter from "./integration.routes.js";
 import projectRouter from "./project.routes.js";
 import taskRouter from "./task.routes.js";
 import userRouter from "./user.routes.js";
+import leaveRouter from "./leave.routes.js";
 
 const router = Router();
 
@@ -19,6 +20,7 @@ router.use("/dashboard", dashboardRouter);
 router.use("/departments", departmentRouter);
 router.use("/health", healthRouter);
 router.use("/integrations", integrationRouter);
+router.use("/leaves", leaveRouter);
 router.use("/projects", projectRouter);
 router.use("/tasks", taskRouter);
 router.use("/attendance", attendanceRouter);

@@ -34,6 +34,7 @@ const pageTitles: Record<string, string> = {
   "/dashboard": "Dashboard",
   "/projects": "Projects",
   "/tasks": "Tasks",
+  "/leaves": "Leaves",
   "/employees": "Employees",
   "/departments": "Departments",
   "/logs": "Logs",
@@ -201,6 +202,7 @@ export function CRMShell({ children, user }: CRMShellProps) {
       ? [{ href: "/projects", label: "Projects", icon: "P" }]
       : []),
     { href: "/tasks", label: "Tasks", icon: "T" },
+    { href: "/leaves", label: "Leaves", icon: "L" },
     ...(user.role === "SUPERADMIN" || user.role === "ADMIN" || user.role === "MANAGER"
       ? [{ href: "/employees", label: "Employees", icon: "E" }]
       : []),
@@ -237,12 +239,11 @@ export function CRMShell({ children, user }: CRMShellProps) {
     setTheme(theme === "light" ? "dark" : "light");
   };
 
-  const darkWorkspace = ["/tasks", "/projects"].some((route) => pathname.startsWith(route));
   const pageTitle = pageTitles[pathname] ?? "CRM";
 
   return (
     <div
-      className={`min-h-screen min-w-0 overflow-x-clip text-[var(--text-main)] lg:h-screen lg:overflow-hidden ${darkWorkspace ? "crm-shell-dark" : ""}`}
+      className="min-h-screen min-w-0 overflow-x-clip text-[var(--text-main)] lg:h-screen lg:overflow-hidden"
       style={{
         background:
           "linear-gradient(135deg, color-mix(in srgb, var(--app-bg) 92%, white), var(--app-bg-accent))",
@@ -301,12 +302,12 @@ export function CRMShell({ children, user }: CRMShellProps) {
             mobileNavOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
           }`}
           style={{
-            background: darkWorkspace
+            background: theme === "dark" 
               ? "linear-gradient(180deg, #071120 0%, #0b1626 100%)"
               : "linear-gradient(180deg, #356bff 0%, #063ce9 100%)",
             borderColor: "rgba(255,255,255,0.14)",
             color: "#f8fafc",
-            boxShadow: darkWorkspace
+            boxShadow: theme === "dark"
               ? "0 18px 44px rgba(0,0,0,0.34)"
               : "0 18px 44px rgba(31,85,255,0.25)",
           }}
@@ -337,9 +338,7 @@ export function CRMShell({ children, user }: CRMShellProps) {
                     onClick={() => setMobileNavOpen(false)}
                     className={`flex items-center gap-3 rounded-md px-3 py-2.5 text-[13px] font-semibold transition ${
                       isActive
-                        ? darkWorkspace
-                          ? "bg-blue-500/22 text-white shadow-sm"
-                          : "bg-white text-blue-700 shadow-sm"
+                        ? "bg-white text-blue-700 shadow-sm"
                         : "text-white/78 hover:bg-white/10 hover:text-white"
                     }`}
                   >
