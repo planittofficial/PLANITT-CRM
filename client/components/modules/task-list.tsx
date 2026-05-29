@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { MemberPickerToolbar, filterMembersForPicker, sortedUniqueRoles, type MemberRoleFilter } from "@/components/shared/member-picker-toolbar";
 import { apiDelete, apiPost, apiPut } from "@/lib/api";
+import { showToast } from "@/hooks/use-toast";
 import { getTaskAssignableRoles } from "@/lib/dashboard";
 import {
   TASK_PRIORITY_OPTIONS,
@@ -260,17 +261,48 @@ export function TaskList({
   };
 
   const handleTaskUpdate = async (
-    taskId: string,
-    payload: Partial<Pick<Task, "status" | "progress" | "priority">>
-  ) => {
-    try {
-      setSavingId(taskId);
-      await apiPut(`/tasks/${taskId}`, payload);
-      await onUpdated?.();
-    } finally {
-      setSavingId(null);
-    }
-  };
+  taskId: string,
+  payload: Partial<
+    Pick<Task, "status" | "progress" | "priority">
+  >
+) => {
+
+  try {
+
+    setSavingId(taskId);
+
+    await apiPut(
+      `/tasks/${taskId}`,
+      payload
+    );
+
+    showToast(
+      "Task updated successfully.",
+      "success"
+    );
+
+    await onUpdated?.();
+
+  }
+
+  catch (error) {
+
+    showToast(
+      error instanceof Error
+        ? error.message
+        : "Failed to update task",
+      "error"
+    );
+
+  }
+
+  finally {
+
+    setSavingId(null);
+
+  }
+
+};
 
   const handleChecklistToggle = async (itemId: string, taskId: string) => {
     try {
@@ -371,23 +403,37 @@ export function TaskList({
     }
   };
 
-  const handleDeleteTask = async (taskId: string) => {
-    const shouldDelete = window.confirm("Delete this task permanently?");
-    if (!shouldDelete) {
-      return;
-    }
+  const handleDeleteTask = async (
+  taskId: string
+) => {
 
-    try {
-      setSavingId(taskId);
-      await apiDelete(`/tasks/${taskId}`);
-      if (editingTaskId === taskId) {
-        setEditingTaskId(null);
-      }
-      await onUpdated?.();
-    } finally {
-      setSavingId(null);
-    }
-  };
+  try {
+
+    await apiDelete(
+      `/tasks/${taskId}`
+    );
+
+    showToast(
+      "Task deleted successfully.",
+      "success"
+    );
+
+    await onUpdated?.();
+
+  }
+
+  catch (error) {
+
+    showToast(
+      error instanceof Error
+        ? error.message
+        : "Failed to delete task",
+      "error"
+    );
+
+  }
+
+};
 
   return (
     <div className="space-y-4">

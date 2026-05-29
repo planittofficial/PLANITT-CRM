@@ -10,6 +10,7 @@ import { Surface, buildLinePath, SummaryStatCard, LineChartCard, ActivityBarsCar
 import { TeamAnalyticsPanel, DepartmentWisePanel } from "@/components/dashboard/team-analytics-panel";
 import { GoogleWorkspacePanel } from "@/components/dashboard/google-workspace-panel";
 import { useCrmSearch } from "@/components/providers/crm-search-provider";
+import { Skeleton } from "@/components/shared/skeleton";
 import { canUseGoogleWorkspace, useDashboardData } from "@/hooks/use-dashboard-data";
 import type { EmployeeDashboardSummary } from "@/types/crm";
 
@@ -62,7 +63,29 @@ export default function DashboardPage() {
   if (sessionGate) return sessionGate;
   if (!user) return null;
 
-  if (error || !summary) {
+  if (!summary) {
+
+  return (
+
+    <CRMShell user={user}>
+
+      <div className="space-y-4 p-4">
+
+        <Skeleton className="h-40 w-full" />
+
+        <Skeleton className="h-64 w-full" />
+
+        <Skeleton className="h-64 w-full" />
+
+      </div>
+
+    </CRMShell>
+
+  );
+
+}
+
+  if (error ) {
     return (
       <CRMShell user={user}>
         <StatePanel title="Dashboard unavailable" description={error || "No summary data returned yet."} />
