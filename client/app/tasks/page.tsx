@@ -15,6 +15,7 @@ import { apiGet, apiPost } from "@/lib/api";
 import { Skeleton } from "@/components/shared/skeleton";
 import { getTaskAssignableRoles, isAdminRole } from "@/lib/dashboard";
 import { useSearchParams } from "next/navigation";
+import { parseSmartTaskPaste } from "@/lib/smart-paste";
 import { TASK_PRIORITY_OPTIONS } from "@/lib/task-groups";
 import {
  showToast
@@ -64,6 +65,11 @@ function TasksPageContent() {
     priority: "MEDIUM" as TaskPriority,
     deadlineAt: "",
   });
+  const [
+  smartPasteText,
+  setSmartPasteText
+] =
+useState("");
   const [assignPickerQuery, setAssignPickerQuery] = useState("");
   const [assignPickerRole, setAssignPickerRole] = useState<MemberRoleFilter>("ALL");
   const {
@@ -242,8 +248,100 @@ useCrmSearch();
     }));
   };
 
+  const handleSmartPaste = () => {
+
+  if (
+    !smartPasteText.trim()
+  ) {
+
+    showToast(
+      "Paste task content first.",
+      "error"
+    );
+
+    return;
+
+  }
+
+  const parsed =
+    parseSmartTaskPaste(
+      smartPasteText
+    );
+    
+    const hasStructure =
+  smartPasteText.includes("#") ||
+  smartPasteText.toLowerCase().includes("priority") ||
+  smartPasteText.includes("-") ||
+  /^\d+\./m.test(smartPasteText);
+
+if (
+  !hasStructure &&
+  parsed.checklistItems.length === 0
+) {
+
+  showToast(
+    "Could not detect task structure. Use the suggested format.",
+    "error"
+  );
+
+  return;
+
+}
+  if (
+  parsed.title === "Untitled task" &&
+  !parsed.description &&
+  parsed.checklistItems.length === 0
+) {
+
+  showToast(
+    "Unable to map content into task fields.",
+    "error"
+  );
+
+  return;
+
+}
+
+  setForm((current) => ({
+
+    ...current,
+
+    title:
+      parsed.title,
+
+    description:
+      parsed.description,
+
+    priority:
+      parsed.priority,
+
+    checklistText:
+      parsed.checklistItems.join("\n"),
+
+  }));
+
+  showToast(
+    "Task fields auto-filled.",
+    "success"
+  );
+
+};
+
   const createTask = async () => {
     try {
+      if (
+  !form.title.trim() ||
+  form.title === "Untitled task"
+) {
+
+  showToast(
+    "Task title is required.",
+    "error"
+  );
+
+  return;
+
+}
       setCreating(true);
       setError("");
       setNotice("");
@@ -338,6 +436,77 @@ setError(
               <h2 className="mt-2 text-xl font-semibold text-(--text-main)">Assign work clearly</h2>
 
               <div className="mt-5 grid gap-4">
+                <div className="space-y-3">
+                  <textarea
+  readOnly
+  className="min-h-36 w-full rounded-2xl border px-3 py-3 text-sm"
+  style={fieldStyle}
+  value={`Title: Dashboard Fix
+
+Description:
+Review dashboard loading
+
+Priority: HIGH
+
+Checklist:
+- Fix UI
+- Fix backend`}
+/>
+
+  <textarea
+  className="min-h-[140px] w-full rounded-2xl border p-4 text-sm outline-none placeholder:text-[var(--text-soft)]"
+  style={fieldStyle}
+  placeholder={`Title: Dashboard Fix
+
+Description:
+Review dashboard loading and analytics
+
+Priority: HIGH
+
+Checklist:
+- Fix UI
+- Fix backend
+- Test responsiveness`}
+  value={smartPasteText}
+  onChange={(event) =>
+    setSmartPasteText(event.target.value)
+  }
+/>
+
+  <button
+    type="button"
+    onClick={handleSmartPaste}
+    className="rounded-xl px-4 py-2 text-sm font-semibold text-white"
+    style={{
+      background:
+        "var(--accent-strong)"
+    }}
+  >
+
+    Auto-fill from paste
+
+  </button>
+
+</div>
+              <div
+  className="rounded-2xl border p-4 text-sm"
+  style={fieldStyle}
+>
+
+  <p className="font-semibold">
+    Paste Preview
+  </p>
+
+  <p className="mt-2 whitespace-pre-wrap text-[var(--text-soft)]">
+
+    {
+      smartPasteText ||
+      "Nothing pasted yet."
+    }
+
+  </p>
+
+</div>
                 <input
                   className="h-12 rounded-2xl border px-4 outline-none"
                   style={fieldStyle}

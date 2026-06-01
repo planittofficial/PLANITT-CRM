@@ -5,13 +5,14 @@ import { sendSafeError } from "../middleware/error.middleware.js";
 
 const USER_ALLOWED_ROLES = ["SUPERADMIN", "EMPLOYEE", "INTERN", "ADMIN", "MANAGER"];
 const BULK_ALLOWED_ROLES = new Set(["EMPLOYEE", "INTERN"]);
+console.log(toPublicUserSelect());
 
 function toPublicUserSelect() {
   return {
     id: true,
     name: true,
     email: true,
-    avatarUrl: true,
+    // avatarUrl: true,
     role: true,
     designation: true,
     departmentId: true,
@@ -367,6 +368,7 @@ function andWhereParts(...parts) {
 }
 
 function buildUserListWhere(req, { applySearch = true } = {}) {
+  
   const scoped = buildScopedUserWhere(req);
   const roles = parseRolesFilter(req.query);
   const q = applySearch ? parseUserSearchQuery(req.query) : "";
@@ -433,6 +435,7 @@ export async function getUsers(_req, res) {
     }
 
     const [items, total] = await Promise.all([
+      
       prisma.user.findMany({
         where,
         orderBy: { createdAt: "desc" },

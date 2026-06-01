@@ -163,7 +163,7 @@ export async function getCurrentUser(req, res) {
         email: true,
         role: true,
         designation: true,
-        avatarUrl: true,
+        // avatarUrl: true,
         department: {
           select: {
             id: true,
