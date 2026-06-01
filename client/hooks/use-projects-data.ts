@@ -37,6 +37,7 @@ export function useProjectsData() {
   const [editingTaskId, setEditingTaskId] = useState("");
   const [projectForm, setProjectForm] = useState({ name: "", description: "", departmentId: "", ownerId: "" });
   const [taskForm, setTaskForm] = useState<TaskFormState>(EMPTY_TASK_FORM);
+  const [projectSmartPasteText, setProjectSmartPasteText] = useState("");
   const [editTaskForm, setEditTaskForm] = useState<TaskFormState>(EMPTY_TASK_FORM);
   const [projectAssignQuery, setProjectAssignQuery] = useState("");
   const [projectAssignRole, setProjectAssignRole] = useState<MemberRoleFilter>("ALL");

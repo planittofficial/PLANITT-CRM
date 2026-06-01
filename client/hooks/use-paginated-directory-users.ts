@@ -90,6 +90,7 @@ export function usePaginatedDirectoryUsers({
     void (async () => {
       try {
         const data = await apiGet<PaginatedUsers>(usersListUrl(limit, 0, debouncedSearch, roleFilter));
+        
         if (cancelled) {
           return;
         }

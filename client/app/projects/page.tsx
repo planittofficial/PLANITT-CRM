@@ -4,7 +4,10 @@ import { useDeferredValue, useEffect, useMemo } from "react";
 import { CRMShell } from "@/components/layout/crm-shell";
 import { MemberPickerToolbar } from "@/components/shared/member-picker-toolbar";
 import { StatePanel } from "@/components/shared/state-panel";
+import { useState } from "react";
+import { showToast } from "@/hooks/use-toast";
 import { TaskKanban } from "@/components/projects/task-kanban";
+import { parseSmartTaskPaste } from "@/lib/smart-paste";
 import { useProjectsData, TASK_PRIORITY_OPTIONS } from "@/hooks/use-projects-data";
 import { useCrmSearch } from "@/components/providers/crm-search-provider";
 
@@ -27,6 +30,106 @@ export default function ProjectsPage() {
     projectMemberDraftIds, toggleProjectMemberDraft, savingProjectMembers, saveProjectMembers,
     groupedTasks, projectAnalytics, selectedProject,
   } = useProjectsData();
+  const [projectPasteText, setProjectPasteText] = useState("");
+
+  const [projectSmartPasteText, setProjectSmartPasteText] = useState("");
+  const handleProjectSmartPaste = () => {
+
+  const parsed =
+    parseSmartTaskPaste(
+      projectSmartPasteText
+    );
+
+  if (!parsed.title.trim()) {
+
+    showToast(
+      "Could not detect task structure.",
+      "error"
+    );
+
+    return;
+
+  }
+  
+
+  setTaskForm((current) => ({
+    ...current,
+    title: parsed.title,
+    description: parsed.description,
+    priority: parsed.priority,
+    checklistText:
+      parsed.checklistItems.join("\n"),
+  }));
+
+  showToast(
+    "Task fields auto-filled.",
+    "success"
+  );
+
+};
+const handleTaskPaste = () => {
+
+  const lines =
+    projectPasteText
+      .split("\n")
+      .map((line) => line.trim());
+
+  const titleLine =
+  lines.find((line) => {
+    const lower = line.toLowerCase();
+    return (
+      lower.startsWith("title:") ||
+      lower.startsWith("project:")
+    );
+  });
+
+  const descriptionIndex =
+  lines.findIndex((line) => {
+    const lower = line.toLowerCase();
+    return (
+      lower.startsWith("description:") ||
+      lower.startsWith("desc:")
+    );
+  });
+
+  const title =
+  titleLine
+    ?.replace(/^(title|project)\s*:/i, "")
+    .trim() || "";
+
+  const description =
+    descriptionIndex >= 0
+      ? lines
+          .slice(descriptionIndex + 1)
+          .join("\n")
+          .trim()
+      : "";
+
+  if (!title) {
+
+    showToast(
+      "Could not detect project structure.",
+      "error"
+    );
+
+    return;
+
+  }
+
+  setProjectForm((current) => ({
+    ...current,
+    name: title,
+    description,
+  }));
+
+  showToast(
+    "Project fields auto-filled.",
+    "success"
+  );
+
+};
+
+
   const visibleProjects = useMemo(() => {
     if (!searchSubmitted || !projectSearch) return projects;
     return projects.filter((project) => {
@@ -110,7 +213,48 @@ export default function ProjectsPage() {
             </Surface>
             <Surface>
               <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[var(--text-faint)]">Create project</p>
+              <textarea
+  readOnly
+  className="min-h-28 w-full rounded-2xl border px-3 py-3 text-sm"
+  style={FIELD_STYLE}
+  value={`Title: CRM Dashboard
+
+Description:
+Internal analytics dashboard`}
+/>
+
+<textarea
+  className="min-h-28 w-full rounded-2xl border px-3 py-3 text-sm outline-none mt-3"
+  style={FIELD_STYLE}
+  placeholder="Paste project details here..."
+  value={projectPasteText}
+  onChange={(e) =>
+    setProjectPasteText(e.target.value)
+  }
+/>
+
+<button
+  type="button"
+  onClick={handleTaskPaste}
+  className="rounded-2xl px-4 py-2 text-sm font-semibold text-white"
+  style={{
+    background: "var(--accent-strong)",
+  }}
+>
+  Auto-fill project
+</button>
               <div className="mt-4 grid gap-3">
+                <div className="mt-4 grid gap-3">
+
+  <textarea
+    className="min-h-28 w-full min-w-0 box-border rounded-2xl border px-3 py-3 text-sm outline-none"
+    style={FIELD_STYLE}
+    placeholder={`Title: CRM Dashboard
+
+Description:
+Internal analytics dashboard`}
+  />
+</div>
                 <input className="h-11 w-full min-w-0 box-border rounded-2xl border px-3 text-sm outline-none" style={FIELD_STYLE} placeholder="Project name" value={projectForm.name} onChange={(e) => setProjectForm((c) => ({ ...c, name: e.target.value }))} />
                 <textarea className="min-h-24 w-full min-w-0 box-border rounded-2xl border px-3 py-3 text-sm outline-none" style={FIELD_STYLE} placeholder="Project description" value={projectForm.description} onChange={(e) => setProjectForm((c) => ({ ...c, description: e.target.value }))} />
                 <select className="h-11 w-full min-w-0 box-border rounded-2xl border px-3 text-sm outline-none" style={FIELD_STYLE} value={projectForm.departmentId} onChange={(e) => setProjectForm((c) => ({ ...c, departmentId: e.target.value }))}>
@@ -172,6 +316,55 @@ export default function ProjectsPage() {
               <Surface>
                 <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[var(--text-faint)]">Add task</p>
                 <h3 className="mt-2 text-xl font-semibold text-[var(--text-main)]">Create project task</h3>
+                <div className="mt-4 grid gap-3">
+                  <textarea
+  readOnly
+  className="min-h-36 w-full rounded-2xl border px-3 py-3 text-sm"
+  style={FIELD_STYLE}
+  value={`Title: Dashboard Fix
+
+Description:
+Review dashboard loading
+
+Priority: HIGH
+
+Checklist:
+- Fix UI
+- Fix backend`}
+/>
+  <textarea
+    className="min-h-32 rounded-2xl border px-4 py-3 outline-none"
+    style={FIELD_STYLE}
+    placeholder={`Title: Dashboard Fix
+
+Description:
+Review dashboard loading
+
+Priority: HIGH
+
+Checklist:
+- Fix UI
+- Fix backend`}
+    value={projectSmartPasteText}
+    onChange={(e) =>
+      setProjectSmartPasteText(
+        e.target.value
+      )
+    }
+  />
+
+  <button
+    type="button"
+    onClick={handleProjectSmartPaste}
+    className="rounded-2xl border px-4 py-2 text-sm font-medium"
+    style={{
+  background: "#2563eb",
+  color: "#ffffff",
+}}
+  >
+    Auto-fill from paste
+  </button>
+</div>
                 <div className="mt-6 grid gap-4 xl:grid-cols-[1fr_1fr]">
                   <div className="grid gap-4">
                     <input className="h-12 rounded-2xl border px-4 outline-none" style={FIELD_STYLE} placeholder="Task title" value={taskForm.title} onChange={(e) => setTaskForm((c) => ({ ...c, title: e.target.value }))} />
@@ -203,6 +396,7 @@ export default function ProjectsPage() {
                 {error ? <p className="mt-4 text-sm font-medium text-rose-600">{error}</p> : null}
                 {notice ? <p className="mt-4 text-sm font-medium text-emerald-600">{notice}</p> : null}
                 <button type="button" disabled={creatingTask} onClick={() => void createTask()} className="mt-6 rounded-2xl px-5 py-3 text-sm font-semibold text-white transition disabled:cursor-wait disabled:opacity-70" style={{ background: "var(--accent-strong)" }}>{creatingTask ? "Creating..." : "Add new task"}</button>
+              
               </Surface>
             ) : null}
 

@@ -12,6 +12,14 @@ const PRIORITIES = [
   "HIGH",
 ] as const;
 
+const PRIORITY_ALIASES = {
+  urgent: "URGENT",
+  high: "HIGH",
+  med: "MEDIUM",
+  medium: "MEDIUM",
+  low: "LOW",
+} as const;
+
 export function parseSmartTaskPaste(
   text: string
 ): SmartPasteResult {
@@ -29,34 +37,151 @@ export function parseSmartTaskPaste(
       "MEDIUM";
 
   const checklistItems: string[] = [];
+  let insideChecklist =
+  false;
+  let insideDescription = false;
 
   for (const line of lines) {
+
 
     const lower =
       line.toLowerCase();
 
+      if (lower.startsWith("title:")) {
+
+  title =
+    line
+      .split(":")
+      .slice(1)
+      .join(":")
+      .trim();
+
+  continue;
+
+}
+
+if (
+  lower.startsWith(
+    "checklist:"
+  )
+) {
+
+  insideChecklist =
+    true;
+
+  continue;
+
+}
+
+if (
+  /^priority\s*:/.test(lower)
+){
+
+  const value =
+    lower
+      .replace(
+        /^priority\s*:/,
+        ""
+      )
+      .trim();
+
+  const detected =
+    PRIORITY_ALIASES[
+      value as keyof typeof PRIORITY_ALIASES
+    ];
+
+  if (detected) {
+    priority = detected;
+  }
+
+  continue;
+
+}
+
+if (
+  lower.startsWith("description:")
+) {
+
+  description =
+    line
+      .split(":")
+      .slice(1)
+      .join(":")
+      .trim();
+
+  insideDescription =
+    true;
+
+  continue;
+
+}
+
     // title
-    if (!title) {
+    if (
+  !title &&
+  (
+    line.startsWith("#") ||
+    lower.startsWith("title:")
+  )
+) {
 
-      title =
-        line.replace(/^#\s*/, "");
+  title =
+    line
+      .replace(/^#\s*/, "")
+      .replace(/^title\s*:/i, "")
+      .trim();
 
-      continue;
+  continue;
 
-    }
+}
+
+   
 
     // priority
-    const detectedPriority =
-  PRIORITIES.find((p) =>
-    lower.includes(
-      p.toLowerCase()
-    )
+    const detectedAlias =
+  Object.entries(
+    PRIORITY_ALIASES
+  ).find(([key]) =>
+    lower.includes(key)
   );
 
-if (detectedPriority) {
+if (detectedAlias) {
 
   priority =
-    detectedPriority;
+    detectedAlias[1];
+
+  continue;
+
+}
+
+ const remainingLines =
+  lines.slice(lines.indexOf(line));
+
+const allShortLines =
+  remainingLines.length >= 2 &&
+  remainingLines.every(
+    (item) =>
+      item.length < 80 &&
+      !item.includes(":") &&
+      !item.endsWith(".")
+  );
+
+if (allShortLines) {
+
+  checklistItems.push(
+    ...remainingLines
+  );
+
+  break;
+
+}
+if (
+  insideDescription &&
+  !lower.startsWith("checklist:")
+) {
+
+  description +=
+    `${description ? "\n" : ""}${line}`;
 
   continue;
 
@@ -79,34 +204,44 @@ if (detectedPriority) {
 
     }
 
+    if (
+  insideChecklist
+) {
+
+  checklistItems.push(
+    line
+      .replace(/^[-*•]\s*/, "")
+      .replace(/^\d+\.\s*/, "")
+  );
+
+  continue;
+
+}
     // description
     description +=
       `${line}\n`;
 
   }
 
-  return {
+  const hasStructure =
+  checklistItems.length > 0 ||
+  title.startsWith("#") ||
+  lines.some((line) =>
+    line.toLowerCase().includes("priority")
+  );
 
-    title:
-      title || "Untitled task",
+return {
+  title:
+    hasStructure
+      ? title 
+      : "",
 
-    description:
-      description.trim(),
+  description:
+    description.trim(),
 
-    priority,
+  priority,
 
-    checklistItems,
-
-  };
+  checklistItems,
+};
 
 }
-console.log(
-  parseSmartTaskPaste(`
-# Build Dashboard
-
-URGENT
-
-- Add charts
-- Add analytics
-`)
-);
