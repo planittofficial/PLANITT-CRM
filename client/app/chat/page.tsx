@@ -14,6 +14,8 @@ import { ChatMessageBubble } from "@/components/chat/chat-message-bubble";
 import { CreateGroupModal, GroupSettingsDrawer, MediaPanelDrawer, StartDirectChatModal } from "@/components/chat/chat-modals";
 import { apiGet, apiPost } from "@/lib/api";
 import { normalizeErrorMessage } from "@/lib/error-message";
+// import { Skeleton } from "@/components/shared/skeleton";
+import { ChatsSkeleton } from "@/components/shared/skeleton";
 import { roomKey } from "@/components/chat/chat-utils";
 import type { CRMUser, ChatRoomsResponse } from "@/types/crm";
 import { showToast } from "@/hooks/use-toast";
@@ -121,6 +123,14 @@ export default function ChatPage() {
   });
   if (sessionGate) return sessionGate;
   if (!user) return null;
+
+  if (loading) {
+  return (
+    <CRMShell user={user}>
+      <ChatsSkeleton />
+    </CRMShell>
+  );
+}
 
   return (
     <CRMShell user={user}>

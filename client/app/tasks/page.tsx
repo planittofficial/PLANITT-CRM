@@ -390,11 +390,37 @@ setError(
   }
 
   if (!user) {
-    return null;
-  }
+  return null;
+}
 
+if (loading) {
   return (
     <CRMShell user={user}>
+      <div className="space-y-6 p-6 animate-pulse">
+
+        <Skeleton className="h-12 w-64" />
+
+        <div className="grid gap-4 md:grid-cols-3 xl:grid-cols-6">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <Skeleton
+              key={i}
+              className="h-28 w-full rounded-2xl"
+            />
+          ))}
+        </div>
+
+        <div className="grid gap-6 xl:grid-cols-[380px_1fr]">
+          <Skeleton className="h-[700px] w-full rounded-3xl" />
+          <Skeleton className="h-[700px] w-full rounded-3xl" />
+        </div>
+
+      </div>
+    </CRMShell>
+  );
+}
+  
+return (
+  <CRMShell user={user}>
       <div className="min-w-0 space-y-4 overflow-x-hidden pb-4">
         <Surface>
           <p className="text-xs font-semibold uppercase tracking-[0.22em] text-(--text-faint)">
@@ -759,13 +785,19 @@ Checklist:
 
             {loading ? (
 
-  <div className="mt-6 space-y-4">
+  <div className="mt-6 space-y-6">
 
-    <Skeleton className="h-32 w-full" />
+    <Skeleton className="h-14 w-full" />
 
-    <Skeleton className="h-32 w-full" />
+    <div className="grid gap-6 lg:grid-cols-3">
 
-    <Skeleton className="h-32 w-full" />
+      <Skeleton className="h-[70vh] w-full rounded-3xl" />
+
+      <Skeleton className="h-[70vh] w-full rounded-3xl" />
+
+      <Skeleton className="h-[70vh] w-full rounded-3xl" />
+
+    </div>
 
   </div>
 
@@ -825,10 +857,55 @@ Checklist:
 
 export default function TasksPage() {
   return (
-    <Suspense fallback={<StatePanel title="Loading tasks" description="Preparing the task workspace." />}>
+    <Suspense
+      fallback={
+        <div className="min-h-screen p-6 animate-pulse">
+          <div>
+            <div
+              className="h-4 w-28 rounded"
+              style={{ background: "var(--surface-soft)" }}
+            />
+            <div
+              className="mt-3 h-10 w-48 rounded"
+              style={{ background: "var(--surface-soft)" }}
+            />
+          </div>
+
+          <div className="mt-6 grid gap-4 lg:grid-cols-5">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <div
+                key={i}
+                className="h-28 rounded-3xl border"
+                style={{
+                  borderColor: "var(--border)",
+                  background: "var(--surface-soft)",
+                }}
+              />
+            ))}
+          </div>
+
+          <div className="mt-6 grid gap-6 lg:grid-cols-[420px_1fr]">
+            <div
+              className="h-[650px] rounded-3xl border"
+              style={{
+                borderColor: "var(--border)",
+                background: "var(--surface-soft)",
+              }}
+            />
+
+            <div
+              className="h-[650px] rounded-3xl border"
+              style={{
+                borderColor: "var(--border)",
+                background: "var(--surface-soft)",
+              }}
+            />
+          </div>
+        </div>
+      }
+    >
       <TasksPageContent />
     </Suspense>
   );
 }
-
 

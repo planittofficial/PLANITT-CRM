@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState, type ChangeEvent } from "react";
 import Link from "next/link";
 import { CRMShell } from "@/components/layout/crm-shell";
 import { renderSessionGate } from "@/components/shared/session-gate";
+import { EmployeesSkeleton } from "@/components/shared/skeleton";
 import { useSession } from "@/hooks/use-session";
 import { apiGet } from "@/lib/api";
 import type { LeaveRequest } from "@/types/crm";
@@ -91,6 +92,13 @@ export default function LeavesPage() {
 
   if (!user) {
     return null;
+  }
+   if (loading) {
+    return (
+      <CRMShell user={user}>
+        <EmployeesSkeleton />
+      </CRMShell>
+    );
   }
 
   const handleSearchChange = (event: ChangeEvent<HTMLInputElement>) => {

@@ -7,6 +7,8 @@ import { renderSessionGate } from "@/components/shared/session-gate";
 import { useCrmSearch } from "@/components/providers/crm-search-provider";
 import { useRealtimeRefresh } from "@/hooks/use-realtime-refresh";
 import { useSession } from "@/hooks/use-session";
+import { LoadingRows } from "@/components/shared/loading-skeleton";
+import { EmployeesSkeleton } from "@/components/shared/skeleton";
 import { apiGet, apiPost } from "@/lib/api";
 import type { CRMUser, Department } from "@/types/crm";
 import { showToast } from "@/hooks/use-toast";
@@ -143,6 +145,14 @@ export default function DepartmentsPage() {
   if (!user) {
     return null;
   }
+
+  if (dataLoading) {
+  return (
+    <CRMShell user={user}>
+      <EmployeesSkeleton />
+    </CRMShell>
+  );
+}
 
   return (
     <CRMShell user={user}>
