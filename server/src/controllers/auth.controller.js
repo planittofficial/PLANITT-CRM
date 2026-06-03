@@ -117,8 +117,20 @@ export async function login(req, res) {
       return res.status(400).json({ error: "Email and password are required" });
     }
 
-    const user = await prisma.user.findUnique({ where: { email } });
-
+const user = await prisma.user.findUnique({
+  where: { email },
+  select: {
+    id: true,
+    name: true,
+    email: true,
+    password: true,
+    role: true,
+    designation: true,
+    departmentId: true,
+    managerId: true,
+    // authProvider: true,
+  },
+});
     if (!user) {
       // #region agent log
       fetch("http://127.0.0.1:7655/ingest/6ce29a90-8aa2-4d64-ba64-939786193f6a",{method:"POST",headers:{"Content-Type":"application/json","X-Debug-Session-Id":"1645cd"},body:JSON.stringify({sessionId:"1645cd",runId:"auth-debug",hypothesisId:"H1-invalid-credentials",location:"server/src/controllers/auth.controller.js:98",message:"Login failed because user was not found",data:{email:email ?? null,origin:req.headers.origin ?? null,host:req.headers.host ?? null},timestamp:Date.now()})}).catch(()=>{});
@@ -145,7 +157,7 @@ export async function login(req, res) {
       token,
       user: buildSessionUser({
         ...user,
-        avatarUrl: user.avatarUrl ?? null,
+        avatarUrl: null,
       }, PASSWORD_AUTH_PROVIDER),
     });
   } catch (err) {

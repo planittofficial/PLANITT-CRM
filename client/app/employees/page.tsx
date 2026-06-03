@@ -8,6 +8,7 @@ import { renderSessionGate } from "@/components/shared/session-gate";
 import { useRealtimeRefresh } from "@/hooks/use-realtime-refresh";
 import { useSession } from "@/hooks/use-session";
 import { apiDelete, apiGet, apiPost, apiPostForm, apiPut } from "@/lib/api";
+import { EmployeesSkeleton } from "@/components/shared/skeleton";
 import { CreateMemberPanel, type CreateMemberForm } from "@/components/employees/create-member-panel";
 import { MemberRoster } from "@/components/employees/member-roster";
 import { useCrmSearch } from "@/components/providers/crm-search-provider";
@@ -141,6 +142,13 @@ export default function EmployeesPage() {
   const sessionGate = renderSessionGate({ loading: sessionLoading, user, error: sessionError, retry: retrySession, loadingTitle: "Loading team workspace", loadingDescription: "Fetching access and employee data." });
   if (sessionGate) return sessionGate;
   if (!user) return null;
+   if (dataLoading) {
+    return (
+      <CRMShell user={user}>
+        <EmployeesSkeleton />
+      </CRMShell>
+    );
+  }
 
   return (
     <CRMShell user={user}>

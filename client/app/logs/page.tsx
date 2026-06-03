@@ -6,6 +6,8 @@ import { renderSessionGate } from "@/components/shared/session-gate";
 import { StatePanel } from "@/components/shared/state-panel";
 import { useSession } from "@/hooks/use-session";
 import { apiGet } from "@/lib/api";
+import { EmployeesSkeleton } from "@/components/shared/skeleton";
+
 import { useCrmSearch } from "@/components/providers/crm-search-provider";
 import type { ActivityLogsResponse, UserRole } from "@/types/crm";
 import { showToast } from "@/hooks/use-toast";
@@ -97,6 +99,14 @@ export default function LogsPage() {
   });
   if (sessionGate) return sessionGate;
   if (!user) return null;
+
+   if (loading) {
+    return (
+      <CRMShell user={user}>
+        <EmployeesSkeleton />
+      </CRMShell>
+    );
+  }
 
   return (
     <CRMShell user={user}>

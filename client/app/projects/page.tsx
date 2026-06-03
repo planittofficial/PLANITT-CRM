@@ -6,6 +6,7 @@ import { MemberPickerToolbar } from "@/components/shared/member-picker-toolbar";
 import { StatePanel } from "@/components/shared/state-panel";
 import { useState } from "react";
 import { showToast } from "@/hooks/use-toast";
+import { ProjectsSkeleton } from "@/components/shared/skeleton";
 import { TaskKanban } from "@/components/projects/task-kanban";
 import { parseSmartTaskPaste } from "@/lib/smart-paste";
 import { useProjectsData, TASK_PRIORITY_OPTIONS } from "@/hooks/use-projects-data";
@@ -163,6 +164,13 @@ const handleTaskPaste = () => {
 
   if (sessionGate) return sessionGate;
   if (!user) return null;
+   if (loading) {
+    return (
+      <CRMShell user={user}>
+        <ProjectsSkeleton />
+      </CRMShell>
+    );
+  }
 
   return (
     <CRMShell user={user}>
