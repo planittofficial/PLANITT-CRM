@@ -8,9 +8,12 @@ import { renderSessionGate } from "@/components/shared/session-gate";
 import { useRealtimeRefresh } from "@/hooks/use-realtime-refresh";
 import { useSession } from "@/hooks/use-session";
 import { apiDelete, apiGet, apiPost, apiPostForm, apiPut } from "@/lib/api";
+import { EmployeesSkeleton } from "@/components/shared/skeleton";
 import { CreateMemberPanel, type CreateMemberForm } from "@/components/employees/create-member-panel";
 import { MemberRoster } from "@/components/employees/member-roster";
+import { useCrmSearch } from "@/components/providers/crm-search-provider";
 import type { BulkUserUploadResult, CRMUser, Department, UserRole } from "@/types/crm";
+import { showToast } from "@/hooks/use-toast";
 
 type PaginatedResponse<T> = { items: T[]; total: number; hasMore: boolean; nextOffset: number };
 const BASE_ROLES: UserRole[] = ["EMPLOYEE", "INTERN", "MANAGER", "ADMIN"];
@@ -50,12 +53,18 @@ export default function EmployeesPage() {
   const [deletingId, setDeletingId] = useState("");
   const [directorySearchQuery, setDirectorySearchQuery] = useState("");
   const [directoryRoleFilter, setDirectoryRoleFilter] = useState<MemberRoleFilter>("ALL");
+  const { globalSearch, searchSubmitted } = useCrmSearch();
 
   const availableRoles: UserRole[] = user?.role === "SUPERADMIN" ? ["SUPERADMIN", ...BASE_ROLES] : BASE_ROLES;
   const createRoleOptions: UserRole[] = user?.role === "SUPERADMIN" ? ["SUPERADMIN", ...BASE_ROLES] : user?.role === "MANAGER" ? ["EMPLOYEE", "INTERN"] : BASE_ROLES;
   const directoryRoleOptions: UserRole[] = user?.role === "MANAGER" ? ["EMPLOYEE", "INTERN"] : availableRoles;
   const directoryRoleFilterOptions = useMemo(() => sortedUniqueRoles(users), [users]);
   const filteredDirectoryUsers = useMemo(() => filterMembersForPicker(users, { searchQuery: directorySearchQuery, roleFilter: directoryRoleFilter }), [users, directorySearchQuery, directoryRoleFilter]);
+
+  useEffect(() => {
+    if (!searchSubmitted) return;
+    setDirectorySearchQuery(globalSearch.trim());
+  }, [globalSearch, searchSubmitted]);
 
   const loadTeam = async (append = false) => {
     const offset = append ? nextUserOffset : 0;
@@ -67,20 +76,20 @@ export default function EmployeesPage() {
 
   useEffect(() => {
     if (!user) return;
-    void loadTeam().catch((err) => setError(err instanceof Error ? err.message : "Failed to load employees")).finally(() => setDataLoading(false));
+    void loadTeam().catch((err) =>showToast(err instanceof Error ? err.message : "Failed to load employees" , "error")).finally(() => setDataLoading(false));
   }, [user]);
 
   useRealtimeRefresh(user, ["org:updated"], async () => { await loadTeam(); });
 
   const createEmployee = async () => {
     if (!user) return;
-    try { setCreating(true); setError(""); setNotice(""); await apiPost("/users", { ...form }); setForm({ name: "", email: "", password: "", role: "EMPLOYEE", designation: "", departmentId: "", managerId: "" }); setNotice("Team member created successfully."); await loadTeam(false); }
-    catch (err) { setError(err instanceof Error ? err.message : "Failed to create team member"); }
+    try { setCreating(true); setError(""); setNotice(""); await apiPost("/users", { ...form }); setForm({ name: "", email: "", password: "", role: "EMPLOYEE", designation: "", departmentId: "", managerId: "" }); showToast("Team member created successfully." , "success"); await loadTeam(false); }
+    catch (err) { showToast(err instanceof Error ? err.message : "Failed to create team member" , "error"); }
     finally { setCreating(false); }
   };
 
   const uploadBulkUsers = async () => {
-    if (!bulkFile) { setError("Choose a CSV file before uploading."); return; }
+    if (!bulkFile) { showToast("Choose a CSV file before uploading." , "error"); return; }
     try {
       setBulkUploading(true); setError(""); setNotice(""); setBulkResult(null);
       const fd = new FormData(); fd.append("file", bulkFile);
@@ -88,7 +97,7 @@ export default function EmployeesPage() {
       setBulkResult(result); setNotice(result.failedCount ? `Created ${result.createdCount} members. ${result.failedCount} rows need attention.` : `Created ${result.createdCount} team members successfully.`);
       setBulkFile(null); if (bulkInputRef.current) bulkInputRef.current.value = "";
       await loadTeam(false);
-    } catch (err) { setError(err instanceof Error ? err.message : "Failed to bulk upload team members"); }
+    } catch (err) { showToast(err instanceof Error ? err.message : "Failed to bulk upload team members" ,"error"); }
     finally { setBulkUploading(false); }
   };
 
@@ -97,22 +106,22 @@ export default function EmployeesPage() {
   };
 
   const assignEmployee = async (member: CRMUser, field: "managerId" | "departmentId" | "role", value: string) => {
-    try { setUpdatingId(member.id); setError(""); setNotice(""); const body: Record<string, string> = { designation: member.designation ?? "" }; body[field] = value; await apiPut(`/users/${member.id}/assignment`, body); await loadTeam(false); setNotice("Assignment updated successfully."); }
-    catch (err) { setError(err instanceof Error ? err.message : "Failed to update assignment"); }
+    try { setUpdatingId(member.id); setError(""); setNotice(""); const body: Record<string, string> = { designation: member.designation ?? "" }; body[field] = value; await apiPut(`/users/${member.id}/assignment`, body); await loadTeam(false); showToast("Assignment updated successfully." , "success"); }
+    catch (err) { showToast(err instanceof Error ? err.message : "Failed to update assignment" , "error"); }
     finally { setUpdatingId(""); }
   };
 
   const updateMemberEmail = async (member: CRMUser) => {
     const next = emailDrafts[member.id]?.trim(); if (!next || next === member.email) return;
-    try { setEmailUpdatingId(member.id); setError(""); setNotice(""); await apiPut(`/users/${member.id}/profile`, { email: next }); await loadTeam(false); setNotice("Email updated successfully."); }
-    catch (err) { setError(err instanceof Error ? err.message : "Failed to update email"); }
+    try { setEmailUpdatingId(member.id); setError(""); setNotice(""); await apiPut(`/users/${member.id}/profile`, { email: next }); await loadTeam(false); showToast("Email updated successfully." , "success"); }
+    catch (err) { showToast(err instanceof Error ? err.message : "Failed to update email" , "error"); }
     finally { setEmailUpdatingId(""); }
   };
 
   const deleteEmployee = async (member: CRMUser) => {
     if (!window.confirm(`Remove ${member.name} from the organisation? This cannot be undone.`)) return;
-    try { setDeletingId(member.id); setError(""); setNotice(""); await apiDelete(`/users/${member.id}`); setNotice("Team member removed."); await loadTeam(false); }
-    catch (err) { setError(err instanceof Error ? err.message : "Failed to delete team member"); }
+    try { setDeletingId(member.id); setError(""); setNotice(""); await apiDelete(`/users/${member.id}`); showToast("Team member removed." , "success"); await loadTeam(false); }
+    catch (err) { showToast(err instanceof Error ? err.message : "Failed to delete team member" , "error"); }
     finally { setDeletingId(""); }
   };
 
@@ -133,6 +142,13 @@ export default function EmployeesPage() {
   const sessionGate = renderSessionGate({ loading: sessionLoading, user, error: sessionError, retry: retrySession, loadingTitle: "Loading team workspace", loadingDescription: "Fetching access and employee data." });
   if (sessionGate) return sessionGate;
   if (!user) return null;
+   if (dataLoading) {
+    return (
+      <CRMShell user={user}>
+        <EmployeesSkeleton />
+      </CRMShell>
+    );
+  }
 
   return (
     <CRMShell user={user}>

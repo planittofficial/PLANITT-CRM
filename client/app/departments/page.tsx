@@ -4,10 +4,14 @@ import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { CRMShell } from "@/components/layout/crm-shell";
 import { StatePanel } from "@/components/shared/state-panel";
 import { renderSessionGate } from "@/components/shared/session-gate";
+import { useCrmSearch } from "@/components/providers/crm-search-provider";
 import { useRealtimeRefresh } from "@/hooks/use-realtime-refresh";
 import { useSession } from "@/hooks/use-session";
+import { LoadingRows } from "@/components/shared/loading-skeleton";
+import { EmployeesSkeleton } from "@/components/shared/skeleton";
 import { apiGet, apiPost } from "@/lib/api";
 import type { CRMUser, Department } from "@/types/crm";
+import { showToast } from "@/hooks/use-toast";
 type PaginatedResponse<T> = { items: T[]; total: number; hasMore: boolean; nextOffset: number };
 
 function Surface({ children }: { children: ReactNode }) {
@@ -44,6 +48,7 @@ export default function DepartmentsPage() {
     description: "",
     headId: "",
   });
+  const { globalSearch, searchSubmitted } = useCrmSearch();
 
   const fieldStyle = {
     borderColor: "var(--border)",
@@ -68,7 +73,7 @@ export default function DepartmentsPage() {
       try {
         await loadData(false);
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to load departments");
+        showToast(err instanceof Error ? err.message : "Failed to load departments" , "error");
       } finally {
         setDataLoading(false);
       }
@@ -96,9 +101,9 @@ export default function DepartmentsPage() {
         headId: "",
       });
       await loadData(false);
-      setNotice("Department created successfully.");
+      showToast("Department created successfully.", "success");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to create department");
+      showToast(err instanceof Error ? err.message : "Failed to create department" , "error");
     } finally {
       setCreating(false);
     }
@@ -112,6 +117,18 @@ export default function DepartmentsPage() {
     const leadershipCoverage = total ? Math.round((withHead / total) * 100) : 0;
     return { total, totalMembers, avgMembers, leadershipCoverage };
   }, [departments]);
+  const visibleDepartments = useMemo(() => {
+    if (!searchSubmitted) return departments;
+    const query = globalSearch.trim().toLowerCase();
+    if (!query) return departments;
+    return departments.filter((department) => {
+      const inName = department.name.toLowerCase().includes(query);
+      const inCode = department.code.toLowerCase().includes(query);
+      const inDesc = (department.description ?? "").toLowerCase().includes(query);
+      const inHead = (department.head?.name ?? "").toLowerCase().includes(query);
+      return inName || inCode || inDesc || inHead;
+    });
+  }, [departments, globalSearch, searchSubmitted]);
 
   const sessionGate = renderSessionGate({
     loading: sessionLoading,
@@ -128,6 +145,14 @@ export default function DepartmentsPage() {
   if (!user) {
     return null;
   }
+
+  if (dataLoading) {
+  return (
+    <CRMShell user={user}>
+      <EmployeesSkeleton />
+    </CRMShell>
+  );
+}
 
   return (
     <CRMShell user={user}>
@@ -229,13 +254,13 @@ export default function DepartmentsPage() {
                 </p>
                 <h2 className="mt-2 text-xl font-semibold text-[var(--text-main)]">Department list</h2>
               </div>
-              <span className="text-sm text-[var(--text-soft)]">{departments.length} departments</span>
+              <span className="text-sm text-[var(--text-soft)]">{visibleDepartments.length} departments</span>
             </div>
 
             {dataLoading ? <p className="mt-6 text-sm text-[var(--text-soft)]">Loading departments...</p> : null}
 
             <div className="mt-6 grid gap-4 md:grid-cols-2">
-              {departments.map((department) => (
+              {visibleDepartments.map((department) => (
                 <article
                   key={department.id}
                   className="rounded-[18px] border p-4"

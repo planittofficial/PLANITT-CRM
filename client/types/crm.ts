@@ -54,6 +54,7 @@ export type CRMUser = {
   id: string;
   name: string;
   email: string;
+  avatarUrl?: string | null;
   role: UserRole;
   designation?: string | null;
   departmentId?: string | null;
@@ -66,6 +67,7 @@ export type CRMUser = {
     role: UserRole;
   } | null;
   createdAt?: string;
+  authProvider?: "google" | "password";
 };
 
 export type ChatRoom = {
@@ -73,6 +75,14 @@ export type ChatRoom = {
   type: "DEPARTMENT" | "PROJECT" | "GROUP";
   name: string;
   subtitle: string;
+  isDirect?: boolean;
+  directPeer?: {
+    id: string;
+    name: string;
+    role: UserRole;
+    avatarUrl?: string | null;
+    authProvider?: "google" | "password";
+  } | null;
   unreadCount?: number;
   lastMessagePreview?: string;
   lastMessageAt?: string | null;
@@ -106,6 +116,8 @@ export type ChatGroupMember = {
     name: string;
     email: string;
     role: UserRole;
+    avatarUrl?: string | null;
+    authProvider?: "google" | "password";
   };
   createdAt: string;
 };
@@ -134,6 +146,8 @@ export type ChatMessage = {
       name: string;
       email: string;
       role: UserRole;
+      avatarUrl?: string | null;
+      authProvider?: "google" | "password";
     };
   } | null;
   createdAt: string;
@@ -142,6 +156,8 @@ export type ChatMessage = {
     name: string;
     email: string;
     role: UserRole;
+    avatarUrl?: string | null;
+    authProvider?: "google" | "password";
   };
 };
 
@@ -167,6 +183,8 @@ export type Task = {
   id: string;
   title: string;
   description?: string | null;
+  deadlineAt?: string | null;
+  assignedById?: string | null;
   status: "TODO" | "IN_PROGRESS" | "DONE";
   priority: TaskPriority;
   progress: number;
@@ -204,6 +222,57 @@ export type Task = {
   }>;
 };
 
+export type LeaveStatus =
+  | "PENDING"
+  | "APPROVED"
+  | "REJECTED"
+  | "MORE_INFORMATION"
+  | "ALTERNATIVE_SUGGESTED"
+  | "CANCELLED";
+
+export type LeaveType = {
+  id: string;
+  name: string;
+  description?: string | null;
+};
+
+export type LeaveComment = {
+  id: string;
+  message: string;
+  createdAt: string;
+  author: {
+    id: string;
+    name: string;
+    email: string;
+    role: UserRole;
+  };
+};
+
+export type LeaveRequest = {
+  id: string;
+  user: {
+    id: string;
+    name: string;
+    email: string;
+    role: UserRole;
+  };
+  manager?: {
+    id: string;
+    name: string;
+    email: string;
+    role: UserRole;
+  } | null;
+  leaveType: LeaveType;
+  startDate: string;
+  endDate: string;
+  reason?: string | null;
+  attachmentUrl?: string | null;
+  status: LeaveStatus;
+  requestedAt: string;
+  updatedAt: string;
+  comments?: LeaveComment[];
+};
+
 export type AdminDashboardSummary = {
   scope: "superadmin" | "admin";
   metrics: {
@@ -212,6 +281,7 @@ export type AdminDashboardSummary = {
     totalTasks: number;
     completedTasks: number;
     activeAttendance: number;
+    checkedIn: boolean;
     totalDepartments: number;
     totalManagers: number;
   };
@@ -461,4 +531,32 @@ export type BulkUserUploadResult = {
     message: string;
   }>;
   expectedColumns: string[];
+};
+
+export type ActivityLogItem = {
+  id: string;
+  userId: string;
+  userRole: UserRole;
+  method: string;
+  path: string;
+  statusCode: number;
+  action: string;
+  ipAddress?: string | null;
+  userAgent?: string | null;
+  requestId?: string | null;
+  metadataJson?: string | null;
+  createdAt: string;
+  user: {
+    id: string;
+    name: string;
+    email: string;
+    role: UserRole;
+  };
+};
+
+export type ActivityLogsResponse = {
+  items: ActivityLogItem[];
+  total: number;
+  hasMore: boolean;
+  nextOffset: number;
 };

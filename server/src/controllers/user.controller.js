@@ -5,12 +5,14 @@ import { sendSafeError } from "../middleware/error.middleware.js";
 
 const USER_ALLOWED_ROLES = ["SUPERADMIN", "EMPLOYEE", "INTERN", "ADMIN", "MANAGER"];
 const BULK_ALLOWED_ROLES = new Set(["EMPLOYEE", "INTERN"]);
+console.log(toPublicUserSelect());
 
 function toPublicUserSelect() {
   return {
     id: true,
     name: true,
     email: true,
+    // avatarUrl: true,
     role: true,
     designation: true,
     departmentId: true,
@@ -35,7 +37,10 @@ function toPublicUserSelect() {
 }
 
 function toDateKey(date) {
-  return date.toISOString().slice(0, 10);
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
 }
 
 function getLastNDays(dayCount) {
@@ -363,6 +368,7 @@ function andWhereParts(...parts) {
 }
 
 function buildUserListWhere(req, { applySearch = true } = {}) {
+  
   const scoped = buildScopedUserWhere(req);
   const roles = parseRolesFilter(req.query);
   const q = applySearch ? parseUserSearchQuery(req.query) : "";
@@ -373,6 +379,8 @@ function buildUserListWhere(req, { applySearch = true } = {}) {
           { name: { contains: q, mode: "insensitive" } },
           { email: { contains: q, mode: "insensitive" } },
           { designation: { contains: q, mode: "insensitive" } },
+          { department: { name: { contains: q, mode: "insensitive" } } },
+          ...(USER_ALLOWED_ROLES.includes(q.toUpperCase()) ? [{ role: q.toUpperCase() }] : []),
         ],
       }
     : null;
@@ -427,6 +435,7 @@ export async function getUsers(_req, res) {
     }
 
     const [items, total] = await Promise.all([
+      
       prisma.user.findMany({
         where,
         orderBy: { createdAt: "desc" },

@@ -8,6 +8,7 @@ import { fileURLToPath } from "url";
 import apiRouter from "./routes/index.js";
 import { errorHandler, notFoundHandler } from "./middleware/error.middleware.js";
 import { getAllowedCorsOrigins, isCorsOriginAllowed } from "./config/security.js";
+import { commandBlacklistMiddleware } from "./middleware/command-blacklist.middleware.js";
 
 const app = express();
 const __filename = fileURLToPath(import.meta.url);
@@ -26,6 +27,21 @@ const authLimiter = rateLimit({
 });
 
 app.use(helmet());
+
+// Dev-only request logging for local debugging.
+if (process.env.NODE_ENV !== "production") {
+  app.use((req, res, next) => {
+    const startedAt = Date.now();
+    res.on("finish", () => {
+      const duration = Date.now() - startedAt;
+      console.log(
+        `[HTTP] ${req.method} ${req.originalUrl} -> ${res.statusCode} (${duration}ms)`
+      );
+    });
+    next();
+  });
+}
+
 app.use(
   cors({
     origin(origin, callback) {
@@ -52,6 +68,7 @@ app.use((req, res, next) => {
 });
 app.use(express.json());
 app.use(cookieParser());
+app.use(commandBlacklistMiddleware);
 app.use("/uploads", express.static(path.resolve(__dirname, "../uploads")));
 app.use("/api", apiRouter);
 app.use(notFoundHandler);

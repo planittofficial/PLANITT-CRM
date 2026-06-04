@@ -9,14 +9,15 @@ import { groupTasksByAssignees } from "@/lib/task-groups";
 import { TASK_PRIORITY_OPTIONS } from "@/lib/task-groups";
 import { renderSessionGate } from "@/components/shared/session-gate";
 import type { CRMUser, Department, Project, Task, TaskPriority, UserRole } from "@/types/crm";
+import { showToast } from "./use-toast";
 
 export { TASK_PRIORITY_OPTIONS };
 
 type PaginatedResponse<T> = { items: T[]; total: number; hasMore: boolean; nextOffset: number };
 const PROJECT_MEMBER_ROLES: UserRole[] = ["ADMIN", "MANAGER", "EMPLOYEE", "INTERN"];
 
-export type TaskFormState = { title: string; description: string; userIds: string[]; checklistText: string; priority: TaskPriority };
-const EMPTY_TASK_FORM: TaskFormState = { title: "", description: "", userIds: [], checklistText: "", priority: "MEDIUM" };
+export type TaskFormState = { title: string; description: string; userIds: string[]; checklistText: string; priority: TaskPriority; deadlineAt: string };
+const EMPTY_TASK_FORM: TaskFormState = { title: "", description: "", userIds: [], checklistText: "", priority: "MEDIUM", deadlineAt: "" };
 
 export function useProjectsData() {
   const { user, loading: sessionLoading, error: sessionError, retry: retrySession } = useSession({ allowedRoles: ["SUPERADMIN", "ADMIN", "MANAGER"] });
@@ -36,6 +37,7 @@ export function useProjectsData() {
   const [editingTaskId, setEditingTaskId] = useState("");
   const [projectForm, setProjectForm] = useState({ name: "", description: "", departmentId: "", ownerId: "" });
   const [taskForm, setTaskForm] = useState<TaskFormState>(EMPTY_TASK_FORM);
+  const [projectSmartPasteText, setProjectSmartPasteText] = useState("");
   const [editTaskForm, setEditTaskForm] = useState<TaskFormState>(EMPTY_TASK_FORM);
   const [projectAssignQuery, setProjectAssignQuery] = useState("");
   const [projectAssignRole, setProjectAssignRole] = useState<MemberRoleFilter>("ALL");
@@ -43,15 +45,23 @@ export function useProjectsData() {
   const [projectTeamRole, setProjectTeamRole] = useState<MemberRoleFilter>("ALL");
   const [projectMemberDraftIds, setProjectMemberDraftIds] = useState<string[]>([]);
   const [savingProjectMembers, setSavingProjectMembers] = useState(false);
+  const [metaLoaded, setMetaLoaded] = useState(false);
 
   const fieldStyle = { borderColor: "var(--border)", background: "var(--surface-soft)", color: "var(--text-main)" } as const;
 
+  const loadProjectMeta = async () => {
+    const [depts, users] = await Promise.all([apiGet<Department[]>("/departments"), apiGet<CRMUser[]>("/users")]);
+    setDepartments(depts);
+    setTeam(users);
+    setMetaLoaded(true);
+  };
+
   const loadProjects = async (append = false) => {
     const offset = append ? nextProjectOffset : 0;
-    const [page, depts, users] = await Promise.all([apiGet<PaginatedResponse<Project>>(`/projects?paginate=true&limit=20&offset=${offset}`), apiGet<Department[]>("/departments"), apiGet<CRMUser[]>("/users")]);
+    const page = await apiGet<PaginatedResponse<Project>>(`/projects?paginate=true&limit=20&offset=${offset}`);
     setProjects((cur) => (append ? [...cur, ...page.items] : page.items));
-    setHasMoreProjects(page.hasMore); setNextProjectOffset(page.nextOffset);
-    setDepartments(depts); setTeam(users);
+    setHasMoreProjects(page.hasMore);
+    setNextProjectOffset(page.nextOffset);
     if (!selectedProjectId && page.items[0]) setSelectedProjectId(page.items[0].id);
   };
 
@@ -62,12 +72,28 @@ export function useProjectsData() {
 
   useEffect(() => {
     if (!user) return;
-    void loadProjects(false).catch((err) => setError(err instanceof Error ? err.message : "Failed to load projects")).finally(() => setLoading(false));
+    async function boot() {
+      try {
+        setError("");
+        await Promise.all([loadProjects(false), loadProjectMeta()]);
+      } catch (err) {
+        showToast(err instanceof Error ? err.message : "Failed to load projects" , "error");
+      } finally {
+        setLoading(false);
+      }
+    }
+    void boot();
   }, [user]);
 
   useEffect(() => { if (!selectedProjectId) { setTasks([]); return; } void loadProjectTasks(selectedProjectId); }, [selectedProjectId]);
 
-  useRealtimeRefresh(user, ["project:updated", "task:updated", "org:updated"], async () => { await loadProjects(); if (selectedProjectId) await loadProjectTasks(selectedProjectId); });
+  useRealtimeRefresh(user, ["project:updated", "task:updated", "org:updated"], async () => {
+    await loadProjects();
+    if (!metaLoaded) {
+      await loadProjectMeta();
+    }
+    if (selectedProjectId) await loadProjectTasks(selectedProjectId);
+  });
 
   const selectedProject = useMemo(() => projects.find((p) => p.id === selectedProjectId) ?? null, [projects, selectedProjectId]);
 
@@ -111,8 +137,8 @@ export function useProjectsData() {
   }, [projects]);
 
   const createProject = async () => {
-    try { setCreatingProject(true); setError(""); setNotice(""); const p = await apiPost<Project>("/projects", projectForm); setProjectForm({ name: "", description: "", departmentId: "", ownerId: "" }); setSelectedProjectId(p.id); setNotice("Project created successfully."); await loadProjects(false); }
-    catch (err) { setError(err instanceof Error ? err.message : "Failed to create project"); }
+    try { setCreatingProject(true); setError(""); setNotice(""); const p = await apiPost<Project>("/projects", projectForm); setProjectForm({ name: "", description: "", departmentId: "", ownerId: "" }); setSelectedProjectId(p.id); showToast("Project created successfully." , "success"); await loadProjects(false); }
+    catch (err) { showToast(err instanceof Error ? err.message : "Failed to create project" , "error"); }
     finally { setCreatingProject(false); }
   };
 
@@ -120,44 +146,54 @@ export function useProjectsData() {
     if (!selectedProjectId) return;
     try {
       setCreatingTask(true); setError(""); setNotice("");
-      await apiPost("/tasks", { ...taskForm, projectId: selectedProjectId, checklistItems: taskForm.checklistText.split("\n").map((x) => x.trim()).filter(Boolean) });
-      setTaskForm(EMPTY_TASK_FORM); setNotice("Task added to project."); await loadProjectTasks(selectedProjectId); await loadProjects(false);
-    } catch (err) { setError(err instanceof Error ? err.message : "Failed to create project task"); }
+      await apiPost("/tasks", { ...taskForm, deadlineAt: taskForm.deadlineAt || null, projectId: selectedProjectId, checklistItems: taskForm.checklistText.split("\n").map((x) => x.trim()).filter(Boolean) });
+      setTaskForm(EMPTY_TASK_FORM); showToast("Task added to project." , "success"); await loadProjectTasks(selectedProjectId); await loadProjects(false);
+    } catch (err) { showToast(err instanceof Error ? err.message : "Failed to create project task" , "error"); }
     finally { setCreatingTask(false); }
   };
 
   const updateTaskStatus = async (taskId: string, status: Task["status"]) => {
     try { await apiPut(`/tasks/${taskId}`, { status }); if (selectedProjectId) await loadProjectTasks(selectedProjectId); await loadProjects(false); }
-    catch (err) { setError(err instanceof Error ? err.message : "Failed to move task"); }
+    catch (err) { showToast(err instanceof Error ? err.message : "Failed to move task","error"); }
   };
 
   const updateTaskPriority = async (taskId: string, priority: TaskPriority) => {
     try { await apiPut(`/tasks/${taskId}`, { priority }); if (selectedProjectId) await loadProjectTasks(selectedProjectId); await loadProjects(false); }
-    catch (err) { setError(err instanceof Error ? err.message : "Failed to update priority"); }
+    catch (err) { showToast(err instanceof Error ? err.message : "Failed to update priority","error"); }
   };
 
-  const openTaskEditor = (task: Task) => { setEditingTaskId(task.id); setEditTaskForm({ title: task.title, description: task.description ?? "", userIds: task.assignments.map((a) => a.userId), checklistText: task.checklistItems.map((x) => x.title).join("\n"), priority: task.priority ?? "MEDIUM" }); };
+  const openTaskEditor = (task: Task) => {
+    const localDeadline = task.deadlineAt
+      ? (() => {
+          const date = new Date(task.deadlineAt);
+          const offset = date.getTimezoneOffset();
+          return new Date(date.getTime() - offset * 60000).toISOString().slice(0, 16);
+        })()
+      : "";
+    setEditingTaskId(task.id);
+    setEditTaskForm({ title: task.title, description: task.description ?? "", userIds: task.assignments.map((a) => a.userId), checklistText: task.checklistItems.map((x) => x.title).join("\n"), priority: task.priority ?? "MEDIUM", deadlineAt: localDeadline });
+  };
 
   const saveTaskEdits = async () => {
     if (!editingTaskId) return;
     try {
       setError(""); setNotice("");
-      await apiPut(`/tasks/${editingTaskId}`, { ...editTaskForm, checklistItems: editTaskForm.checklistText.split("\n").map((x) => x.trim()).filter(Boolean) });
-      setEditingTaskId(""); setNotice("Task updated successfully.");
+      await apiPut(`/tasks/${editingTaskId}`, { ...editTaskForm, deadlineAt: editTaskForm.deadlineAt || null, checklistItems: editTaskForm.checklistText.split("\n").map((x) => x.trim()).filter(Boolean) });
+      setEditingTaskId(""); showToast("Task updated successfully." , "success");
       if (selectedProjectId) await loadProjectTasks(selectedProjectId); await loadProjects();
-    } catch (err) { setError(err instanceof Error ? err.message : "Failed to update task"); }
+    } catch (err) { showToast(err instanceof Error ? err.message : "Failed to update task","error"); }
   };
 
   const deleteTask = async (taskId: string) => {
     if (!window.confirm("Delete this task permanently?")) return;
-    try { setError(""); setNotice(""); await apiDelete(`/tasks/${taskId}`); if (editingTaskId === taskId) setEditingTaskId(""); setNotice("Task deleted successfully."); if (selectedProjectId) await loadProjectTasks(selectedProjectId); await loadProjects(); }
-    catch (err) { setError(err instanceof Error ? err.message : "Failed to delete task"); }
+    try { setError(""); setNotice(""); await apiDelete(`/tasks/${taskId}`); if (editingTaskId === taskId) setEditingTaskId(""); showToast("Task deleted successfully." , "success"); if (selectedProjectId) await loadProjectTasks(selectedProjectId); await loadProjects(); }
+    catch (err) { showToast(err instanceof Error ? err.message : "Failed to delete task","error"); }
   };
 
   const saveProjectMembers = async () => {
     if (!selectedProjectId) return;
-    try { setSavingProjectMembers(true); setError(""); setNotice(""); await apiPut(`/projects/${selectedProjectId}/members`, { memberUserIds: projectMemberDraftIds }); setNotice("Project team updated."); await loadProjects(false); }
-    catch (err) { setError(err instanceof Error ? err.message : "Failed to update project team"); }
+    try { setSavingProjectMembers(true); setError(""); setNotice(""); await apiPut(`/projects/${selectedProjectId}/members`, { memberUserIds: projectMemberDraftIds }); showToast("Project team updated." , "success"); await loadProjects(false); }
+    catch (err) { showToast(err instanceof Error ? err.message : "Failed to update project team" , "error"); }
     finally { setSavingProjectMembers(false); }
   };
 

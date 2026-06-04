@@ -1,6 +1,7 @@
 import jwt from "jsonwebtoken";
 import { getJwtSecret } from "../config/security.js";
 import { getAuthCookieName } from "../utils/auth-cookie.js";
+import { writeActivityLog } from "../services/activity-log.service.js";
 
 function resolveToken(req) {
   const bearerToken = req.headers.authorization?.split(" ")[1];
@@ -33,7 +34,36 @@ export function authMiddleware(req, res, next) {
     const secret = getJwtSecret();
     const decoded = jwt.verify(token, secret);
 
-    req.user = decoded;
+    req.user = {
+      ...decoded,
+      authProvider: decoded.authProvider ?? "password",
+    };
+
+    const role = req.user?.role;
+    const method = String(req.method || "").toUpperCase();
+    const shouldLogAllRoles = String(process.env.ACTIVITY_LOG_ALL_ROLES || "false").toLowerCase() === "true";
+    const shouldLogByRole = role === "INTERN" || shouldLogAllRoles;
+    const shouldLogByMethod = ["POST", "PUT", "PATCH", "DELETE"].includes(method);
+
+    if (shouldLogByRole || shouldLogByMethod) {
+      res.on("finish", () => {
+        void writeActivityLog({
+          userId: req.user?.userId,
+          userRole: req.user?.role,
+          method,
+          path: req.originalUrl || req.path,
+          statusCode: res.statusCode,
+          ipAddress: req.ip || null,
+          userAgent: req.headers["user-agent"] || null,
+          requestId: req.headers["x-request-id"] || null,
+          metadata: {
+            hasBody: Boolean(req.body && Object.keys(req.body).length),
+            queryKeys: Object.keys(req.query || {}),
+          },
+        });
+      });
+    }
+
     return next();
   } catch (_err) {
     // #region agent log

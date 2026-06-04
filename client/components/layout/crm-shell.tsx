@@ -3,13 +3,18 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { apiPost } from "@/lib/api";
+import { apiGet, apiPost } from "@/lib/api";
 import { clearToken } from "@/lib/auth";
+import {
+ showToast
+}
+from
+"@/hooks/use-toast";
 import { useCrmSearch } from "@/components/providers/crm-search-provider";
 import { useTheme } from "@/components/providers/theme-provider";
 import { useNotificationsBackend } from "@/hooks/use-notifications-backend";
 import { migrateLegacyThemeKeys } from "@/lib/theme-storage";
-import type { CRMUser } from "@/types/crm";
+import type { CRMUser, DashboardSummary, EmployeeDashboardSummary } from "@/types/crm";
 
 type CRMShellProps = {
   children: React.ReactNode;
@@ -37,6 +42,7 @@ const pageTitles: Record<string, string> = {
   "/leaves": "Leaves",
   "/employees": "Employees",
   "/departments": "Departments",
+  "/logs": "Logs",
   "/chat": "Chats",
   "/settings": "Settings",
   "/notifications": "Notifications",
@@ -51,8 +57,60 @@ function initials(name: string) {
     .join("");
 }
 
+function UserAvatar({
+  name,
+  avatarUrl,
+  authProvider,
+  className,
+}: {
+  name: string;
+  avatarUrl?: string | null;
+  authProvider?: CRMUser["authProvider"];
+  className: string;
+}) {
+  const [imageFailed, setImageFailed] = useState(false);
+
+  useEffect(() => {
+    setImageFailed(false);
+  }, [avatarUrl, authProvider]);
+
+  const showPhoto = authProvider === "google" && Boolean(avatarUrl) && !imageFailed;
+
+  if (showPhoto) {
+    return (
+      <img
+        src={avatarUrl as string}
+        alt={`${name} profile picture`}
+        className={`block ${className} object-cover`}
+        referrerPolicy="no-referrer"
+        onError={() => setImageFailed(true)}
+      />
+    );
+  }
+
+  return (
+    <div
+      className={`flex items-center justify-center font-bold text-white ${className}`}
+      style={{
+        background: "linear-gradient(135deg, rgba(255,255,255,0.24), rgba(255,255,255,0.12))",
+      }}
+      aria-label={`${name} default avatar`}
+    >
+      <span>{initials(name)}</span>
+    </div>
+  );
+}
+
 function CRMShellHeaderSearch() {
-  const { globalSearch, setGlobalSearch } = useCrmSearch();
+  const { globalSearch, setGlobalSearch , submitSearch ,searchNoResult ,setSearchNoResult} = useCrmSearch();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!searchNoResult) return;
+    const timer = window.setTimeout(() => setSearchNoResult(false), 2200);
+    return () => window.clearTimeout(timer);
+  }, [searchNoResult, setSearchNoResult]);
+  
 
   return (
     <label className="relative block">
@@ -60,18 +118,63 @@ function CRMShellHeaderSearch() {
         Search
       </span>
       <input
-        aria-label="Search CRM"
-        type="search"
-        value={globalSearch}
-        onChange={(event) => setGlobalSearch(event.target.value)}
-        className="crm-input h-10 w-full rounded-md pl-16 pr-3 text-sm sm:w-72"
-        placeholder="Search anything..."
-      />
+  aria-label="Search CRM"
+  type="search"
+  value={globalSearch}
+  onChange={(event) =>
+    {
+      setGlobalSearch(event.target.value);
+      if (searchNoResult) {
+        setSearchNoResult(false);
+      }
+    }
+  }
+  onKeyDown={(event) => {
+  if (event.key !== "Enter") return;
+
+  event.preventDefault();
+
+  submitSearch();
+
+  const q = globalSearch.trim().toLowerCase();
+
+  if (!q) return;
+
+  const page = Object.entries(pageTitles).find(
+    ([, label]) =>
+      label.toLowerCase() === q
+  );
+
+  if (page) {
+  router.push(page[0]);
+} else {
+  setSearchNoResult(true);
+}
+}}
+  className="crm-input h-10 w-full rounded-md pl-16 pr-3 text-sm sm:w-72"
+  placeholder="Search anything..."
+/>
+{searchNoResult && (
+  <span
+    className="
+      absolute
+      left-0
+      top-full
+      mt-1
+      text-xs
+      text-red-500
+    "
+  >
+    No matching results
+  </span>
+)}
     </label>
   );
 }
 
 export function CRMShell({ children, user }: CRMShellProps) {
+  
+  const { globalSearch } = useCrmSearch();
   const pathname = usePathname();
   const router = useRouter();
   const { theme, setTheme } = useTheme();
@@ -88,6 +191,8 @@ export function CRMShell({ children, user }: CRMShellProps) {
   } = useNotificationsBackend(user);
   
   const [toastVisible, setToastVisible] = useState(false);
+  const [attendanceLoading, setAttendanceLoading] = useState(false);
+  const [checkedIn, setCheckedIn] = useState(false);
 
   const latestItem = useMemo(() => items[0] ?? null, [items]);
 
@@ -99,6 +204,76 @@ export function CRMShell({ children, user }: CRMShellProps) {
     const timer = setTimeout(() => setToastVisible(false), 3200);
     return () => clearTimeout(timer);
   }, [lastPushedId]);
+
+  const canUseAttendanceQuickAction =
+    user.role === "SUPERADMIN" || user.role === "ADMIN" || user.role === "MANAGER";
+
+  useEffect(() => {
+    if (!canUseAttendanceQuickAction) {
+      return;
+    }
+
+    const syncAttendanceState = async () => {
+      try {
+        const summary = await apiGet<DashboardSummary>("/dashboard/summary");
+        const currentCheckedIn =
+          summary.scope === "employee"
+            ? (summary as EmployeeDashboardSummary).metrics.checkedIn
+            : summary.metrics.checkedIn;
+        setCheckedIn(Boolean(currentCheckedIn));
+      } catch {
+        setCheckedIn(false);
+      }
+    };
+
+
+    void syncAttendanceState();
+
+    const onAttendanceUpdated = () => {
+      void syncAttendanceState();
+    };
+
+    window.addEventListener("attendance:local-updated", onAttendanceUpdated);
+    return () => {
+      window.removeEventListener("attendance:local-updated", onAttendanceUpdated);
+    };
+  }, [canUseAttendanceQuickAction]);
+
+  const handleAttendanceQuickAction = async () => {
+    try {
+      setAttendanceLoading(true);
+      if (checkedIn) {
+        await apiPost("/attendance/checkout");
+        setCheckedIn(false);
+        showToast(
+        "Checked out successfully.",
+        "success"
+      );
+      } else {
+        await apiPost("/attendance/checkin");
+        setCheckedIn(true);
+        showToast(
+        "Checked in successfully.",
+        "success"
+      );
+
+      }
+      window.dispatchEvent(new CustomEvent("attendance:local-updated"));
+       } catch (err) {
+
+    showToast(
+      err instanceof Error
+        ? err.message
+        : checkedIn
+        ? "Failed to check out"
+        : "Failed to check in",
+
+      "error"
+    );
+    } finally {
+      setAttendanceLoading(false);
+    }
+  };
 
   const navItems: NavItem[] = [
     { href: "/dashboard", label: "Dashboard", icon: "D" },
@@ -113,6 +288,9 @@ export function CRMShell({ children, user }: CRMShellProps) {
     ...(user.role === "SUPERADMIN" || user.role === "ADMIN"
       ? [{ href: "/departments", label: "Departments", icon: "O" }]
       : []),
+    ...(user.role === "SUPERADMIN" || user.role === "ADMIN"
+      ? [{ href: "/logs", label: "Logs", icon: "L" }]
+      : []),
     { href: "/chat", label: "Chats", icon: "C" },
     { href: "/settings", label: "Settings", icon: "S" },
   ];
@@ -126,6 +304,7 @@ export function CRMShell({ children, user }: CRMShellProps) {
     clearToken();
     router.replace("/login");
   };
+  
 
   useEffect(() => {
     migrateLegacyThemeKeys(user.id);
@@ -255,9 +434,12 @@ export function CRMShell({ children, user }: CRMShellProps) {
 
             <div className="mt-auto rounded-lg border border-white/12 bg-white/8 p-3">
               <div className="flex items-center gap-3">
-                <div className="crm-avatar flex h-9 w-9 items-center justify-center rounded-full text-xs font-bold">
-                  {initials(user.name)}
-                </div>
+                <UserAvatar
+                  name={user.name}
+                  avatarUrl={user.avatarUrl}
+                  authProvider={user.authProvider}
+                  className="crm-avatar h-9 w-9 rounded-full text-xs"
+                />
                 <div className="min-w-0">
                   <p className="truncate text-sm font-semibold text-white">{user.name}</p>
                   <p className="text-xs text-white/60">{roleLabel[user.role]}</p>
@@ -300,6 +482,25 @@ export function CRMShell({ children, user }: CRMShellProps) {
             <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
               <CRMShellHeaderSearch />
               <div className="flex items-center gap-2">
+                {canUseAttendanceQuickAction ? (
+                  <button
+                    type="button"
+                    onClick={() => void handleAttendanceQuickAction()}
+                    disabled={attendanceLoading}
+                    className="flex h-10 items-center justify-center rounded-md border px-3 text-xs font-bold transition disabled:cursor-wait disabled:opacity-70"
+                    style={{
+                      borderColor: "var(--border)",
+                      background: checkedIn ? "var(--danger)" : "var(--accent)",
+                      color: "white",
+                    }}
+                  >
+                    {attendanceLoading
+                      ? "Please wait"
+                      : checkedIn
+                        ? "Check out"
+                        : "Check in"}
+                  </button>
+                ) : null}
                 <div className="relative">
                   <button
                     type="button"
@@ -406,9 +607,12 @@ export function CRMShell({ children, user }: CRMShellProps) {
                     </div>
                   ) : null}
                 </div>
-                <div className="crm-avatar flex h-10 w-10 items-center justify-center rounded-full text-xs font-bold">
-                  {initials(user.name)}
-                </div>
+                <UserAvatar
+                  name={user.name}
+                  avatarUrl={user.avatarUrl}
+                  authProvider={user.authProvider}
+                  className="crm-avatar h-10 w-10 rounded-full text-xs"
+                />
               </div>
             </div>
           </header>

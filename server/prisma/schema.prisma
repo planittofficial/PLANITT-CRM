@@ -13,6 +13,8 @@ model User {
   name                      String
   email                     String                     @unique
   password                  String
+  avatarUrl                 String?
+  authProvider              String                     @default("password")
   role                      UserRole                   @default(EMPLOYEE)
   createdAt                 DateTime                   @default(now())
   updatedAt                 DateTime                   @updatedAt
@@ -20,6 +22,7 @@ model User {
   departmentId              String?
   designation               String?
   managerId                 String?
+  activityLogs              ActivityLog[]
   attendances               Attendance[]
   createdChatGroups         ChatGroup[]                @relation("ChatGroupCreator")
   groupMemberships          ChatGroupMember[]
@@ -30,6 +33,7 @@ model User {
   googleWorkspaceConnection GoogleWorkspaceConnection?
   ownedProjects             Project[]
   projectMemberships        ProjectMember[]
+  assignedTasksCreated      Task[]                     @relation("TaskAssigner")
   assignments               TaskAssignment[]
   reportedIssues            TaskIssue[]                @relation("ReportedIssues")
   resolvedIssues            TaskIssue[]                @relation("ResolvedIssues")
@@ -38,6 +42,46 @@ model User {
   department                Department?                @relation("DepartmentMembers", fields: [departmentId], references: [id])
   manager                   User?                      @relation("ManagerReports", fields: [managerId], references: [id])
   directReports             User[]                     @relation("ManagerReports")
+  leaveRequests             LeaveRequest[]            @relation("UserLeaveRequests")
+  managedLeaveRequests      LeaveRequest[]            @relation("ManagerLeaveRequests")
+  leaveComments             LeaveComment[]
+}
+
+model LeaveType {
+  id          String         @id @default(cuid())
+  name        String         @unique
+  description String?
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+  leaveRequests LeaveRequest[]
+}
+
+model LeaveRequest {
+  id           String       @id @default(cuid())
+  userId       String
+  managerId    String?
+  leaveTypeId  String
+  startDate    DateTime
+  endDate      DateTime
+  reason       String?
+  attachmentUrl String?
+  status       LeaveStatus  @default(PENDING)
+  requestedAt  DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+  user         User         @relation("UserLeaveRequests", fields: [userId], references: [id], onDelete: Cascade)
+  manager      User?        @relation("ManagerLeaveRequests", fields: [managerId], references: [id])
+  leaveType    LeaveType    @relation(fields: [leaveTypeId], references: [id], onDelete: Restrict)
+  comments     LeaveComment[]
+}
+
+model LeaveComment {
+  id             String       @id @default(cuid())
+  leaveRequestId String
+  authorId       String
+  message        String
+  createdAt      DateTime     @default(now())
+  leaveRequest   LeaveRequest @relation(fields: [leaveRequestId], references: [id], onDelete: Cascade)
+  author         User         @relation(fields: [authorId], references: [id], onDelete: Cascade)
 }
 
 model Department {
@@ -55,18 +99,18 @@ model Department {
 }
 
 model Project {
-  id           String           @id @default(cuid())
+  id           String          @id @default(cuid())
   name         String
   description  String?
   departmentId String
   ownerId      String?
-  createdAt    DateTime         @default(now())
-  updatedAt    DateTime         @updatedAt
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
   chatMessages ChatMessage[]
-  department   Department       @relation(fields: [departmentId], references: [id], onDelete: Cascade)
-  owner        User?            @relation(fields: [ownerId], references: [id])
-  tasks        Task[]
+  department   Department      @relation(fields: [departmentId], references: [id], onDelete: Cascade)
+  owner        User?           @relation(fields: [ownerId], references: [id])
   members      ProjectMember[]
+  tasks        Task[]
 }
 
 model ProjectMember {
@@ -86,15 +130,21 @@ model Task {
   title          String
   description    String?
   status         TaskStatus          @default(TODO)
-  priority       TaskPriority        @default(MEDIUM)
   createdAt      DateTime            @default(now())
   updatedAt      DateTime            @updatedAt
   progress       Int                 @default(0)
   projectId      String?
+  priority       TaskPriority        @default(MEDIUM)
+  deadlineAt     DateTime?
+  assignedById   String?
+  assignedBy     User?               @relation("TaskAssigner", fields: [assignedById], references: [id])
   project        Project?            @relation(fields: [projectId], references: [id])
   assignments    TaskAssignment[]
   checklistItems TaskChecklistItem[]
   issues         TaskIssue[]
+
+  @@index([assignedById])
+  @@index([deadlineAt])
 }
 
 model TaskChecklistItem {
@@ -191,7 +241,6 @@ model ChatMessage {
   @@index([channelType, projectId, createdAt])
   @@index([channelType, groupId, createdAt])
   @@index([authorId])
-  @@index([replyToId])
 }
 
 model ChatMessageHidden {
@@ -247,6 +296,26 @@ model ChatGroupMember {
   @@index([userId, createdAt])
 }
 
+model ActivityLog {
+  id           String   @id @default(cuid())
+  userId       String
+  userRole     UserRole
+  method       String
+  path         String
+  statusCode   Int
+  action       String
+  ipAddress    String?
+  userAgent    String?
+  requestId    String?
+  metadataJson String?
+  createdAt    DateTime @default(now())
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([userRole, createdAt])
+  @@index([createdAt])
+}
+
 enum UserRole {
   ADMIN
   EMPLOYEE
@@ -266,6 +335,15 @@ enum TaskPriority {
   MEDIUM
   HIGH
   URGENT
+}
+
+enum LeaveStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  MORE_INFORMATION
+  ALTERNATIVE_SUGGESTED
+  CANCELLED
 }
 
 enum ChatChannelType {

@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import { CRMShell } from "@/components/layout/crm-shell";
 import { AttendanceCard } from "@/components/modules/attendance-card";
 import { MemberPickerToolbar } from "@/components/shared/member-picker-toolbar";
@@ -8,14 +9,17 @@ import { renderSessionGate } from "@/components/shared/session-gate";
 import { Surface, buildLinePath, SummaryStatCard, LineChartCard, ActivityBarsCard, InsightTicker, PerformanceBars, HeatmapGrid, formatRole } from "@/components/dashboard/chart-widgets";
 import { TeamAnalyticsPanel, DepartmentWisePanel } from "@/components/dashboard/team-analytics-panel";
 import { GoogleWorkspacePanel } from "@/components/dashboard/google-workspace-panel";
+import { useCrmSearch } from "@/components/providers/crm-search-provider";
+import { Skeleton } from "@/components/shared/skeleton";
 import { canUseGoogleWorkspace, useDashboardData } from "@/hooks/use-dashboard-data";
 import type { EmployeeDashboardSummary } from "@/types/crm";
 
 export default function DashboardPage() {
+  const { globalSearch, searchSubmitted } = useCrmSearch();
   const {
     user, loading, error, sessionError, retrySession, summary, teamLoading, analyticsLoading,
     selectedMemberId, selectedAnalytics, teamDirectoryRoleFilter, teamDirectoryRoleOptions,
-    filteredTeamMembers, overviewStats, leadershipView, globalSearch, setGlobalSearch,
+    filteredTeamMembers, overviewStats, leadershipView, setGlobalSearch,
     setTeamDirectoryRoleFilter, setSelectedMemberId, workspaceStatus, workspaceProjects,
     workspaceUsers, selectedWorkspaceProjectId, workspaceActionLoading, meetResult, sheetResult,
     driveResult, workspaceLoading, workspaceMessage, activeDashboardTab, setActiveDashboardTab,
@@ -23,11 +27,65 @@ export default function DashboardPage() {
     handleGoogleConnect, handleGoogleDisconnect, runWorkspaceAction,
   } = useDashboardData();
 
+  useEffect(() => {
+    if (!searchSubmitted) return;
+    const q = globalSearch.trim().toLowerCase();
+    if (!q) return;
+
+    const jump = (id: string) => {
+      setTimeout(() => {
+        document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 120);
+    };
+
+    if (q.includes("attendance") || q.includes("attendence")) {
+      setActiveDashboardTab("analytics");
+      jump("analytics-section");
+      return;
+    }
+    if (q.includes("team") || q.includes("member")) {
+      setActiveDashboardTab("analytics");
+      jump("team-directory");
+      return;
+    }
+    if (q.includes("analytics") || q.includes("overview") || q.includes("metrics")) {
+      setActiveDashboardTab("analytics");
+      jump("overview-section");
+      return;
+    }
+    if (q.includes("workspace") || q.includes("google") || q.includes("meet") || q.includes("sheet") || q.includes("drive")) {
+      setActiveDashboardTab("workspace");
+      jump("workspace-section");
+    }
+  }, [globalSearch, searchSubmitted, setActiveDashboardTab]);
+
   const sessionGate = renderSessionGate({ loading, user, error: sessionError, retry: retrySession, loadingTitle: "Loading workspace", loadingDescription: "Preparing your CRM dashboard." });
   if (sessionGate) return sessionGate;
   if (!user) return null;
 
-  if (error || !summary) {
+  if (!summary) {
+
+  return (
+
+    <CRMShell user={user}>
+
+      <div className="space-y-4 p-4">
+
+        <Skeleton className="h-40 w-full" />
+
+        <Skeleton className="h-64 w-full" />
+
+        <Skeleton className="h-64 w-full" />
+
+      </div>
+
+    </CRMShell>
+
+  );
+
+}
+
+  if (error ) {
     return (
       <CRMShell user={user}>
         <StatePanel title="Dashboard unavailable" description={error || "No summary data returned yet."} />
@@ -38,6 +96,9 @@ export default function DashboardPage() {
   const completionRate = summary.scope === "employee"
     ? Math.round((((summary as EmployeeDashboardSummary).metrics.completedTasks || 0) / Math.max(1, (summary as EmployeeDashboardSummary).metrics.myTasks)) * 100)
     : Math.round((summary.metrics.completedTasks / Math.max(1, summary.metrics.totalTasks)) * 100);
+  const currentUserCheckedIn = summary.scope === "employee"
+    ? (summary as EmployeeDashboardSummary).metrics.checkedIn
+    : summary.metrics.checkedIn;
   const heroHoursValue = summary.analytics.workingHoursTrend.at(-1)?.hours ?? 0;
   const totalWorkforce = summary.scope === "employee" ? 1 : summary.metrics.totalEmployees + summary.metrics.totalInterns;
   const activeAttendance = summary.scope === "employee" ? ((summary as EmployeeDashboardSummary).metrics.checkedIn ? 1 : 0) : summary.metrics.activeAttendance;
@@ -102,7 +163,7 @@ export default function DashboardPage() {
           </div>
         </Surface>
 
-        {summary.scope === "employee" ? <AttendanceCard initialCheckedIn={(summary as EmployeeDashboardSummary).metrics.checkedIn} /> : null}
+        <AttendanceCard initialCheckedIn={currentUserCheckedIn} />
 
         <Surface className="p-2">
           <div className="grid grid-cols-2 gap-2">
@@ -132,7 +193,7 @@ export default function DashboardPage() {
                     <h2 className="mt-2 text-2xl font-semibold text-[var(--text-main)]">Member performance</h2>
                     <p className="mt-2 max-w-2xl text-sm text-[var(--text-soft)]">Use the header search or the filters below to find people. Select a card to load attendance, progress, and tasks.</p>
                   </div>
-                  <MemberPickerToolbar searchQuery={globalSearch} onSearchChange={setGlobalSearch} roleFilter={teamDirectoryRoleFilter} onRoleFilterChange={setTeamDirectoryRoleFilter} roleOptions={teamDirectoryRoleOptions} />
+                  <MemberPickerToolbar searchQuery={globalSearch } onSearchChange={setGlobalSearch} roleFilter={teamDirectoryRoleFilter} onRoleFilterChange={setTeamDirectoryRoleFilter} roleOptions={teamDirectoryRoleOptions} />
                   {teamLoading ? <StatePanel title="Loading team directory" description="Fetching people and baseline analytics." />
                     : filteredTeamMembers.length === 0 ? <StatePanel title="No matching team members" description="Try a different search or clear the role filter." />
                     : <TeamAnalyticsPanel members={filteredTeamMembers} selectedMemberId={selectedMemberId} selectedAnalytics={selectedAnalytics} analyticsLoading={analyticsLoading} directoryTitle="Roster" directorySubtitle="Live roster and analytics" onSelect={setSelectedMemberId} />}

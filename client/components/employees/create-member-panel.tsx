@@ -1,6 +1,7 @@
 "use client";
 
 import { type RefObject, type ReactNode } from "react";
+import { showToast } from "@/hooks/use-toast";
 import type { BulkUserUploadResult, CRMUser, Department, UserRole } from "@/types/crm";
 
 const BULK_TEMPLATE = [
@@ -71,7 +72,7 @@ export function CreateMemberPanel({ form, onFormChange, creating, onSubmit, crea
               </details>
               <label className="mt-4 flex cursor-pointer flex-col gap-2 rounded-xl border-2 border-dashed px-4 py-6 text-center transition hover:border-blue-400/50 sm:rounded-2xl"
                 onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); }}
-                onDrop={(e) => { e.preventDefault(); e.stopPropagation(); const f = e.dataTransfer.files?.[0]; if (f && (f.type === "text/csv" || f.name.toLowerCase().endsWith(".csv"))) { onBulkFileChange(f); } else if (e.dataTransfer.files?.[0]) { onSetError("Please drop a .csv file."); } }}>
+                onDrop={(e) => { e.preventDefault(); e.stopPropagation(); const f = e.dataTransfer.files?.[0]; if (f && (f.type === "text/csv" || f.name.toLowerCase().endsWith(".csv"))) { onBulkFileChange(f); } else if (e.dataTransfer.files?.[0]) { onSetError("Please drop a .csv file."); showToast("Please drop a .csv file.","error"); } }}>
                 <span className="text-sm font-semibold text-[var(--text-main)]">Drop a file or browse</span>
                 <span className="text-xs text-[var(--text-soft)]">{bulkFile ? bulkFile.name : "No file selected — .csv up to 2MB"}</span>
                 <input ref={bulkInputRef} type="file" accept=".csv,text/csv" className="sr-only" onChange={(e) => onBulkFileChange(e.target.files?.[0] ?? null)} />

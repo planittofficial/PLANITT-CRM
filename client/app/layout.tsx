@@ -5,6 +5,11 @@ import { SocketProvider } from "@/components/providers/socket-provider";
 import { ThemeProvider } from "@/components/providers/theme-provider";
 import { DEFAULT_CRM_THEME } from "@/lib/theme-storage";
 import type { Metadata, Viewport } from "next";
+import {
+ Toast
+}
+from
+"@/components/shared/toast";
 import { Manrope } from "next/font/google";
 
 const manrope = Manrope({
@@ -49,6 +54,7 @@ export default function RootLayout({
       var raw = window.localStorage.getItem(key);
       var theme = raw === 'dark' || raw === 'light' ? raw : 'light';
       document.documentElement.dataset.theme = theme;
+      document.documentElement.classList.toggle('dark', theme === 'dark');
     } catch (_) {}
   `;
 
@@ -64,6 +70,7 @@ export default function RootLayout({
             <CrmSearchProvider>{children}</CrmSearchProvider>
           </SocketProvider>
         </ThemeProvider>
+        <Toast/>
       </body>
     </html>
   );

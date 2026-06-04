@@ -40,29 +40,41 @@ const PROJECT_LIST_INCLUDE = {
   },
 };
 
-function getProjectProgress(tasks) {
+function getProjectProgress(tasks = []) {
   if (!tasks.length) {
     return 0;
   }
 
-  const total = tasks.reduce((sum, task) => sum + task.progress, 0);
+  const total = tasks.reduce(
+    (sum, task) => sum + task.progress,
+    0
+  );
+
   return Math.round(total / tasks.length);
 }
 
 function mapProject(project) {
   const memberRows = project.members ?? [];
+  const tasks = project.tasks ?? [];
+
   return {
     ...project,
     members: memberRows.map((row) => ({
       id: row.id,
       user: row.user,
     })),
-    progress: getProjectProgress(project.tasks),
+    progress: getProjectProgress(tasks),
     taskCounts: {
-      total: project.tasks.length,
-      todo: project.tasks.filter((task) => task.status === "TODO").length,
-      inProgress: project.tasks.filter((task) => task.status === "IN_PROGRESS").length,
-      done: project.tasks.filter((task) => task.status === "DONE").length,
+      total: tasks.length,
+      todo: tasks.filter(
+        (task) => task.status === "TODO"
+      ).length,
+      inProgress: tasks.filter(
+        (task) => task.status === "IN_PROGRESS"
+      ).length,
+      done: tasks.filter(
+        (task) => task.status === "DONE"
+      ).length,
     },
   };
 }
@@ -153,6 +165,7 @@ export async function createProject(req, res) {
       return res.status(400).json({ error: "Project name and department are required" });
     }
 
+
     const department = await prisma.department.findUnique({
       where: { id: departmentId },
     });
@@ -163,8 +176,13 @@ export async function createProject(req, res) {
 
     if (ownerId) {
       const owner = await prisma.user.findUnique({
-        where: { id: ownerId },
-      });
+  where: { id: ownerId },
+  select: {
+    id: true,
+    role: true,
+    name: true,
+  },
+});
 
       if (!owner || !["SUPERADMIN", "ADMIN", "MANAGER"].includes(owner.role)) {
         return res.status(400).json({ error: "Project owner must be leadership" });
@@ -172,13 +190,14 @@ export async function createProject(req, res) {
     }
 
     const project = await prisma.project.create({
+    
       data: {
         name,
         description,
         departmentId,
         ...(ownerId ? { ownerId } : {}),
       },
-      include: PROJECT_LIST_INCLUDE,
+      // include: PROJECT_LIST_INCLUDE,
     });
 
     emitCRMEvent("project:updated", {

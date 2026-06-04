@@ -8,6 +8,7 @@ import { useSession } from "@/hooks/use-session";
 import { apiDelete, apiGet, apiPost } from "@/lib/api";
 import { normalizeErrorMessage } from "@/lib/error-message";
 import type { CRMUser, DashboardSummary, EmployeeDashboardSummary, GoogleDriveFolderResult, GoogleMeetSessionResult, GoogleProjectSheetResult, GoogleWorkspaceStatus, Project, UserAnalyticsSummary } from "@/types/crm";
+import { showToast } from "./use-toast";
 
 export type WorkspaceActionLoading = "" | "meet" | "sheets" | "drive";
 const TEAM_ANALYTICS_PRELOAD_LIMIT = 8;
@@ -18,7 +19,8 @@ export function canUseGoogleWorkspace(scope: DashboardSummary["scope"]) { return
 export function useDashboardData() {
   const session = useSession();
   const { user, loading, error: sessionError, retry: retrySession } = session;
-  const { globalSearch, setGlobalSearch } = useCrmSearch();
+  const { globalSearch, setGlobalSearch ,  searchSubmitted,
+ resetSearch,} = useCrmSearch();
   const [summary, setSummary] = useState<DashboardSummary | null>(null);
   const [teamMembers, setTeamMembers] = useState<CRMUser[]>([]);
   const [teamDirectoryRoleFilter, setTeamDirectoryRoleFilter] = useState<MemberRoleFilter>("ALL");
@@ -42,7 +44,7 @@ export function useDashboardData() {
 
   const leadershipView = summary?.scope === "admin" || summary?.scope === "superadmin";
   const teamDirectoryRoleOptions = useMemo(() => sortedUniqueRoles(teamMembers), [teamMembers]);
-  const filteredTeamMembers = useMemo(() => filterMembersForPicker(teamMembers, { searchQuery: globalSearch, roleFilter: teamDirectoryRoleFilter }), [teamMembers, globalSearch, teamDirectoryRoleFilter]);
+  const filteredTeamMembers = useMemo(() => filterMembersForPicker(teamMembers, { searchQuery:  searchSubmitted ? globalSearch : "", roleFilter: teamDirectoryRoleFilter }), [teamMembers, globalSearch,searchSubmitted, teamDirectoryRoleFilter]);
 
   useEffect(() => {
     if (!leadershipView) return;
@@ -81,9 +83,26 @@ export function useDashboardData() {
   useEffect(() => {
     async function loadSummary() {
       try { const d = await apiGet<DashboardSummary>("/dashboard/summary"); setSummary(d); setError(""); }
-      catch (err) { setError(normalizeErrorMessage(err, "Failed to load dashboard")); }
+      catch (err) { setError(normalizeErrorMessage(err, "Failed to load dashboard") ); }
     }
     if (user) void loadSummary();
+  }, [user]);
+
+  useEffect(() => {
+    if (!user) return;
+    const onLocalAttendanceUpdate = () => {
+      void apiGet<DashboardSummary>("/dashboard/summary")
+        .then((d) => {
+          setSummary(d);
+          setError("");
+        })
+        .catch((err) => showToast(normalizeErrorMessage(err, "Failed to refresh dashboard"),"error"));
+    };
+
+    window.addEventListener("attendance:local-updated", onLocalAttendanceUpdate);
+    return () => {
+      window.removeEventListener("attendance:local-updated", onLocalAttendanceUpdate);
+    };
   }, [user]);
 
   useEffect(() => {
@@ -97,10 +116,17 @@ export function useDashboardData() {
           : page.items.filter((m) => m.role === "EMPLOYEE" || m.role === "INTERN");
         setTeamMembers(visible);
         setSelectedMemberId((c) => c || visible[0]?.id || "");
-        const analyticsData = await Promise.all(visible.slice(0, TEAM_ANALYTICS_PRELOAD_LIMIT).map((m) => apiGet<UserAnalyticsSummary>(`/users/${m.id}/analytics`)));
-        setTeamAnalyticsList(analyticsData);
-      } catch (err) { setError(normalizeErrorMessage(err, "Failed to load team members")); }
-      finally { setTeamLoading(false); }
+        void Promise.all(
+          visible
+            .slice(0, TEAM_ANALYTICS_PRELOAD_LIMIT)
+            .map((m) => apiGet<UserAnalyticsSummary>(`/users/${m.id}/analytics`))
+        )
+          .then((analyticsData) => setTeamAnalyticsList(analyticsData))
+          .catch(() => {});
+      } catch (err) { setError(normalizeErrorMessage(err, "Failed to load team members" )); showToast(normalizeErrorMessage(err, "Failed to load team members" ),"error"); }
+      finally { setTeamLoading(false);
+        resetSearch();
+       }
     }
     void loadTeam();
   }, [leadershipView, summary?.scope]);
@@ -112,7 +138,7 @@ export function useDashboardData() {
         setAnalyticsLoading(true);
         const d = await apiGet<UserAnalyticsSummary>(`/users/${selectedMemberId}/analytics`);
         setSelectedAnalytics(d);
-      } catch (err) { setError(normalizeErrorMessage(err, "Failed to load member analytics")); }
+      } catch (err) { setError(normalizeErrorMessage(err, "Failed to load member analytics")); showToast(normalizeErrorMessage(err, "Failed to load member analytics") , "error"); }
       finally { setAnalyticsLoading(false); }
     }
     void loadAnalytics();
@@ -140,11 +166,20 @@ export function useDashboardData() {
       const membersPage = await apiGet<{ items: CRMUser[] }>("/users?paginate=true&limit=120&offset=0");
       const visible = fresh.scope === "superadmin" ? membersPage.items.filter((m) => ["ADMIN","MANAGER","EMPLOYEE","INTERN"].includes(m.role)) : membersPage.items.filter((m) => m.role === "EMPLOYEE" || m.role === "INTERN");
       setTeamMembers(visible);
-      const analyticsList = await Promise.all(visible.slice(0, TEAM_ANALYTICS_PRELOAD_LIMIT).map((m) => apiGet<UserAnalyticsSummary>(`/users/${m.id}/analytics`)));
-      setTeamAnalyticsList(analyticsList);
+      void Promise.all(
+        visible
+          .slice(0, TEAM_ANALYTICS_PRELOAD_LIMIT)
+          .map((m) => apiGet<UserAnalyticsSummary>(`/users/${m.id}/analytics`))
+      )
+        .then((analyticsList) => setTeamAnalyticsList(analyticsList))
+        .catch(() => {});
       const nextId = visible.find((m) => m.id === selectedMemberId)?.id ?? visible[0]?.id ?? "";
       setSelectedMemberId(nextId);
-      if (nextId) setSelectedAnalytics(await apiGet<UserAnalyticsSummary>(`/users/${nextId}/analytics`));
+      if (nextId) {
+        void apiGet<UserAnalyticsSummary>(`/users/${nextId}/analytics`)
+          .then((data) => setSelectedAnalytics(data))
+          .catch(() => {});
+      }
     }
     if (canUseGoogleWorkspace(fresh.scope)) {
       try {

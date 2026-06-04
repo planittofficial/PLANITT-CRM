@@ -11,11 +11,14 @@ import { useChatGroups } from "@/hooks/use-chat-groups";
 import { useChatMedia } from "@/hooks/use-chat-media";
 import { ChatRoomList } from "@/components/chat/chat-room-list";
 import { ChatMessageBubble } from "@/components/chat/chat-message-bubble";
-import { CreateGroupModal, GroupSettingsDrawer, MediaPanelDrawer } from "@/components/chat/chat-modals";
+import { CreateGroupModal, GroupSettingsDrawer, MediaPanelDrawer, StartDirectChatModal } from "@/components/chat/chat-modals";
 import { apiGet, apiPost } from "@/lib/api";
 import { normalizeErrorMessage } from "@/lib/error-message";
+// import { Skeleton } from "@/components/shared/skeleton";
+import { ChatsSkeleton } from "@/components/shared/skeleton";
 import { roomKey } from "@/components/chat/chat-utils";
 import type { CRMUser, ChatRoomsResponse } from "@/types/crm";
+import { showToast } from "@/hooks/use-toast";
 
 export default function ChatPage() {
   const { user, loading: sessionLoading, error: sessionError, retry: retrySession } = useSession();
@@ -26,11 +29,17 @@ export default function ChatPage() {
   const [error, setError] = useState("");
   const [users, setUsers] = useState<CRMUser[]>([]);
   const [draft, setDraft] = useState("");
+  const [showStartDirectModal, setShowStartDirectModal] = useState(false);
+  const [directTargetUserId, setDirectTargetUserId] = useState("");
 
   const allRooms = useMemo(() => [...rooms.departments, ...rooms.projects, ...rooms.groups], [rooms]);
   const selectedRoom = allRooms.find((r) => roomKey(r) === selectedKey) ?? null;
   const canManageGroups = user ? ["SUPERADMIN", "ADMIN", "MANAGER"].includes(user.role) : false;
   const canClearChat = canManageGroups;
+  const eligibleDirectUsers = useMemo(
+    () => users.filter((member) => member.id !== user?.id),
+    [users, user?.id]
+  );
 
   const chatAnalytics = useMemo(() => {
     const totalRooms = allRooms.length;
@@ -60,7 +69,7 @@ export default function ChatPage() {
         const first = data.departments[0] ?? data.projects[0] ?? data.groups[0];
         setSelectedKey((cur) => cur || (first ? roomKey(first) : ""));
       } catch (err) {
-        setError(normalizeErrorMessage(err, "Failed to load chat rooms"));
+        showToast(normalizeErrorMessage(err, "Failed to load chat rooms" ), "error");
       } finally {
         setLoading(false);
       }
@@ -95,8 +104,12 @@ export default function ChatPage() {
     try {
       await apiPost<{ success: boolean }>(`/chat/clear/${selectedRoom.type}/${selectedRoom.id}`);
       messages_.setMessages([]);
+      showToast(
+"Chat cleared",
+"success"
+);
     } catch (err) {
-      setError(normalizeErrorMessage(err, "Failed to clear chat"));
+      showToast(normalizeErrorMessage(err, "Failed to clear chat") , "error");
     }
   };
 
@@ -110,6 +123,14 @@ export default function ChatPage() {
   });
   if (sessionGate) return sessionGate;
   if (!user) return null;
+
+  if (loading) {
+  return (
+    <CRMShell user={user}>
+      <ChatsSkeleton />
+    </CRMShell>
+  );
+}
 
   return (
     <CRMShell user={user}>
@@ -136,14 +157,27 @@ export default function ChatPage() {
               </span>
             </div>
             {canManageGroups && (
-              <button
-                type="button"
-                onClick={() => groups_.setShowCreateGroup(true)}
-                className="mt-4 w-full rounded-xl border px-4 py-2 text-sm font-semibold"
-                style={{ borderColor: "var(--border)", color: "var(--text-main)" }}
-              >
-                + Create group
-              </button>
+              <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setDirectTargetUserId("");
+                    setShowStartDirectModal(true);
+                  }}
+                  className="rounded-xl border px-4 py-2 text-sm font-semibold"
+                  style={{ borderColor: "var(--border)", color: "var(--text-main)" }}
+                >
+                  + One-to-one
+                </button>
+                <button
+                  type="button"
+                  onClick={() => groups_.setShowCreateGroup(true)}
+                  className="rounded-xl border px-4 py-2 text-sm font-semibold"
+                  style={{ borderColor: "var(--border)", color: "var(--text-main)" }}
+                >
+                  + Create group
+                </button>
+              </div>
             )}
             <div className="mt-4 grid gap-2 sm:grid-cols-2">
               {[
@@ -199,7 +233,7 @@ export default function ChatPage() {
                     </button>
                   )}
                   {selectedRoom.type === "GROUP" && canManageGroups && (
-                    <button type="button" onClick={() => void groups_.openGroupSettings(selectedRoom)} className="rounded-lg border px-3 py-1.5 text-xs font-semibold" style={{ borderColor: "var(--border)", color: "var(--text-main)" }}>
+                    <button type="button" onClick={() => void groups_.openGroupSettings(selectedRoom)} disabled={Boolean(selectedRoom.isDirect)} className="rounded-lg border px-3 py-1.5 text-xs font-semibold disabled:cursor-not-allowed disabled:opacity-60" style={{ borderColor: "var(--border)", color: "var(--text-main)" }}>
                       Group settings
                     </button>
                   )}
@@ -324,6 +358,27 @@ export default function ChatPage() {
           onDeleteSelected={() => void media_.deleteSelectedMedia()}
         />
       )}
+      {showStartDirectModal && canManageGroups ? (
+        <StartDirectChatModal
+          users={eligibleDirectUsers}
+          selectedUserId={directTargetUserId}
+          saving={groups_.groupSaving}
+          onClose={() => setShowStartDirectModal(false)}
+          onChangeUserId={setDirectTargetUserId}
+          onSubmit={async () => {
+            if (!directTargetUserId) return;
+            await groups_.startDirectChat(directTargetUserId);
+            await refreshRooms();
+            const latest = await apiGet<ChatRoomsResponse>("/chat/rooms");
+            const directRoom = latest.groups.find((room) => room.isDirect && room.directPeer?.id === directTargetUserId);
+            if (directRoom) {
+              setSelectedKey(roomKey(directRoom));
+            }
+            setShowStartDirectModal(false);
+            setDirectTargetUserId("");
+          }}
+        />
+      ) : null}
     </CRMShell>
   );
 }
