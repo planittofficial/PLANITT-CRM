@@ -148,3 +148,96 @@ export function emitCRMEvent(eventName, payload) {
     ioInstance.to("role:SUPERADMIN").emit(eventName, payload);
   }
 }
+
+/**
+ * Emit a notification to specific users
+ * @param {string|string[]} userIds - Single user ID or array of user IDs
+ * @param {Object} notification - Notification object with id, type, title, message, href, priority, read, createdAt, taskId, projectId, actorId
+ */
+export function emitNotification(userIds, notification) {
+  if (!ioInstance) {
+    return;
+  }
+
+  const targetUserIds = Array.isArray(userIds) ? userIds : [userIds];
+
+  targetUserIds.forEach((userId) => {
+    if (userId) {
+      ioInstance.to(`user:${userId}`).emit("notification:new", notification);
+    }
+  });
+}
+
+/**
+ * Broadcast a notification to a specific role
+ * @param {string} role - User role
+ * @param {Object} notification - Notification object
+ */
+export function emitNotificationToRole(role, notification) {
+  if (!ioInstance) {
+    return;
+  }
+
+  ioInstance.to(`role:${role}`).emit("notification:new", notification);
+}
+
+/**
+ * Emit a notification to all users in a project
+ * @param {string} projectId - Project ID
+ * @param {Object} notification - Notification object
+ */
+export function emitNotificationToProject(projectId, notification) {
+  if (!ioInstance) {
+    return;
+  }
+
+  ioInstance.to(`project:${projectId}`).emit("notification:new", notification);
+}
+
+/**
+ * Emit a notification to all users in a department
+ * @param {string} departmentId - Department ID
+ * @param {Object} notification - Notification object
+ */
+export function emitNotificationToDepartment(departmentId, notification) {
+  if (!ioInstance) {
+    return;
+  }
+
+  ioInstance.to(`department:${departmentId}`).emit("notification:new", notification);
+}
+
+export function emitNotificationRead(userIds, notificationIds) {
+  if (!ioInstance) return;
+  const targets = Array.isArray(userIds) ? userIds : [userIds];
+  targets.forEach((userId) => {
+    if (!userId) return;
+    if (notificationIds && typeof notificationIds === "object" && notificationIds.all) {
+      ioInstance.to(`user:${userId}`).emit("notification:read", { all: true, ids: [] });
+      return;
+    }
+    ioInstance.to(`user:${userId}`).emit("notification:read", {
+      ids: Array.isArray(notificationIds) ? notificationIds : [notificationIds],
+    });
+  });
+}
+
+export function emitNotificationDeleted(userIds, notificationIds) {
+  if (!ioInstance) return;
+  const targets = Array.isArray(userIds) ? userIds : [userIds];
+  targets.forEach((userId) => {
+    if (!userId) return;
+    if (notificationIds && typeof notificationIds === "object" && notificationIds.all) {
+      ioInstance.to(`user:${userId}`).emit("notification:deleted", { all: true, ids: [] });
+      return;
+    }
+    ioInstance.to(`user:${userId}`).emit("notification:deleted", {
+      ids: Array.isArray(notificationIds) ? notificationIds : [notificationIds],
+    });
+  });
+}
+
+export function emitUnreadCount(userId, count) {
+  if (!ioInstance || !userId) return;
+  ioInstance.to(`user:${userId}`).emit("notification:unread-count", { unreadCount: count });
+}

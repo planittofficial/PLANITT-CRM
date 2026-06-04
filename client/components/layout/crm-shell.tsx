@@ -12,7 +12,7 @@ from
 "@/hooks/use-toast";
 import { useCrmSearch } from "@/components/providers/crm-search-provider";
 import { useTheme } from "@/components/providers/theme-provider";
-import { useNotifications } from "@/hooks/use-notifications";
+import { useNotificationsBackend } from "@/hooks/use-notifications-backend";
 import { migrateLegacyThemeKeys } from "@/lib/theme-storage";
 import type { CRMUser, DashboardSummary, EmployeeDashboardSummary } from "@/types/crm";
 
@@ -45,6 +45,7 @@ const pageTitles: Record<string, string> = {
   "/logs": "Logs",
   "/chat": "Chats",
   "/settings": "Settings",
+  "/notifications": "Notifications",
 };
 
 function initials(name: string) {
@@ -179,7 +180,16 @@ export function CRMShell({ children, user }: CRMShellProps) {
   const { theme, setTheme } = useTheme();
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
-  const { items, unreadCount, lastPushedId, markAllRead, markRead, clearAll } = useNotifications(user);
+  
+  const {
+    items = [],
+    unreadCount = 0,
+    lastPushedId = "",
+    markAllRead,
+    markRead,
+    clearAll,
+  } = useNotificationsBackend(user);
+  
   const [toastVisible, setToastVisible] = useState(false);
   const [attendanceLoading, setAttendanceLoading] = useState(false);
   const [checkedIn, setCheckedIn] = useState(false);
@@ -308,7 +318,7 @@ export function CRMShell({ children, user }: CRMShellProps) {
     setTheme(theme === "light" ? "dark" : "light");
   };
 
-  const pageTitle = pageTitles[pathname] ?? "CRM";
+  const pageTitle = pageTitles[pathname] ?? (pathname.startsWith("/leaves") ? "Leaves" : "CRM");
 
   return (
     <div
@@ -371,7 +381,7 @@ export function CRMShell({ children, user }: CRMShellProps) {
             mobileNavOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
           }`}
           style={{
-            background: theme === "dark" 
+            background: theme === "dark"
               ? "linear-gradient(180deg, #071120 0%, #0b1626 100%)"
               : "linear-gradient(180deg, #356bff 0%, #063ce9 100%)",
             borderColor: "rgba(255,255,255,0.14)",
@@ -406,9 +416,7 @@ export function CRMShell({ children, user }: CRMShellProps) {
                     href={item.href}
                     onClick={() => setMobileNavOpen(false)}
                     className={`flex items-center gap-3 rounded-md px-3 py-2.5 text-[13px] font-semibold transition ${
-                      isActive
-                        ? "bg-white text-blue-700 shadow-sm"
-                        : "text-white/78 hover:bg-white/10 hover:text-white"
+                      isActive ? "bg-white text-blue-700 shadow-sm" : "text-white/78 hover:bg-white/10 hover:text-white"
                     }`}
                   >
                     <span
@@ -501,7 +509,6 @@ export function CRMShell({ children, user }: CRMShellProps) {
                     aria-label="Notifications"
                     onClick={() => {
                       setNotificationsOpen((value) => !value);
-                      markAllRead();
                     }}
                   >
                     <svg
@@ -537,7 +544,12 @@ export function CRMShell({ children, user }: CRMShellProps) {
                       }}
                     >
                       <div className="mb-2 flex items-center justify-between">
-                        <p className="text-sm font-semibold text-[var(--text-main)]">Notifications</p>
+                        <Link
+                          href="/notifications"
+                          className="text-sm font-semibold text-[var(--text-main)] hover:text-[var(--accent-strong)]"
+                        >
+                          Notifications
+                        </Link>
                         <div className="flex items-center gap-2">
                           <button
                             type="button"
@@ -563,7 +575,7 @@ export function CRMShell({ children, user }: CRMShellProps) {
                             No notifications yet.
                           </p>
                         ) : (
-                          items.map((item) => (
+                          items.slice(0, 8).map((item) => (
                             <button
                               key={item.id}
                               type="button"
@@ -580,9 +592,14 @@ export function CRMShell({ children, user }: CRMShellProps) {
                             >
                               <p className="text-sm font-semibold text-[var(--text-main)]">{item.title}</p>
                               <p className="mt-1 text-xs text-[var(--text-soft)]">{item.message}</p>
-                              <p className="mt-2 text-[10px] uppercase tracking-[0.14em] text-[var(--text-faint)]">
-                                {new Date(item.createdAt).toLocaleString()}
-                              </p>
+                              <div className="mt-2 flex items-center justify-between gap-2">
+                                <span className="text-[10px] uppercase tracking-[0.14em] text-[var(--text-faint)]">
+                                  {item.priority}
+                                </span>
+                                <span className="text-[10px] text-[var(--text-faint)]">
+                                  {new Date(item.createdAt).toLocaleString()}
+                                </span>
+                              </div>
                             </button>
                           ))
                         )}

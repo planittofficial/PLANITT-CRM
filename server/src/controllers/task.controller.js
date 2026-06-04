@@ -1,5 +1,10 @@
 import prisma from "../config/db.js";
-import { emitCRMEvent } from "../socket.js";
+import { emitCRMEvent, emitNotificationToRole } from "../socket.js";
+import {
+  createBulkNotifications,
+  getNotificationRecipientsByRoles,
+  isNotificationTypeEnabled,
+} from "../services/notification.service.js";
 import { sendSafeError } from "../middleware/error.middleware.js";
 
 function getTaskInclude() {
@@ -149,6 +154,78 @@ function normalizePriority(value, fallback = "MEDIUM") {
 
 const LEADERSHIP_ROLES = ["SUPERADMIN", "ADMIN", "MANAGER"];
 
+async function filterNotificationTargets(userIds, type, actorId = null) {
+  const uniqueIds = Array.from(new Set((userIds || []).filter(Boolean))).filter((id) => id !== actorId);
+  const targets = [];
+  for (const uid of uniqueIds) {
+    if (await isNotificationTypeEnabled(uid, type)) {
+      targets.push(uid);
+    }
+  }
+  return targets;
+}
+
+function extractTaskMentionTerms(...values) {
+  const text = values
+    .flat()
+    .filter(Boolean)
+    .join(" ");
+  const matches = text.match(/@([a-zA-Z0-9._-]+)/g) ?? [];
+  return Array.from(new Set(matches.map((item) => item.slice(1).toLowerCase())));
+}
+
+async function getMentionedUserIdsFromTaskContent(values, actorId) {
+  const terms = extractTaskMentionTerms(values);
+  if (!terms.length) {
+    return [];
+  }
+
+  const users = await prisma.user.findMany({
+    select: { id: true, email: true, name: true },
+  });
+
+  return users
+    .filter((user) => {
+      if (user.id === actorId) {
+        return false;
+      }
+      const emailName = user.email.split("@")[0]?.toLowerCase() || "";
+      const nameParts = user.name.toLowerCase().split(/\s+/).filter(Boolean);
+      return terms.some((term) => term === emailName || nameParts.includes(term));
+    })
+    .map((user) => user.id);
+}
+
+async function notifyTaskMentions({ task, values, actorId }) {
+  const mentionedUserIds = await getMentionedUserIdsFromTaskContent(values, actorId);
+  const targets = await filterNotificationTargets(mentionedUserIds, "TASK_MENTION", actorId);
+  if (!targets.length) {
+    return;
+  }
+
+  await createBulkNotifications(targets, {
+    type: "TASK_MENTION",
+    title: "You were mentioned in a task",
+    message: `${task.title} mentions you.`,
+    href: `/tasks?taskId=${task.id}`,
+    priority: task.priority === "URGENT" || task.priority === "HIGH" ? "HIGH" : "MEDIUM",
+    taskId: task.id,
+    projectId: task.projectId ?? null,
+    actorId,
+    groupKey: `task:${task.id}:mention`,
+  });
+}
+
+function runNotificationJob(label, job) {
+  setImmediate(() => {
+    Promise.resolve()
+      .then(job)
+      .catch((error) => {
+        console.error(`Error creating ${label} notifications:`, error);
+      });
+  });
+}
+
 function parseDeadlineInput(value) {
   if (value === null || value === undefined || value === "") {
     return null;
@@ -291,6 +368,32 @@ export async function createTask(req, res) {
         projectId: task.projectId,
       });
     }
+
+    // Notify assigned users about new task assignment after the task response is sent.
+    runNotificationJob("task assignment", async () => {
+      const assignedUserIds = task.assignments.map((a) => a.userId).filter(Boolean);
+      const targets = await filterNotificationTargets(assignedUserIds, "TASK_ASSIGNED", req.user.userId);
+      if (targets.length) {
+        await createBulkNotifications(targets, {
+          type: "TASK_ASSIGNED",
+          title: "New Task Assigned",
+          message: `${task.title} assigned to you.`,
+          href: `/tasks?taskId=${task.id}`,
+          priority: "HIGH",
+          taskId: task.id,
+          actorId: req.user.userId,
+          groupKey: `task:${task.id}:assignment`,
+        });
+      }
+    });
+
+    runNotificationJob("task mention", async () => {
+      await notifyTaskMentions({
+        task,
+        values: [task.title, task.description, normalizedChecklistItems],
+        actorId: req.user.userId,
+      });
+    });
 
     return res.status(201).json(task);
   } catch (err) {
@@ -592,6 +695,61 @@ export async function updateTaskStatus(req, res) {
       });
     }
 
+    runNotificationJob("new task assignment", async () => {
+      const newlyAssigned = task.assignments
+        .map((assignment) => assignment.userId)
+        .filter((userId) => !previousAssigneeIds.includes(userId));
+      const targets = await filterNotificationTargets(newlyAssigned, "TASK_ASSIGNED", req.user.userId);
+      if (targets.length) {
+        await createBulkNotifications(targets, {
+          type: "TASK_ASSIGNED",
+          title: "Task Assigned",
+          message: `${task.title} assigned to you.`,
+          href: `/tasks?taskId=${task.id}`,
+          priority: "MEDIUM",
+          taskId: task.id,
+          actorId: req.user.userId,
+          groupKey: `task:${task.id}:assignment`,
+        });
+      }
+    });
+
+    runNotificationJob("task update", async () => {
+      const updateType = emitAsStructureChange ? "TASK_UPDATED" : "TASK_PROGRESS";
+      const targets = await filterNotificationTargets(
+        task.assignments.map((assignment) => assignment.userId),
+        updateType,
+        req.user.userId
+      );
+      if (targets.length) {
+        await createBulkNotifications(targets, {
+          type: updateType,
+          title: emitAsStructureChange ? "Task Updated" : "Task Progress Updated",
+          message: emitAsStructureChange
+            ? `${task.title} was updated.`
+            : `${task.title} is now ${task.progress}% complete.`,
+          href: `/tasks?taskId=${task.id}`,
+          priority: task.priority === "URGENT" || task.priority === "HIGH" ? "HIGH" : "MEDIUM",
+          taskId: task.id,
+          projectId: task.projectId ?? null,
+          actorId: req.user.userId,
+          groupKey: `task:${task.id}:${updateType.toLowerCase()}`,
+        });
+      }
+    });
+
+    runNotificationJob("task mention", async () => {
+      await notifyTaskMentions({
+        task,
+        values: [
+          typeof title === "string" ? title : task.title,
+          typeof description === "string" ? description : task.description,
+          normalizedChecklistItems ?? task.checklistItems.map((item) => item.title),
+        ],
+        actorId: req.user.userId,
+      });
+    });
+
     return res.json(task);
   } catch (err) {
     return sendSafeError(res, err, "Unable to update task");
@@ -732,6 +890,31 @@ export async function toggleChecklistItem(req, res) {
         projectId: task.projectId,
       });
     }
+
+    (async () => {
+      try {
+        const targets = await filterNotificationTargets(
+          task.assignments.map((assignment) => assignment.userId),
+          "TASK_PROGRESS",
+          req.user.userId
+        );
+        if (targets.length) {
+          await createBulkNotifications(targets, {
+            type: "TASK_PROGRESS",
+            title: "Task Progress Updated",
+            message: `${task.title} is now ${task.progress}% complete.`,
+            href: `/tasks?taskId=${task.id}`,
+            priority: task.priority === "URGENT" || task.priority === "HIGH" ? "HIGH" : "MEDIUM",
+            taskId: task.id,
+            projectId: task.projectId ?? null,
+            actorId: req.user.userId,
+            groupKey: `task:${task.id}:task_progress`,
+          });
+        }
+      } catch (e) {
+        console.error("Error creating checklist progress notifications:", e);
+      }
+    })();
     return res.json(task);
   } catch (err) {
     return sendSafeError(res, err, "Unable to delete task");
@@ -843,6 +1026,42 @@ export async function createTaskIssue(req, res) {
       assignedUserIds: task.assignments.map((assignment) => assignment.userId),
       notifyRoles: LEADERSHIP_ROLES,
     });
+
+    (async () => {
+      try {
+        const leadershipIds = await getNotificationRecipientsByRoles(LEADERSHIP_ROLES, [req.user.userId]);
+        const targets = await filterNotificationTargets(leadershipIds, "ISSUE_REPORTED", req.user.userId);
+        const notificationPayload = {
+          type: "ISSUE_REPORTED",
+          title: "Task Issue Reported",
+          message: `${issue.reporter.name} reported "${issue.title}" on ${task.title}.`,
+          href: `/tasks?taskId=${task.id}&issueId=${issue.id}`,
+          priority: "HIGH",
+          taskId: task.id,
+          projectId: task.projectId ?? null,
+          issueId: issue.id,
+          actorId: req.user.userId,
+          groupKey: `issue:${issue.id}:reported`,
+        };
+
+        if (targets.length) {
+          await createBulkNotifications(targets, notificationPayload);
+        } else {
+          const transientNotification = {
+            id: `transient:issue:${issue.id}:${Date.now()}`,
+            read: false,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+            ...notificationPayload,
+          };
+          emitNotificationToRole("ADMIN", transientNotification);
+          emitNotificationToRole("MANAGER", transientNotification);
+          emitNotificationToRole("SUPERADMIN", transientNotification);
+        }
+      } catch (e) {
+        console.error("Error creating issue reported notifications:", e);
+      }
+    })();
 
     return res.status(201).json(issue);
   } catch (err) {
@@ -958,6 +1177,28 @@ export async function respondToTaskIssue(req, res) {
       reporterId: updatedIssue.reporter.id,
       assignedUserIds: issue.task.assignments.map((assignment) => assignment.userId),
     });
+
+    (async () => {
+      try {
+        const targets = await filterNotificationTargets([updatedIssue.reporter.id], "ISSUE_RESPONDED", req.user.userId);
+        if (targets.length) {
+          await createBulkNotifications(targets, {
+            type: status === "RESOLVED" ? "ISSUE_RESOLVED" : "ISSUE_RESPONDED",
+            title: status === "RESOLVED" ? "Issue Resolved" : "Issue Response Added",
+            message: `${updatedIssue.title} on ${issue.task.title} has a manager response.`,
+            href: `/tasks?taskId=${issue.taskId}&issueId=${updatedIssue.id}`,
+            priority: "HIGH",
+            taskId: issue.taskId,
+            projectId: issue.task.projectId ?? null,
+            issueId: updatedIssue.id,
+            actorId: req.user.userId,
+            groupKey: `issue:${updatedIssue.id}:response`,
+          });
+        }
+      } catch (e) {
+        console.error("Error creating issue response notifications:", e);
+      }
+    })();
 
     return res.json(updatedIssue);
   } catch (err) {
