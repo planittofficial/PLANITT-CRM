@@ -37,6 +37,9 @@ model User {
   assignments               TaskAssignment[]
   reportedIssues            TaskIssue[]                @relation("ReportedIssues")
   resolvedIssues            TaskIssue[]                @relation("ResolvedIssues")
+  notifications             Notification[]             @relation("UserNotifications")
+  actedNotifications        Notification[]             @relation("NotificationActors")
+  notificationPreference    NotificationPreference?    @relation("UserNotificationPrefs")
   createdBy                 User?                      @relation("UserCreator", fields: [createdById], references: [id])
   createdUsers              User[]                     @relation("UserCreator")
   department                Department?                @relation("DepartmentMembers", fields: [departmentId], references: [id])
