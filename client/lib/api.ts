@@ -110,6 +110,19 @@ export async function apiPut<T>(path: string, body?: unknown): Promise<T> {
   return parseResponse<T>(response);
 }
 
+export async function apiPatch<T>(path: string, body?: unknown): Promise<T> {
+  const response = await request(buildApiUrl(path), {
+    method: "PATCH",
+    credentials: "include",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: body ? JSON.stringify(body) : undefined,
+  });
+
+  return parseResponse<T>(response);
+}
+
 export async function apiDelete<T>(path: string): Promise<T> {
   const response = await request(buildApiUrl(path), {
     method: "DELETE",

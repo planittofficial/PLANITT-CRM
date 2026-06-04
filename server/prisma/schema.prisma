@@ -280,3 +280,77 @@ enum ChatMessageType {
   PDF
   STICKER
 }
+
+enum NotificationType {
+  TASK_ASSIGNED
+  TASK_UPDATED
+  TASK_PROGRESS
+  TASK_OVERDUE
+  TASK_MENTION
+  ISSUE_REPORTED
+  ISSUE_RESPONDED
+  ISSUE_RESOLVED
+  PROJECT_CREATED
+  PROJECT_UPDATED
+  PROJECT_MILESTONE
+  ATTENDANCE_ALERT
+  CHAT_MENTION
+  LEAVE_REQUEST
+  LEAVE_APPROVED
+  LEAVE_REJECTED
+}
+
+enum NotificationPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+model Notification {
+  id            String                  @id @default(cuid())
+  userId        String
+  type          NotificationType
+  title         String
+  message       String
+  href          String
+  priority      NotificationPriority    @default(MEDIUM)
+  read          Boolean                 @default(false)
+  createdAt     DateTime                @default(now())
+  updatedAt     DateTime                @updatedAt
+  taskId        String?
+  projectId     String?
+  issueId       String?
+  actorId       String?
+  groupKey      String?
+  user          User                    @relation("UserNotifications", fields: [userId], references: [id], onDelete: Cascade)
+  actor         User?                   @relation("NotificationActors", fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([userId, createdAt])
+  @@index([userId, read])
+  @@index([userId, createdAt, read])
+  @@index([taskId])
+  @@index([projectId])
+}
+
+model NotificationPreference {
+  id                String   @id @default(cuid())
+  userId            String   @unique
+  role              UserRole?
+  tasksAssigned     Boolean  @default(true)
+  tasksUpdated      Boolean  @default(true)
+  taskProgress      Boolean  @default(true)
+  taskOverdue       Boolean  @default(true)
+  taskMentions      Boolean  @default(true)
+  issueReported     Boolean  @default(true)
+  issueResponse     Boolean  @default(true)
+  projectUpdates    Boolean  @default(true)
+  attendanceAlerts  Boolean  @default(true)
+  chatMentions      Boolean  @default(true)
+  leaveRequests     Boolean  @default(true)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  user              User     @relation("UserNotificationPrefs", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([role])
+}
