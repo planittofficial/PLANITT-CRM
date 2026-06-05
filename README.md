@@ -37,7 +37,10 @@ Planitt CRM is designed for a company that needs one place to manage daily work:
 | Employees | Table directory: create users, assign roles and managers, update emails, bulk CSV (admins), delete members; managers scoped to their team. |
 | Departments | Create departments, assign heads, and structure the organization. |
 | Attendance | Check in/out, track active attendance, and calculate work hours for analytics. |
+| Leave Management | Create leave requests with type, start/end dates, reason, attachments, approval workflow (manager/admin), threaded comments, and real-time notifications. |
 | Chat | Department and project rooms with stored messages and real-time refresh support. |
+| Notifications | Real-time per-user notifications for tasks, issues, leaves, and system events; in-app inbox with unread counts, read/clear actions, and preference controls. |
+| Activity Logs | Audit center for leadership/admins: filtered activity logs, pagination, and role-scoped visibility. |
 | Settings | Profile/settings workspace, theme preferences, and role-aware controls. |
 | Integrations | Google OAuth, Google Meet sessions, Google Sheets project exports, and Google Drive project folders. |
 
@@ -121,6 +124,17 @@ Planitt CRM is designed for a company that needs one place to manage daily work:
 - [x] Message history
 - [x] Message creation
 - [x] Real-time chat refresh events
+
+### Notifications
+
+- [x] Real-time per-user notifications for tasks, issues, leave events, and system signals
+- [x] Backend notification APIs: fetch, unread count, mark read, mark all read, clear, and preferences
+- [x] In-app notification center (unread count, quick preview, navigate-to-link)
+- [x] Socket.IO push + local caching for fast, offline-friendly UX
+
+### Admin & Audit
+
+- [x] Activity logs / Audit center for leadership (filtered views, pagination, status breakdown)
 
 ### Google Workspace
 
@@ -562,12 +576,13 @@ npm.cmd run build
 - [ ] Contact and company records
 - [ ] Calendar page for CRM events
 - [ ] Reports export center
-- [ ] Notification inbox
+ - [x] Notification inbox
 - [ ] File attachments for tasks and projects
 - [ ] Role/permission editor UI
-- [ ] Audit log for leadership actions
+ - [x] Audit log for leadership actions
 - [ ] Search results page for the top search bar
 - [ ] Production deployment guide
+
 
 ## Maintainer Notes
 
