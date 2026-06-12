@@ -14,11 +14,14 @@ const priorityWeight: Record<TaskPriority, number> = {
   LOW: 1,
 };
 
-export const priorityBadgeClass: Record<TaskPriority, string> = {
-  URGENT: "bg-rose-100 text-rose-900 ring-1 ring-rose-300/80 dark:bg-rose-500/20 dark:text-rose-100 dark:ring-rose-500/40",
-  HIGH: "bg-orange-100 text-orange-900 ring-1 ring-orange-200 dark:bg-orange-500/15 dark:text-orange-100 dark:ring-orange-500/30",
-  MEDIUM: "bg-slate-100 text-slate-800 ring-1 ring-slate-200 dark:bg-slate-500/15 dark:text-slate-100 dark:ring-slate-500/25",
-  LOW: "bg-slate-50 text-slate-600 ring-1 ring-slate-200 dark:bg-slate-600/10 dark:text-slate-300 dark:ring-slate-600/20",
+export const priorityBadgeClass = {
+  LOW: "bg-emerald-500/15 text-emerald-400 border border-emerald-500/30",
+
+  MEDIUM: "bg-sky-500/15 text-sky-400 border border-sky-500/30",
+
+  HIGH: "bg-orange-500/15 text-orange-400 border border-orange-500/30",
+
+  URGENT: "bg-rose-500/15 text-rose-400 border border-rose-500/30",
 };
 
 export function compareTaskPriority(a: Task, b: Task): number {

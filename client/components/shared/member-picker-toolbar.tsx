@@ -1,6 +1,7 @@
 "use client";
 
 import type { CRMUser, UserRole } from "@/types/crm";
+import { ResponsiveSelect } from "./responsive-select";
 
 export type MemberRoleFilter = UserRole | "ALL";
 
@@ -26,7 +27,7 @@ export function MemberPickerToolbar({
   className = "",
 }: Props) {
   return (
-    <div className={`flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center ${className}`}>
+    <div className={`flex min-w-0 flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center ${className}`}>
       <label className="relative min-w-0 flex-1 sm:min-w-[200px]">
         <span className="sr-only">Search people</span>
         <input
@@ -37,20 +38,27 @@ export function MemberPickerToolbar({
           className="crm-input h-10 w-full rounded-md px-3 text-sm"
         />
       </label>
-      <label className="flex items-center gap-2 text-sm text-[var(--text-soft)]">
+      <label className="flex min-w-0 flex-col gap-1 text-sm text-[var(--text-soft)] sm:min-w-[170px] sm:flex-row sm:items-center sm:gap-2">
         <span className="whitespace-nowrap">Filter by role</span>
-        <select
-          value={roleFilter}
-          onChange={(event) => onRoleFilterChange(event.target.value as MemberRoleFilter)}
-          className="crm-input h-10 min-w-[148px] rounded-md px-2 text-sm"
-        >
-          <option value="ALL">All roles</option>
-          {roleOptions.map((role) => (
-            <option key={role} value={role}>
-              {formatRoleLabel(role)}
-            </option>
-          ))}
-        </select>
+        <ResponsiveSelect
+  value={roleFilter}
+  onChange={(value) =>
+    onRoleFilterChange(
+      value as MemberRoleFilter
+    )
+  }
+  options={[
+    {
+      value: "ALL",
+      label: "All roles",
+    },
+    ...roleOptions.map((role) => ({
+      value: role,
+      label: formatRoleLabel(role),
+    })),
+  ]}
+  ariaLabel="Filter by role"
+/>
       </label>
     </div>
   );

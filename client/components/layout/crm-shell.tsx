@@ -112,7 +112,7 @@ function CRMShellHeaderSearch() {
   
 
   return (
-    <label className="relative block">
+    <label className="relative block w-full min-w-0">
       <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-xs text-[var(--text-faint)]">
         Search
       </span>
@@ -150,7 +150,7 @@ function CRMShellHeaderSearch() {
   setSearchNoResult(true);
 }
 }}
-  className="crm-input h-10 w-full rounded-md pl-16 pr-3 text-sm sm:w-72"
+  className="crm-input h-10 w-full min-w-0 rounded-md pl-16 pr-3 text-sm sm:w-72"
   placeholder="Search anything..."
 />
 {searchNoResult && (
@@ -458,7 +458,7 @@ export function CRMShell({ children, user }: CRMShellProps) {
 
         <main className="min-h-0 min-w-0 flex-1 overflow-x-hidden lg:flex lg:h-full lg:flex-col lg:overflow-hidden lg:p-3">
           <header
-            className="mb-3 flex shrink-0 flex-col gap-3 rounded-lg border px-4 py-3 md:flex-row md:items-center md:justify-between"
+            className="mb-3 flex shrink-0 flex-col gap-3 rounded-lg border px-3 py-3 sm:px-4 md:flex-row md:items-center md:justify-between"
             style={{
               background: "var(--surface)",
               borderColor: "var(--border)",
@@ -471,15 +471,15 @@ export function CRMShell({ children, user }: CRMShellProps) {
               </p>
               <h1 className="mt-1 text-xl font-bold text-[var(--text-main)]">{pageTitle}</h1>
             </div>
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+            <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center md:justify-end">
               <CRMShellHeaderSearch />
-              <div className="flex items-center gap-2">
+              <div className="flex min-w-0 flex-wrap items-center gap-2 sm:justify-end">
                 {canUseAttendanceQuickAction ? (
                   <button
                     type="button"
                     onClick={() => void handleAttendanceQuickAction()}
                     disabled={attendanceLoading}
-                    className="flex h-10 items-center justify-center rounded-md border px-3 text-xs font-bold transition disabled:cursor-wait disabled:opacity-70"
+                    className="flex h-10 min-w-0 items-center justify-center rounded-md border px-3 text-xs font-bold transition disabled:cursor-wait disabled:opacity-70"
                     style={{
                       borderColor: "var(--border)",
                       background: checkedIn ? "var(--danger)" : "var(--accent)",
@@ -493,10 +493,10 @@ export function CRMShell({ children, user }: CRMShellProps) {
                         : "Check in"}
                   </button>
                 ) : null}
-                <div className="relative">
+                <div className="relative min-w-0">
                   <button
                     type="button"
-                    className="relative flex h-10 items-center justify-center gap-2 rounded-md border px-3 text-xs font-bold"
+                    className="relative flex h-10 min-w-0 items-center justify-center gap-2 rounded-md border px-3 text-xs font-bold"
                     style={{ borderColor: "var(--border)", background: "var(--surface)", color: "var(--text-soft)" }}
                     aria-label="Notifications"
                     onClick={() => {
@@ -529,7 +529,7 @@ export function CRMShell({ children, user }: CRMShellProps) {
                   </button>
                   {notificationsOpen ? (
                     <div
-                      className="absolute right-0 z-50 mt-2 w-[min(360px,calc(100vw-2rem))] rounded-lg border p-3"
+                      className="absolute right-0 z-50 mt-2 max-h-[min(70vh,32rem)] w-[min(360px,calc(100vw-1.25rem))] max-w-[calc(100vw-1.25rem)] overflow-hidden rounded-lg border p-3 sm:w-[min(360px,calc(100vw-2rem))] sm:max-w-[calc(100vw-2rem)]"
                       style={{
                         background: "var(--surface)",
                         borderColor: "var(--border)",
@@ -557,7 +557,7 @@ export function CRMShell({ children, user }: CRMShellProps) {
                           </button>
                         </div>
                       </div>
-                      <div className="max-h-80 space-y-2 overflow-y-auto pr-1">
+                      <div className="max-h-[min(56vh,20rem)] space-y-2 overflow-y-auto pr-1">
                         {items.length === 0 ? (
                           <p className="rounded-md border px-3 py-4 text-xs" style={{ borderColor: "var(--border)", color: "var(--text-soft)" }}>
                             No notifications yet.

@@ -4,6 +4,7 @@ import { useEffect, useState, type FormEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { CRMShell } from "@/components/layout/crm-shell";
+import { ResponsiveSelect } from "@/components/shared/responsive-select";
 import { renderSessionGate } from "@/components/shared/session-gate";
 import { useSession } from "@/hooks/use-session";
 import { apiGet, apiPost, apiPostForm } from "@/lib/api";
@@ -30,6 +31,7 @@ export default function NewLeavePage() {
   const [submitting, setSubmitting] = useState(false);
   const [notice, setNotice] = useState("");
   const [error, setError] = useState("");
+  const leaveTypeOptions = leaveTypes.map((type) => ({ value: type.id, label: type.name }));
 
   useEffect(() => {
     if (!user) {
@@ -136,22 +138,17 @@ export default function NewLeavePage() {
             <div className="grid gap-5 lg:grid-cols-2">
               <label className="block">
                 <span className="text-sm font-semibold text-[var(--text-main)]">Leave type</span>
-                <select
-                  value={form.leaveTypeId}
-                  onChange={(event) => setForm((current) => ({ ...current, leaveTypeId: event.target.value }))}
-                  className="crm-input mt-2 w-full rounded-2xl border bg-[var(--surface-soft)] px-4 py-3 text-sm"
-                  required
-                  disabled={loading || leaveTypes.length === 0}
-                >
-                  <option value="" disabled>
-                    {loading ? "Loading leave types..." : error ? "Leave types unavailable" : "Choose leave type"}
-                  </option>
-                  {leaveTypes.map((type) => (
-                    <option key={type.id} value={type.id}>
-                      {type.name}
-                    </option>
-                  ))}
-                </select>
+                <div className="mt-2">
+                  <ResponsiveSelect
+                    value={form.leaveTypeId}
+                    onChange={(value) => setForm((current) => ({ ...current, leaveTypeId: value }))}
+                    options={leaveTypeOptions}
+                    placeholder={loading ? "Loading leave types..." : error ? "Leave types unavailable" : "Choose leave type"}
+                    disabled={loading || leaveTypes.length === 0}
+                    ariaLabel="Select leave type"
+                    buttonClassName="min-h-12 px-4 py-3"
+                  />
+                </div>
               </label>
 
               <label className="block">
@@ -172,7 +169,7 @@ export default function NewLeavePage() {
                   type="date"
                   value={form.startDate}
                   onChange={(event) => setForm((current) => ({ ...current, startDate: event.target.value }))}
-                  className="crm-input mt-2 w-full rounded-2xl border bg-[var(--surface-soft)] px-4 py-3 text-sm"
+                  className="crm-input mt-2 w-full min-w-0 rounded-2xl border bg-[var(--surface-soft)] px-4 py-3 text-sm"
                   required
                 />
               </label>
@@ -182,7 +179,7 @@ export default function NewLeavePage() {
                   type="date"
                   value={form.endDate}
                   onChange={(event) => setForm((current) => ({ ...current, endDate: event.target.value }))}
-                  className="crm-input mt-2 w-full rounded-2xl border bg-[var(--surface-soft)] px-4 py-3 text-sm"
+                  className="crm-input mt-2 w-full min-w-0 rounded-2xl border bg-[var(--surface-soft)] px-4 py-3 text-sm"
                   required
                 />
               </label>
