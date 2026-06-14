@@ -134,11 +134,28 @@ export default function ChatPage() {
 
   return (
     <CRMShell user={user}>
-      <div className="grid min-h-[600px] min-w-0 gap-4 overflow-x-hidden xl:h-full xl:min-h-0 xl:grid-cols-[360px_minmax(0,1fr)] xl:overflow-hidden">
-        {/* ── Left: rooms list ── */}
+<div
+  className="
+  grid
+  h-[calc(100vh-120px)]
+  min-w-0
+  gap-4
+  overflow-hidden
+  grid-cols-1
+  lg:grid-cols-[320px_minmax(0,1fr)]
+  xl:grid-cols-[360px_minmax(0,1fr)]
+"
+>      {/* ── Left: rooms list ── */}
         <section
-          className="rounded-[22px] border p-4 xl:flex xl:min-h-0 xl:flex-col xl:overflow-hidden"
-          style={{ background: "var(--surface)", borderColor: "var(--border)", boxShadow: "var(--shadow-soft)" }}
+className="
+  rounded-[22px]
+  border
+  p-4
+  flex
+  flex-col
+  min-h-0
+  overflow-hidden
+"          style={{ background: "var(--surface)", borderColor: "var(--border)", boxShadow: "var(--shadow-soft)" }}
         >
           <div className="shrink-0">
             <div className="flex items-start justify-between gap-3">
@@ -193,8 +210,13 @@ export default function ChatPage() {
             {error && <p className="mt-4 rounded-2xl bg-red-500/10 px-4 py-3 text-sm text-red-600">{error}</p>}
           </div>
 
-          <div className="mt-5 xl:min-h-0 xl:flex-1 xl:overflow-y-auto xl:pr-1">
-            <ChatRoomList
+<div className="
+  mt-5
+  flex-1
+  min-h-0
+  overflow-y-auto
+  pr-1
+">            <ChatRoomList
               rooms={rooms}
               selectedKey={selectedKey}
               loading={loading}
@@ -205,8 +227,15 @@ export default function ChatPage() {
 
         {/* ── Right: chat panel ── */}
         <section
-          className="flex min-h-[500px] flex-col overflow-hidden rounded-[22px] border xl:min-h-0"
-          style={{ background: "var(--surface)", borderColor: "var(--border)", boxShadow: "var(--shadow-soft)" }}
+className="
+flex
+min-h-0
+h-full
+flex-col
+overflow-hidden
+rounded-[22px]
+border
+"          style={{ background: "var(--surface)", borderColor: "var(--border)", boxShadow: "var(--shadow-soft)" }}
         >
           {selectedRoom ? (
             <>
@@ -214,8 +243,9 @@ export default function ChatPage() {
                 <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[var(--text-faint)]">
                   {selectedRoom.type === "DEPARTMENT" ? "Department room" : selectedRoom.type === "PROJECT" ? "Project room" : "Group room"}
                 </p>
-                <h2 className="mt-1 text-2xl font-semibold text-[var(--text-main)]">{selectedRoom.name}</h2>
-                <p className="mt-1 text-sm text-[var(--text-soft)]">{selectedRoom.subtitle}</p>
+<h2 className="mt-1 min-w-0 truncate text-2xl font-semibold text-[var(--text-main)]">
+  {selectedRoom.name}
+</h2>                <p className="mt-1 text-sm text-[var(--text-soft)]">{selectedRoom.subtitle}</p>
                 <input
                   value={messages_.search}
                   onChange={(e) => messages_.setSearch(e.target.value)}
@@ -240,8 +270,15 @@ export default function ChatPage() {
                 </div>
               </div>
 
-              <div className="flex-1 space-y-3 overflow-y-auto p-5">
-                {!messages_.messagesLoading && messages_.hasMoreMessages && (
+<div className="
+  flex-1
+  min-h-0
+  space-y-3
+  overflow-y-auto
+  p-3
+  sm:p-4
+  lg:p-5
+">                {!messages_.messagesLoading && messages_.hasMoreMessages && (
                   <div className="mb-2 flex justify-center">
                     <button type="button" onClick={() => void messages_.loadOlderMessages()} disabled={messages_.loadingOlderMessages} className="rounded-lg border px-3 py-1.5 text-xs font-semibold disabled:opacity-60" style={{ borderColor: "var(--border)", color: "var(--text-main)", background: "var(--surface-soft)" }}>
                       {messages_.loadingOlderMessages ? "Loading..." : "Load older messages"}
@@ -269,8 +306,21 @@ export default function ChatPage() {
                 <div ref={messages_.messageEndRef} />
               </div>
 
-              <div className="shrink-0 border-t p-4" style={{ borderColor: "var(--border)" }}>
-                {messages_.replyTo && (
+<div
+  className="
+    shrink-0
+    sticky
+    bottom-0
+    z-10
+    border-t
+    p-3
+    sm:p-4
+  "
+  style={{
+    borderColor: "var(--border)",
+    background: "var(--surface)",
+  }}
+>                {messages_.replyTo && (
                   <div className="mb-3 flex items-center justify-between rounded-xl border px-3 py-2 text-sm" style={{ borderColor: "var(--border)" }}>
                     <div>
                       <p className="font-semibold text-[var(--text-main)]">Replying to {messages_.replyTo.author.name}</p>
@@ -293,8 +343,7 @@ export default function ChatPage() {
                     onChange={(e) => setDraft(e.target.value)}
                     onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); void messages_.sendMessage(draft, () => setDraft("")); } }}
                     placeholder="Write a message..."
-                    className="min-h-12 flex-1 resize-none rounded-full border px-5 py-3 text-sm outline-none"
-                    style={{ borderColor: "var(--border)", background: "var(--surface-soft)", color: "var(--text-main)" }}
+className="min-h-[44px] max-h-[120px] flex-1 resize-none rounded-2xl border px-4 py-3 text-sm outline-none"                    style={{ borderColor: "var(--border)", background: "var(--surface-soft)", color: "var(--text-main)" }}
                   />
                   <button type="button" onClick={() => void messages_.sendMessage(draft, () => setDraft(""))} disabled={messages_.sending || (!draft.trim() && !messages_.selectedFile)} className="h-11 rounded-full px-5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60" style={{ background: "var(--accent)" }}>
                     {messages_.sending ? "Sending..." : "Send"}

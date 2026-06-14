@@ -1,6 +1,7 @@
 "use client";
 
 import { type RefObject, type ReactNode } from "react";
+import { ResponsiveSelect } from "@/components/shared/responsive-select";
 import { showToast } from "@/hooks/use-toast";
 import type { BulkUserUploadResult, CRMUser, Department, UserRole } from "@/types/crm";
 
@@ -14,7 +15,6 @@ const FIELD_STYLE = { borderColor: "var(--border)", background: "var(--surface-s
 
 function Field({ children }: { children: ReactNode }) { return <div className="flex flex-col gap-3">{children}</div>; }
 function Input({ ...props }: React.InputHTMLAttributes<HTMLInputElement>) { return <input className="h-11 w-full min-w-0 rounded-xl border px-3 text-sm outline-none sm:h-12 sm:rounded-2xl sm:px-4" style={FIELD_STYLE} {...props} />; }
-function Select({ children, ...props }: React.SelectHTMLAttributes<HTMLSelectElement> & { children: ReactNode }) { return <select className="h-11 w-full min-w-0 rounded-xl border px-3 text-sm outline-none sm:h-12 sm:rounded-2xl sm:px-4" style={FIELD_STYLE} {...props}>{children}</select>; }
 
 export type CreateMemberForm = { name: string; email: string; password: string; role: UserRole; designation: string; departmentId: string; managerId: string };
 
@@ -28,6 +28,10 @@ type Props = {
 };
 
 export function CreateMemberPanel({ form, onFormChange, creating, onSubmit, createRoleOptions, canBulkUpload, bulkFile, bulkUploading, bulkResult, onBulkFileChange, onBulkUpload, onDownloadTemplate, bulkInputRef, onSetError, departments, managers }: Props) {
+  const roleOptions = createRoleOptions.map((role) => ({ value: role, label: role }));
+  const departmentOptions = [{ value: "", label: "Select department" }, ...departments.map((department) => ({ value: department.id, label: department.name }))];
+  const managerOptions = [{ value: "", label: "Select manager" }, ...managers.map((manager) => ({ value: manager.id, label: `${manager.name} - ${manager.role}` }))];
+
   return (
     <section className="rounded-2xl border p-5 sm:p-6" style={{ background: "var(--surface)", borderColor: "var(--border)", boxShadow: "var(--shadow-soft)" }}>
       <div className="flex flex-wrap items-start justify-between gap-2">
@@ -42,20 +46,12 @@ export function CreateMemberPanel({ form, onFormChange, creating, onSubmit, crea
           <Input placeholder="Full name" value={form.name} onChange={(e) => onFormChange("name", e.target.value)} />
           <Input placeholder="Work email" value={form.email} onChange={(e) => onFormChange("email", e.target.value)} />
           <Input placeholder="Temporary password" value={form.password} onChange={(e) => onFormChange("password", e.target.value)} />
-          <Select value={form.role} onChange={(e) => onFormChange("role", e.target.value)}>
-            {createRoleOptions.map((r) => <option key={r} value={r}>{r}</option>)}
-          </Select>
+          <ResponsiveSelect value={form.role} onChange={(value) => onFormChange("role", value)} options={roleOptions} ariaLabel="Select team member role" buttonClassName="h-11 sm:h-12 sm:rounded-2xl sm:px-4" />
           <Input placeholder="Designation" value={form.designation} onChange={(e) => onFormChange("designation", e.target.value)} />
-          <Select value={form.departmentId} onChange={(e) => onFormChange("departmentId", e.target.value)}>
-            <option value="">Select department</option>
-            {departments.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
-          </Select>
-          <Select value={form.managerId} onChange={(e) => onFormChange("managerId", e.target.value)}>
-            <option value="">Select manager</option>
-            {managers.map((m) => <option key={m.id} value={m.id}>{m.name} — {m.role}</option>)}
-          </Select>
+          <ResponsiveSelect value={form.departmentId} onChange={(value) => onFormChange("departmentId", value)} options={departmentOptions} ariaLabel="Select department" buttonClassName="h-11 sm:h-12 sm:rounded-2xl sm:px-4" />
+          <ResponsiveSelect value={form.managerId} onChange={(value) => onFormChange("managerId", value)} options={managerOptions} ariaLabel="Select manager" buttonClassName="h-11 sm:h-12 sm:rounded-2xl sm:px-4" />
           <button type="button" disabled={creating} onClick={onSubmit} className="h-11 w-full rounded-xl text-sm font-semibold text-white transition hover:opacity-95 disabled:cursor-wait disabled:opacity-70 sm:h-12 sm:rounded-2xl" style={{ background: "var(--accent-strong)" }}>
-            {creating ? "Creating…" : "Create team member"}
+            {creating ? "Creating..." : "Create team member"}
           </button>
           {canBulkUpload ? (
             <div className="mt-2 rounded-2xl border p-4 sm:rounded-3xl sm:p-5" style={{ borderColor: "var(--border)", background: "var(--surface-soft)" }}>
@@ -74,15 +70,15 @@ export function CreateMemberPanel({ form, onFormChange, creating, onSubmit, crea
                 onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); }}
                 onDrop={(e) => { e.preventDefault(); e.stopPropagation(); const f = e.dataTransfer.files?.[0]; if (f && (f.type === "text/csv" || f.name.toLowerCase().endsWith(".csv"))) { onBulkFileChange(f); } else if (e.dataTransfer.files?.[0]) { onSetError("Please drop a .csv file."); showToast("Please drop a .csv file.","error"); } }}>
                 <span className="text-sm font-semibold text-[var(--text-main)]">Drop a file or browse</span>
-                <span className="text-xs text-[var(--text-soft)]">{bulkFile ? bulkFile.name : "No file selected — .csv up to 2MB"}</span>
+                <span className="text-xs text-[var(--text-soft)]">{bulkFile ? bulkFile.name : "No file selected - .csv up to 2MB"}</span>
                 <input ref={bulkInputRef} type="file" accept=".csv,text/csv" className="sr-only" onChange={(e) => onBulkFileChange(e.target.files?.[0] ?? null)} />
               </label>
               <button type="button" disabled={bulkUploading || !bulkFile} onClick={onBulkUpload} className="mt-3 h-11 w-full rounded-xl text-sm font-semibold text-white transition disabled:cursor-not-allowed disabled:opacity-50 sm:rounded-2xl" style={{ background: "var(--accent-strong)" }}>
-                {bulkUploading ? "Uploading…" : "Upload CSV"}
+                {bulkUploading ? "Uploading..." : "Upload CSV"}
               </button>
               {bulkResult ? (
                 <div className="mt-4 rounded-xl border p-3 text-sm" style={{ borderColor: "var(--border)", background: "var(--surface)" }}>
-                  <p className="font-semibold text-[var(--text-main)]">{bulkResult.createdCount} created · {bulkResult.failedCount} failed</p>
+                  <p className="font-semibold text-[var(--text-main)]">{bulkResult.createdCount} created - {bulkResult.failedCount} failed</p>
                   {bulkResult.errors.length ? <ul className="mt-2 max-h-36 list-inside list-disc space-y-1 overflow-y-auto text-xs text-rose-600">{bulkResult.errors.slice(0, 8).map((item) => <li key={`${item.row}-${item.email ?? "row"}`}>Row {item.row}{item.email ? ` (${item.email})` : ""}: {item.message}</li>)}</ul> : null}
                 </div>
               ) : null}

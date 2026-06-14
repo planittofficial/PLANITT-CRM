@@ -13,8 +13,8 @@ const CHAT_USER_SELECT = {
   name: true,
   email: true,
   role: true,
-  avatarUrl: true,
-  authProvider: true,
+  // avatarUrl: true,
+  // authProvider: true,
 };
 
 function isLeadership(user) {
@@ -433,8 +433,8 @@ export async function getChatRooms(req, res) {
                 id: peer.id,
                 name: peer.name,
                 role: peer.role,
-                avatarUrl: peer.avatarUrl ?? null,
-                authProvider: peer.authProvider ?? "password",
+                // avatarUrl: peer.avatarUrl ?? null,
+                // authProvider: peer.authProvider ?? "password",
               }
             : null,
           ...roomMeta("GROUP", group.id),

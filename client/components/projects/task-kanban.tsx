@@ -3,6 +3,7 @@
 import { MemberPickerToolbar, type MemberRoleFilter } from "@/components/shared/member-picker-toolbar";
 import { TASK_PRIORITY_OPTIONS } from "@/lib/task-groups";
 import { groupTasksByAssignees } from "@/lib/task-groups";
+import { ResponsiveSelect } from "../shared/responsive-select";
 import type { CRMUser, Task, TaskPriority, UserRole } from "@/types/crm";
 
 type TaskFormState = { title: string; description: string; userIds: string[]; checklistText: string; priority: TaskPriority; deadlineAt: string };
@@ -61,10 +62,21 @@ export function TaskKanban({ groupedTasks, editingTaskId, editTaskForm, filtered
                               <button type="button" onClick={() => onDelete(task.id)} className="rounded-full border px-3 py-1 text-xs font-semibold text-rose-600" style={{ borderColor: "var(--border)" }}>Delete</button>
                             </div>
                             <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                              <select value={task.priority ?? "MEDIUM"} onChange={(e) => onPriorityChange(task.id, e.target.value as TaskPriority)} className="h-9 rounded-xl border px-3 text-xs font-semibold" style={{ borderColor: "var(--border)", background: "var(--surface)", color: "var(--text-main)" }} title="Priority">
-                                {TASK_PRIORITY_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-                              </select>
-                              <select value={task.status} onChange={(e) => onStatusChange(task.id, e.target.value as Task["status"])} className="h-9 rounded-xl border px-3 text-xs font-semibold" style={{ borderColor: "var(--border)", background: "var(--surface)", color: "var(--text-main)" }} title="Status">
+                              <ResponsiveSelect
+                              priorityColors
+  value={task.priority ?? "MEDIUM"}
+  onChange={(value) =>
+    onPriorityChange(
+      task.id,
+      value as TaskPriority
+    )
+  }
+  options={TASK_PRIORITY_OPTIONS.map((o) => ({
+    value: o.value,
+    label: o.label,
+  }))}
+/>
+                              <select value={task.status} onChange={(e) => onStatusChange(task.id, e.target.value as Task["status"])} className="h-9 w-full min-w-0 rounded-xl border px-3 text-xs font-semibold sm:w-auto" style={{ borderColor: "var(--border)", background: "var(--surface)", color: "var(--text-main)" }} title="Status">
                                 {COLUMNS.map((c) => <option key={c.key} value={c.key}>{c.label}</option>)}
                               </select>
                             </div>
@@ -76,13 +88,13 @@ export function TaskKanban({ groupedTasks, editingTaskId, editTaskForm, filtered
                             <textarea className="min-h-24 rounded-2xl border px-3 py-3 text-sm outline-none" style={FIELD_STYLE} value={editTaskForm.description} onChange={(e) => onEditTaskFormChange("description", e.target.value)} />
                             <label className="grid gap-1.5">
                               <span className="text-xs font-semibold text-[var(--text-soft)]">Priority</span>
-                              <select className="h-11 rounded-2xl border px-3 text-sm outline-none" style={FIELD_STYLE} value={editTaskForm.priority} onChange={(e) => onEditTaskFormChange("priority", e.target.value)}>
+                              <select className="h-11 w-full min-w-0 rounded-2xl border px-3 text-sm outline-none" style={FIELD_STYLE} value={editTaskForm.priority} onChange={(e) => onEditTaskFormChange("priority", e.target.value)}>
                                 {TASK_PRIORITY_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
                               </select>
                             </label>
                             <label className="grid gap-1.5">
                               <span className="text-xs font-semibold text-[var(--text-soft)]">Deadline</span>
-                              <input type="datetime-local" className="h-11 rounded-2xl border px-3 text-sm outline-none" style={FIELD_STYLE} value={editTaskForm.deadlineAt} onChange={(e) => onEditTaskFormChange("deadlineAt", e.target.value)} />
+                              <input type="date" className="h-11 w-full min-w-0 rounded-2xl border px-3 text-sm outline-none" style={FIELD_STYLE} value={editTaskForm.deadlineAt} onChange={(e) => onEditTaskFormChange("deadlineAt", e.target.value)} />
                             </label>
                             <textarea className="min-h-24 rounded-2xl border px-3 py-3 text-sm outline-none" style={FIELD_STYLE} value={editTaskForm.checklistText} onChange={(e) => onEditTaskFormChange("checklistText", e.target.value)} />
                             <div className="grid gap-2">

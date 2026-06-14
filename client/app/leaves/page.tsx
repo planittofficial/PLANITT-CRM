@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState, type ChangeEvent } from "react";
 import Link from "next/link";
 import { CRMShell } from "@/components/layout/crm-shell";
+import { ResponsiveSelect } from "@/components/shared/responsive-select";
 import { renderSessionGate } from "@/components/shared/session-gate";
 import { EmployeesSkeleton } from "@/components/shared/skeleton";
 import { useSession } from "@/hooks/use-session";
@@ -45,6 +46,10 @@ export default function LeavesPage() {
   const [error, setError] = useState("");
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
+  const statusSelectOptions = useMemo(
+    () => statusOptions.map((option) => ({ value: option.value, label: option.label })),
+    []
+  );
 
   useEffect(() => {
     async function loadLeaves() {
@@ -121,7 +126,7 @@ export default function LeavesPage() {
                 Create leave requests, review approvals, and track conversations for all requests.
               </p>
             </div>
-            <Link href="/leaves/new" className="inline-flex items-center justify-center rounded-2xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-blue-500">
+            <Link href="/leaves/new" className="inline-flex items-center justify-center rounded-2xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-blue-500 active:bg-blue-600">
               Apply for leave
             </Link>
           </div>
@@ -140,23 +145,19 @@ export default function LeavesPage() {
                   type="search"
                   value={search}
                   onChange={handleSearchChange}
-                  className="crm-input h-12 w-full rounded-2xl border bg-[var(--surface-soft)] px-4 text-sm"
+                  className="crm-input h-12 w-full min-w-0 rounded-2xl border bg-[var(--surface-soft)] px-4 text-sm"
                   placeholder="Search by type, requester, manager, or reason"
                 />
               </label>
               <label className="block">
                 <span className="sr-only">Filter by status</span>
-                <select
+                <ResponsiveSelect
                   value={statusFilter}
-                  onChange={handleStatusChange}
-                  className="crm-input h-12 w-full rounded-2xl border bg-[var(--surface-soft)] px-4 text-sm"
-                >
-                  {statusOptions.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
+                  onChange={setStatusFilter}
+                  options={statusSelectOptions}
+                  ariaLabel="Filter leave requests by status"
+                  buttonClassName="h-12 px-4"
+                />
               </label>
             </div>
           </div>

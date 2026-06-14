@@ -50,12 +50,12 @@
 
 html {
   scroll-behavior: smooth;
+  overflow-x: hidden;
 }
 
 body {
   min-height: 100vh;
- 
- 
+  overflow-x: hidden;
 }
 
 * {
@@ -72,6 +72,25 @@ input,
 select,
 textarea {
   font: inherit;
+}
+
+input,
+select,
+textarea {
+  min-width: 0;
+}
+
+select {
+  max-width: 100%;
+}
+
+@media (max-width: 767px) {
+  button,
+  select,
+  input,
+  textarea {
+    touch-action: manipulation;
+  }
 }
 
 .crm-input {

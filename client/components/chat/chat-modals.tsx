@@ -9,6 +9,7 @@ import type {
   ChatRoom,
 } from "@/types/crm";
 import { UserAvatar } from "@/components/shared/user-avatar";
+import { ResponsiveSelect } from "../shared/responsive-select";
 import { formatTime, resolveAttachmentUrl } from "./chat-utils";
 
 /* ─── Create Group Modal ─────────────────────────────────── */
@@ -50,7 +51,7 @@ export function CreateGroupModal({
   return (
     <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/35 p-4">
       <div
-        className="w-full max-w-xl rounded-2xl border p-4"
+className="w-full max-w-md mx-4 md:mx-auto rounded-2xl border p-4"
         style={{ background: "var(--surface)", borderColor: "var(--border)" }}
       >
         <h3 className="text-lg font-semibold text-[var(--text-main)]">Create group</h3>
@@ -127,24 +128,23 @@ export function StartDirectChatModal({
   return (
     <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/35 p-4">
       <div
-        className="w-full max-w-xl rounded-2xl border p-4"
-        style={{ background: "var(--surface)", borderColor: "var(--border)" }}
+className="w-full max-w-md mx-4 md:mx-auto rounded-2xl border p-4"        style={{ background: "var(--surface)", borderColor: "var(--border)" }}
       >
         <h3 className="text-lg font-semibold text-[var(--text-main)]">Start one-to-one chat</h3>
         <p className="mt-1 text-sm text-[var(--text-soft)]">Select a member to open a private chat room.</p>
-        <select
-          value={selectedUserId}
-          onChange={(e) => onChangeUserId(e.target.value)}
-          className="mt-3 h-11 w-full rounded-xl border px-3 text-sm outline-none"
-          style={{ borderColor: "var(--border)", background: "var(--surface-soft)", color: "var(--text-main)" }}
-        >
-          <option value="">Select member</option>
-          {users.map((member) => (
-            <option key={member.id} value={member.id}>
-              {member.name} ({member.role})
-            </option>
-          ))}
-        </select>
+        <div className="mt-3">
+  <ResponsiveSelect
+    value={selectedUserId}
+    onChange={onChangeUserId}
+    ariaLabel="Select member"
+    placeholder="Select member"
+    options={users.map((member) => ({
+      value: member.id,
+      label: `${member.name} (${member.role})`,
+    }))}
+    buttonClassName="h-11"
+  />
+</div>
         <div className="mt-4 flex justify-end gap-2">
           <button
             type="button"

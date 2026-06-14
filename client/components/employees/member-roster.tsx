@@ -90,20 +90,20 @@ export function MemberRoster({ users, filteredUsers, departments, managers, data
                       </td>
                       <td className="px-4 py-3 align-top sm:px-5 sm:py-4">
                         {locked ? <span className="inline-block rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase sm:text-xs" style={{ background: "var(--surface-soft)", color: "var(--text-soft)" }}>{member.role}</span>
-                          : <select className="max-w-[9.5rem] rounded-xl border px-2 py-1.5 text-xs font-semibold" style={FIELD_STYLE} value={member.role} disabled={updatingId === member.id} onChange={(e) => onAssign(member, "role", e.target.value)}>
+                          : <select className="w-full min-w-[8rem] max-w-[9.5rem] rounded-xl border px-2 py-1.5 text-xs font-semibold" style={FIELD_STYLE} value={member.role} disabled={updatingId === member.id} onChange={(e) => onAssign(member, "role", e.target.value)}>
                               {directoryRoleOptions.map((r) => <option key={r} value={r}>{r}</option>)}
                             </select>}
                       </td>
                       <td className="px-4 py-3 align-top sm:px-5 sm:py-4">
                         {locked ? <span className="text-xs">{member.department?.name || "—"}</span>
-                          : <select className="max-w-[10rem] rounded-xl border px-2 py-1.5 text-xs" style={FIELD_STYLE} value={member.department?.id ?? ""} disabled={updatingId === member.id} onChange={(e) => onAssign(member, "departmentId", e.target.value)}>
+                          : <select className="w-full min-w-[8.5rem] max-w-[10rem] rounded-xl border px-2 py-1.5 text-xs" style={FIELD_STYLE} value={member.department?.id ?? ""} disabled={updatingId === member.id} onChange={(e) => onAssign(member, "departmentId", e.target.value)}>
                               <option value="">Unassigned</option>
                               {departments.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
                             </select>}
                       </td>
                       <td className="px-4 py-3 align-top sm:px-5 sm:py-4">
                         {locked ? <span className="text-xs">{member.manager?.name || "—"}</span>
-                          : <select className="max-w-[10rem] rounded-xl border px-2 py-1.5 text-xs" style={FIELD_STYLE} value={member.manager?.id ?? ""} disabled={updatingId === member.id} onChange={(e) => onAssign(member, "managerId", e.target.value)}>
+                          : <select className="w-full min-w-[8.5rem] max-w-[10rem] rounded-xl border px-2 py-1.5 text-xs" style={FIELD_STYLE} value={member.manager?.id ?? ""} disabled={updatingId === member.id} onChange={(e) => onAssign(member, "managerId", e.target.value)}>
                               <option value="">Unassigned</option>
                               {managers.filter((m) => m.id !== member.id).map((m) => <option key={m.id} value={m.id}>{m.name} — {m.role}</option>)}
                             </select>}
