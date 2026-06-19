@@ -9,20 +9,24 @@ import { useSession } from "@/hooks/use-session";
 import { useChatMessages } from "@/hooks/use-chat-messages";
 import { useChatGroups } from "@/hooks/use-chat-groups";
 import { useChatMedia } from "@/hooks/use-chat-media";
+import { useMediaQuery } from "@/hooks/use-media-query";
 import { ChatRoomList } from "@/components/chat/chat-room-list";
 import { ChatMessageBubble } from "@/components/chat/chat-message-bubble";
 import { CreateGroupModal, GroupSettingsDrawer, MediaPanelDrawer, StartDirectChatModal } from "@/components/chat/chat-modals";
 import { apiGet, apiPost } from "@/lib/api";
 import { normalizeErrorMessage } from "@/lib/error-message";
-// import { Skeleton } from "@/components/shared/skeleton";
 import { ChatsSkeleton } from "@/components/shared/skeleton";
 import { roomKey } from "@/components/chat/chat-utils";
 import type { CRMUser, ChatRoomsResponse } from "@/types/crm";
 import { showToast } from "@/hooks/use-toast";
 
+type MobilePane = "rooms" | "conversation";
+
 export default function ChatPage() {
   const { user, loading: sessionLoading, error: sessionError, retry: retrySession } = useSession();
   const { connected } = useSocket();
+  const isCompact = useMediaQuery("(max-width: 1023px)");
+  const [mobilePane, setMobilePane] = useState<MobilePane>("rooms");
   const [rooms, setRooms] = useState<ChatRoomsResponse>({ departments: [], projects: [], groups: [] });
   const [selectedKey, setSelectedKey] = useState("");
   const [loading, setLoading] = useState(true);
@@ -44,9 +48,11 @@ export default function ChatPage() {
   const chatAnalytics = useMemo(() => {
     const totalRooms = allRooms.length;
     const unreadTotal = allRooms.reduce((s, r) => s + (r.unreadCount ?? 0), 0);
-    const attachmentMessages = 0;
-    return { totalRooms, unreadTotal, totalMessages: 0, attachmentMessages };
+    return { totalRooms, unreadTotal };
   }, [allRooms]);
+
+  const showRoomsPane = !isCompact || mobilePane === "rooms";
+  const showConversationPane = !isCompact || mobilePane === "conversation";
 
   const refreshRooms = async () => {
     const data = await apiGet<ChatRoomsResponse>("/chat/rooms");
@@ -54,10 +60,21 @@ export default function ChatPage() {
   };
 
   const messages_ = useChatMessages(selectedRoom, user, setError);
-
   const groups_ = useChatGroups(setError, refreshRooms);
-
   const media_ = useChatMedia(selectedRoom, setError, messages_.setMessages);
+
+  const handleSelectRoom = (key: string) => {
+    setSelectedKey(key);
+    if (isCompact) {
+      setMobilePane("conversation");
+    }
+  };
+
+  useEffect(() => {
+    if (!isCompact) {
+      setMobilePane("rooms");
+    }
+  }, [isCompact]);
 
   useEffect(() => {
     async function loadRooms() {
@@ -69,7 +86,7 @@ export default function ChatPage() {
         const first = data.departments[0] ?? data.projects[0] ?? data.groups[0];
         setSelectedKey((cur) => cur || (first ? roomKey(first) : ""));
       } catch (err) {
-        showToast(normalizeErrorMessage(err, "Failed to load chat rooms" ), "error");
+        showToast(normalizeErrorMessage(err, "Failed to load chat rooms"), "error");
       } finally {
         setLoading(false);
       }
@@ -104,12 +121,9 @@ export default function ChatPage() {
     try {
       await apiPost<{ success: boolean }>(`/chat/clear/${selectedRoom.type}/${selectedRoom.id}`);
       messages_.setMessages([]);
-      showToast(
-"Chat cleared",
-"success"
-);
+      showToast("Chat cleared", "success");
     } catch (err) {
-      showToast(normalizeErrorMessage(err, "Failed to clear chat") , "error");
+      showToast(normalizeErrorMessage(err, "Failed to clear chat"), "error");
     }
   };
 
@@ -125,241 +139,309 @@ export default function ChatPage() {
   if (!user) return null;
 
   if (loading) {
-  return (
-    <CRMShell user={user}>
-      <ChatsSkeleton />
-    </CRMShell>
-  );
-}
+    return (
+      <CRMShell user={user} compactMobileChrome>
+        <ChatsSkeleton />
+      </CRMShell>
+    );
+  }
 
   return (
-    <CRMShell user={user}>
-<div
-  className="
-  grid
-  h-[calc(100vh-120px)]
-  min-w-0
-  gap-4
-  overflow-hidden
-  grid-cols-1
-  lg:grid-cols-[320px_minmax(0,1fr)]
-  xl:grid-cols-[360px_minmax(0,1fr)]
-"
->      {/* ── Left: rooms list ── */}
-        <section
-className="
-  rounded-[22px]
-  border
-  p-4
-  flex
-  flex-col
-  min-h-0
-  overflow-hidden
-"          style={{ background: "var(--surface)", borderColor: "var(--border)", boxShadow: "var(--shadow-soft)" }}
-        >
-          <div className="shrink-0">
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[var(--text-faint)]">Community</p>
-                <h1 className="mt-2 text-2xl font-semibold text-[var(--text-main)]">Team chat</h1>
-              </div>
-              <span
-                className="rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em]"
-                style={{
-                  background: connected ? "color-mix(in srgb, var(--success) 14%, var(--surface))" : "var(--surface-soft)",
-                  color: connected ? "var(--success)" : "var(--text-soft)",
-                }}
-              >
-                {connected ? "Live" : "Offline"}
-              </span>
-            </div>
-            {canManageGroups && (
-              <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setDirectTargetUserId("");
-                    setShowStartDirectModal(true);
+    <CRMShell user={user} compactMobileChrome>
+      <div
+        className={`crm-chat-viewport grid min-w-0 gap-3 overflow-hidden lg:gap-4 ${
+          isCompact ? "grid-cols-1" : "grid-cols-1 lg:grid-cols-[minmax(260px,320px)_minmax(0,1fr)] xl:grid-cols-[minmax(280px,360px)_minmax(0,1fr)]"
+        }`}
+      >
+        {showRoomsPane ? (
+          <section
+            className="flex min-h-0 flex-col overflow-hidden rounded-2xl border p-3 sm:rounded-[22px] sm:p-4"
+            style={{ background: "var(--surface)", borderColor: "var(--border)", boxShadow: "var(--shadow-soft)" }}
+          >
+            <div className="shrink-0">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[var(--text-faint)]">Community</p>
+                  <h1 className="mt-1 text-xl font-semibold text-[var(--text-main)] sm:mt-2 sm:text-2xl">Team chat</h1>
+                </div>
+                <span
+                  className="shrink-0 rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em]"
+                  style={{
+                    background: connected ? "color-mix(in srgb, var(--success) 14%, var(--surface))" : "var(--surface-soft)",
+                    color: connected ? "var(--success)" : "var(--text-soft)",
                   }}
-                  className="rounded-xl border px-4 py-2 text-sm font-semibold"
-                  style={{ borderColor: "var(--border)", color: "var(--text-main)" }}
                 >
-                  + One-to-one
-                </button>
-                <button
-                  type="button"
-                  onClick={() => groups_.setShowCreateGroup(true)}
-                  className="rounded-xl border px-4 py-2 text-sm font-semibold"
-                  style={{ borderColor: "var(--border)", color: "var(--text-main)" }}
+                  {connected ? "Live" : "Offline"}
+                </span>
+              </div>
+
+              {canManageGroups ? (
+                <div className="mt-3 grid grid-cols-1 gap-2 sm:mt-4 sm:grid-cols-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setDirectTargetUserId("");
+                      setShowStartDirectModal(true);
+                    }}
+                    className="crm-touch-target rounded-xl border px-4 py-2.5 text-sm font-semibold"
+                    style={{ borderColor: "var(--border)", color: "var(--text-main)" }}
+                  >
+                    + One-to-one
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => groups_.setShowCreateGroup(true)}
+                    className="crm-touch-target rounded-xl border px-4 py-2.5 text-sm font-semibold"
+                    style={{ borderColor: "var(--border)", color: "var(--text-main)" }}
+                  >
+                    + Create group
+                  </button>
+                </div>
+              ) : null}
+
+              <div className="mt-3 grid grid-cols-2 gap-2 sm:mt-4">
+                {[
+                  { label: "Rooms", value: chatAnalytics.totalRooms },
+                  { label: "Unread", value: chatAnalytics.unreadTotal },
+                ].map((item) => (
+                  <div
+                    key={item.label}
+                    className="rounded-xl border px-3 py-2"
+                    style={{ borderColor: "var(--border)", background: "var(--surface-soft)" }}
+                  >
+                    <p className="text-[10px] uppercase tracking-[0.16em] text-[var(--text-faint)]">{item.label}</p>
+                    <p className="mt-1 text-sm font-semibold text-[var(--text-main)]">{item.value}</p>
+                  </div>
+                ))}
+              </div>
+
+              {error ? (
+                <p className="mt-3 rounded-2xl bg-red-500/10 px-4 py-3 text-sm text-red-600">{error}</p>
+              ) : null}
+            </div>
+
+            <div className="mt-4 min-h-0 flex-1 overflow-y-auto overscroll-contain pr-0.5">
+              <ChatRoomList
+                rooms={rooms}
+                selectedKey={selectedKey}
+                loading={loading}
+                onSelect={handleSelectRoom}
+              />
+            </div>
+          </section>
+        ) : null}
+
+        {showConversationPane ? (
+          <section
+            className="flex min-h-0 flex-col overflow-hidden rounded-2xl border sm:rounded-[22px]"
+            style={{ background: "var(--surface)", borderColor: "var(--border)", boxShadow: "var(--shadow-soft)" }}
+          >
+            {selectedRoom ? (
+              <>
+                <div className="shrink-0 border-b px-3 py-3 sm:px-5 sm:py-4" style={{ borderColor: "var(--border)" }}>
+                  <div className="flex items-start gap-2">
+                    {isCompact ? (
+                      <button
+                        type="button"
+                        onClick={() => setMobilePane("rooms")}
+                        className="crm-touch-target shrink-0 rounded-lg border px-3 text-sm font-semibold"
+                        style={{ borderColor: "var(--border)", color: "var(--text-main)", background: "var(--surface-soft)" }}
+                        aria-label="Back to rooms"
+                      >
+                        ←
+                      </button>
+                    ) : null}
+                    <div className="min-w-0 flex-1">
+                      <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[var(--text-faint)]">
+                        {selectedRoom.type === "DEPARTMENT"
+                          ? "Department room"
+                          : selectedRoom.type === "PROJECT"
+                            ? "Project room"
+                            : "Group room"}
+                      </p>
+                      <h2 className="mt-1 truncate text-lg font-semibold text-[var(--text-main)] sm:text-2xl">
+                        {selectedRoom.name}
+                      </h2>
+                      <p className="mt-0.5 truncate text-sm text-[var(--text-soft)]">{selectedRoom.subtitle}</p>
+                    </div>
+                  </div>
+
+                  <input
+                    value={messages_.search}
+                    onChange={(e) => messages_.setSearch(e.target.value)}
+                    placeholder="Search messages..."
+                    className="mt-3 h-11 w-full rounded-xl border px-3 text-base outline-none sm:text-sm"
+                    style={{ borderColor: "var(--border)", background: "var(--surface-soft)", color: "var(--text-main)" }}
+                  />
+
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={() => void media_.openMediaPanel()}
+                      className="crm-touch-target rounded-lg border px-3 py-2 text-xs font-semibold sm:py-1.5"
+                      style={{ borderColor: "var(--border)", color: "var(--text-main)" }}
+                    >
+                      Media
+                    </button>
+                    {canClearChat ? (
+                      <button
+                        type="button"
+                        onClick={() => void clearChat()}
+                        className="crm-touch-target rounded-lg border px-3 py-2 text-xs font-semibold sm:py-1.5"
+                        style={{ borderColor: "var(--border)", color: "var(--text-main)" }}
+                      >
+                        Clear chat
+                      </button>
+                    ) : null}
+                    {selectedRoom.type === "GROUP" && canManageGroups ? (
+                      <button
+                        type="button"
+                        onClick={() => void groups_.openGroupSettings(selectedRoom)}
+                        disabled={Boolean(selectedRoom.isDirect)}
+                        className="crm-touch-target rounded-lg border px-3 py-2 text-xs font-semibold disabled:cursor-not-allowed disabled:opacity-60 sm:py-1.5"
+                        style={{ borderColor: "var(--border)", color: "var(--text-main)" }}
+                      >
+                        Group settings
+                      </button>
+                    ) : null}
+                  </div>
+                </div>
+
+                <div className="min-h-0 flex-1 space-y-3 overflow-y-auto overscroll-contain p-3 sm:p-4 lg:p-5">
+                  {!messages_.messagesLoading && messages_.hasMoreMessages ? (
+                    <div className="mb-2 flex justify-center">
+                      <button
+                        type="button"
+                        onClick={() => void messages_.loadOlderMessages()}
+                        disabled={messages_.loadingOlderMessages}
+                        className="crm-touch-target rounded-lg border px-3 py-2 text-xs font-semibold disabled:opacity-60"
+                        style={{ borderColor: "var(--border)", color: "var(--text-main)", background: "var(--surface-soft)" }}
+                      >
+                        {messages_.loadingOlderMessages ? "Loading..." : "Load older messages"}
+                      </button>
+                    </div>
+                  ) : null}
+                  {messages_.messagesLoading ? (
+                    <StatePanel title="Loading messages" description="Fetching the latest conversation." />
+                  ) : null}
+                  {!messages_.messagesLoading && !messages_.messages.length ? (
+                    <div className="flex h-full min-h-[12rem] items-center justify-center">
+                      <p className="max-w-sm text-center text-sm text-[var(--text-soft)]">
+                        No messages yet. Start the conversation for this room.
+                      </p>
+                    </div>
+                  ) : null}
+                  {messages_.filteredMessages.map((message) => (
+                    <ChatMessageBubble
+                      key={message.id}
+                      message={message}
+                      user={user}
+                      openMenuId={messages_.openMenuId}
+                      onOpenMenu={messages_.setOpenMenuId}
+                      onReply={messages_.setReplyTo}
+                      onDeleteForMe={(id) => void messages_.deleteMessage(id, "me")}
+                      onDeleteForEveryone={(id) => void messages_.deleteMessage(id, "everyone")}
+                    />
+                  ))}
+                  <div ref={messages_.messageEndRef} />
+                </div>
+
+                <div
+                  className="crm-safe-bottom shrink-0 border-t p-3 sm:p-4"
+                  style={{ borderColor: "var(--border)", background: "var(--surface)" }}
                 >
-                  + Create group
-                </button>
+                  {messages_.replyTo ? (
+                    <div
+                      className="mb-3 flex items-center justify-between gap-2 rounded-xl border px-3 py-2 text-sm"
+                      style={{ borderColor: "var(--border)" }}
+                    >
+                      <div className="min-w-0">
+                        <p className="font-semibold text-[var(--text-main)]">Replying to {messages_.replyTo.author.name}</p>
+                        <p className="truncate text-[var(--text-soft)]">
+                          {messages_.replyTo.isDeleted
+                            ? "This message was deleted"
+                            : messages_.replyTo.content || messages_.replyTo.attachmentFileName || "Attachment"}
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        className="crm-touch-target shrink-0 px-2 text-[var(--text-soft)]"
+                        onClick={() => messages_.setReplyTo(null)}
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  ) : null}
+                  {messages_.selectedFile ? (
+                    <div
+                      className="mb-3 flex items-center justify-between gap-2 rounded-xl border px-3 py-2 text-sm"
+                      style={{ borderColor: "var(--border)" }}
+                    >
+                      <p className="min-w-0 truncate text-[var(--text-main)]">Attached: {messages_.selectedFile.name}</p>
+                      <button
+                        type="button"
+                        className="crm-touch-target shrink-0 px-2 text-[var(--text-soft)]"
+                        onClick={() => messages_.setSelectedFile(null)}
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  ) : null}
+                  <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
+                    <div className="flex min-w-0 flex-1 items-end gap-2">
+                      <input
+                        ref={messages_.fileInputRef}
+                        type="file"
+                        accept="image/*,application/pdf"
+                        className="hidden"
+                        onChange={(e) => messages_.setSelectedFile(e.target.files?.[0] ?? null)}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => messages_.fileInputRef.current?.click()}
+                        className="crm-touch-target flex h-11 w-11 shrink-0 items-center justify-center rounded-full border text-2xl leading-none"
+                        style={{ borderColor: "var(--border)", color: "var(--text-main)", background: "var(--surface-soft)" }}
+                        aria-label="Attach file"
+                      >
+                        +
+                      </button>
+                      <textarea
+                        value={draft}
+                        onChange={(e) => setDraft(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" && !e.shiftKey) {
+                            e.preventDefault();
+                            void messages_.sendMessage(draft, () => setDraft(""));
+                          }
+                        }}
+                        placeholder="Write a message..."
+                        rows={1}
+                        className="min-h-[44px] max-h-[120px] flex-1 resize-none rounded-2xl border px-4 py-3 text-base outline-none sm:text-sm"
+                        style={{ borderColor: "var(--border)", background: "var(--surface-soft)", color: "var(--text-main)" }}
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => void messages_.sendMessage(draft, () => setDraft(""))}
+                      disabled={messages_.sending || (!draft.trim() && !messages_.selectedFile)}
+                      className="crm-touch-target h-11 w-full rounded-full px-5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
+                      style={{ background: "var(--accent)" }}
+                    >
+                      {messages_.sending ? "Sending..." : "Send"}
+                    </button>
+                  </div>
+                </div>
+              </>
+            ) : (
+              <div className="flex flex-1 items-center justify-center p-6">
+                <StatePanel title="No chat rooms" description="Create a department or project to start a community room." />
               </div>
             )}
-            <div className="mt-4 grid gap-2 sm:grid-cols-2">
-              {[
-                { label: "Rooms", value: chatAnalytics.totalRooms },
-                { label: "Unread", value: chatAnalytics.unreadTotal },
-              ].map((item) => (
-                <div key={item.label} className="rounded-xl border px-3 py-2" style={{ borderColor: "var(--border)", background: "var(--surface-soft)" }}>
-                  <p className="text-[10px] uppercase tracking-[0.16em] text-[var(--text-faint)]">{item.label}</p>
-                  <p className="mt-1 text-sm font-semibold text-[var(--text-main)]">{item.value}</p>
-                </div>
-              ))}
-            </div>
-            {error && <p className="mt-4 rounded-2xl bg-red-500/10 px-4 py-3 text-sm text-red-600">{error}</p>}
-          </div>
-
-<div className="
-  mt-5
-  flex-1
-  min-h-0
-  overflow-y-auto
-  pr-1
-">            <ChatRoomList
-              rooms={rooms}
-              selectedKey={selectedKey}
-              loading={loading}
-              onSelect={setSelectedKey}
-            />
-          </div>
-        </section>
-
-        {/* ── Right: chat panel ── */}
-        <section
-className="
-flex
-min-h-0
-h-full
-flex-col
-overflow-hidden
-rounded-[22px]
-border
-"          style={{ background: "var(--surface)", borderColor: "var(--border)", boxShadow: "var(--shadow-soft)" }}
-        >
-          {selectedRoom ? (
-            <>
-              <div className="shrink-0 border-b px-5 py-4" style={{ borderColor: "var(--border)" }}>
-                <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[var(--text-faint)]">
-                  {selectedRoom.type === "DEPARTMENT" ? "Department room" : selectedRoom.type === "PROJECT" ? "Project room" : "Group room"}
-                </p>
-<h2 className="mt-1 min-w-0 truncate text-2xl font-semibold text-[var(--text-main)]">
-  {selectedRoom.name}
-</h2>                <p className="mt-1 text-sm text-[var(--text-soft)]">{selectedRoom.subtitle}</p>
-                <input
-                  value={messages_.search}
-                  onChange={(e) => messages_.setSearch(e.target.value)}
-                  placeholder="Search messages..."
-                  className="mt-3 w-full rounded-xl border px-3 py-2 text-sm outline-none"
-                  style={{ borderColor: "var(--border)", background: "var(--surface-soft)", color: "var(--text-main)" }}
-                />
-                <div className="mt-3 flex flex-wrap gap-2">
-                  <button type="button" onClick={() => void media_.openMediaPanel()} className="rounded-lg border px-3 py-1.5 text-xs font-semibold" style={{ borderColor: "var(--border)", color: "var(--text-main)" }}>
-                    Media
-                  </button>
-                  {canClearChat && (
-                    <button type="button" onClick={() => void clearChat()} className="rounded-lg border px-3 py-1.5 text-xs font-semibold" style={{ borderColor: "var(--border)", color: "var(--text-main)" }}>
-                      Clear chat (local)
-                    </button>
-                  )}
-                  {selectedRoom.type === "GROUP" && canManageGroups && (
-                    <button type="button" onClick={() => void groups_.openGroupSettings(selectedRoom)} disabled={Boolean(selectedRoom.isDirect)} className="rounded-lg border px-3 py-1.5 text-xs font-semibold disabled:cursor-not-allowed disabled:opacity-60" style={{ borderColor: "var(--border)", color: "var(--text-main)" }}>
-                      Group settings
-                    </button>
-                  )}
-                </div>
-              </div>
-
-<div className="
-  flex-1
-  min-h-0
-  space-y-3
-  overflow-y-auto
-  p-3
-  sm:p-4
-  lg:p-5
-">                {!messages_.messagesLoading && messages_.hasMoreMessages && (
-                  <div className="mb-2 flex justify-center">
-                    <button type="button" onClick={() => void messages_.loadOlderMessages()} disabled={messages_.loadingOlderMessages} className="rounded-lg border px-3 py-1.5 text-xs font-semibold disabled:opacity-60" style={{ borderColor: "var(--border)", color: "var(--text-main)", background: "var(--surface-soft)" }}>
-                      {messages_.loadingOlderMessages ? "Loading..." : "Load older messages"}
-                    </button>
-                  </div>
-                )}
-                {messages_.messagesLoading && <StatePanel title="Loading messages" description="Fetching the latest conversation." />}
-                {!messages_.messagesLoading && !messages_.messages.length && (
-                  <div className="flex h-full items-center justify-center">
-                    <p className="max-w-sm text-center text-sm text-[var(--text-soft)]">No messages yet. Start the conversation for this room.</p>
-                  </div>
-                )}
-                {messages_.filteredMessages.map((message) => (
-                  <ChatMessageBubble
-                    key={message.id}
-                    message={message}
-                    user={user}
-                    openMenuId={messages_.openMenuId}
-                    onOpenMenu={messages_.setOpenMenuId}
-                    onReply={messages_.setReplyTo}
-                    onDeleteForMe={(id) => void messages_.deleteMessage(id, "me")}
-                    onDeleteForEveryone={(id) => void messages_.deleteMessage(id, "everyone")}
-                  />
-                ))}
-                <div ref={messages_.messageEndRef} />
-              </div>
-
-<div
-  className="
-    shrink-0
-    sticky
-    bottom-0
-    z-10
-    border-t
-    p-3
-    sm:p-4
-  "
-  style={{
-    borderColor: "var(--border)",
-    background: "var(--surface)",
-  }}
->                {messages_.replyTo && (
-                  <div className="mb-3 flex items-center justify-between rounded-xl border px-3 py-2 text-sm" style={{ borderColor: "var(--border)" }}>
-                    <div>
-                      <p className="font-semibold text-[var(--text-main)]">Replying to {messages_.replyTo.author.name}</p>
-                      <p className="text-[var(--text-soft)]">{messages_.replyTo.isDeleted ? "This message was deleted" : messages_.replyTo.content || messages_.replyTo.attachmentFileName || "Attachment"}</p>
-                    </div>
-                    <button type="button" className="text-[var(--text-soft)]" onClick={() => messages_.setReplyTo(null)}>Cancel</button>
-                  </div>
-                )}
-                {messages_.selectedFile && (
-                  <div className="mb-3 flex items-center justify-between rounded-xl border px-3 py-2 text-sm" style={{ borderColor: "var(--border)" }}>
-                    <p className="truncate text-[var(--text-main)]">Attached: {messages_.selectedFile.name}</p>
-                    <button type="button" className="text-[var(--text-soft)]" onClick={() => messages_.setSelectedFile(null)}>Remove</button>
-                  </div>
-                )}
-                <div className="flex items-center gap-3">
-                  <input ref={messages_.fileInputRef} type="file" accept="image/*,application/pdf" className="hidden" onChange={(e) => messages_.setSelectedFile(e.target.files?.[0] ?? null)} />
-                  <button type="button" onClick={() => messages_.fileInputRef.current?.click()} className="h-11 w-11 rounded-full border text-2xl leading-none" style={{ borderColor: "var(--border)", color: "var(--text-main)", background: "var(--surface-soft)" }}>+</button>
-                  <textarea
-                    value={draft}
-                    onChange={(e) => setDraft(e.target.value)}
-                    onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); void messages_.sendMessage(draft, () => setDraft("")); } }}
-                    placeholder="Write a message..."
-className="min-h-[44px] max-h-[120px] flex-1 resize-none rounded-2xl border px-4 py-3 text-sm outline-none"                    style={{ borderColor: "var(--border)", background: "var(--surface-soft)", color: "var(--text-main)" }}
-                  />
-                  <button type="button" onClick={() => void messages_.sendMessage(draft, () => setDraft(""))} disabled={messages_.sending || (!draft.trim() && !messages_.selectedFile)} className="h-11 rounded-full px-5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60" style={{ background: "var(--accent)" }}>
-                    {messages_.sending ? "Sending..." : "Send"}
-                  </button>
-                </div>
-              </div>
-            </>
-          ) : (
-            <div className="flex flex-1 items-center justify-center p-6">
-              <StatePanel title="No chat rooms" description="Create a department or project to start a community room." />
-            </div>
-          )}
-        </section>
+          </section>
+        ) : null}
       </div>
 
-      {groups_.showCreateGroup && (
+      {groups_.showCreateGroup ? (
         <CreateGroupModal
           groupName={groups_.groupName}
           groupDescription={groups_.groupDescription}
@@ -374,8 +456,8 @@ className="min-h-[44px] max-h-[120px] flex-1 resize-none rounded-2xl border px-4
           }
           onSubmit={() => void groups_.createGroup()}
         />
-      )}
-      {groups_.showGroupSettings && groups_.activeGroup && (
+      ) : null}
+      {groups_.showGroupSettings && groups_.activeGroup ? (
         <GroupSettingsDrawer
           activeGroup={groups_.activeGroup}
           members={groups_.activeGroupMembers}
@@ -389,8 +471,8 @@ className="min-h-[44px] max-h-[120px] flex-1 resize-none rounded-2xl border px-4
           onAddMember={(id) => void groups_.addMembers([id])}
           onDelete={() => void groups_.deleteGroup(setSelectedKey)}
         />
-      )}
-      {media_.showMediaPanel && selectedRoom && (
+      ) : null}
+      {media_.showMediaPanel && selectedRoom ? (
         <MediaPanelDrawer
           room={selectedRoom}
           user={user}
@@ -406,7 +488,7 @@ className="min-h-[44px] max-h-[120px] flex-1 resize-none rounded-2xl border px-4
           onDeleteOne={(id) => void media_.deleteMedia(id)}
           onDeleteSelected={() => void media_.deleteSelectedMedia()}
         />
-      )}
+      ) : null}
       {showStartDirectModal && canManageGroups ? (
         <StartDirectChatModal
           users={eligibleDirectUsers}
@@ -422,6 +504,9 @@ className="min-h-[44px] max-h-[120px] flex-1 resize-none rounded-2xl border px-4
             const directRoom = latest.groups.find((room) => room.isDirect && room.directPeer?.id === directTargetUserId);
             if (directRoom) {
               setSelectedKey(roomKey(directRoom));
+              if (isCompact) {
+                setMobilePane("conversation");
+              }
             }
             setShowStartDirectModal(false);
             setDirectTargetUserId("");

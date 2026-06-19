@@ -44,7 +44,7 @@ export function TeamAnalyticsPanel({ members, selectedMemberId, selectedAnalytic
   members: CRMUser[]; selectedMemberId: string; selectedAnalytics: UserAnalyticsSummary | null; analyticsLoading: boolean; directoryTitle: string; directorySubtitle: string; onSelect: (id: string) => void;
 }) {
   return (
-    <div className="grid min-h-[min(62vh,780px)] items-stretch gap-4 lg:grid-cols-[minmax(280px,0.42fr)_1fr] xl:grid-cols-[minmax(300px,0.4fr)_1fr]">
+    <div className="grid min-h-0 items-stretch gap-4 lg:min-h-[min(62vh,780px)] lg:grid-cols-[minmax(280px,0.42fr)_1fr] xl:grid-cols-[minmax(300px,0.4fr)_1fr]">
       <Surface className="flex h-full min-h-0 min-w-0 flex-col overflow-hidden p-0">
         <div className="border-b px-5 py-4" style={{ borderColor: "var(--border)", background: "linear-gradient(135deg, color-mix(in srgb, var(--accent) 10%, var(--surface)) 0%, var(--surface) 55%)" }}>
           <div className="flex flex-wrap items-start justify-between gap-3">
@@ -58,7 +58,7 @@ export function TeamAnalyticsPanel({ members, selectedMemberId, selectedAnalytic
         </div>
         <div className="flex min-h-0 flex-1 flex-col p-3 sm:p-4">
           <div className="flex min-h-0 flex-1 flex-col rounded-2xl border p-2 sm:p-2.5" style={{ borderColor: "var(--border)", background: "color-mix(in srgb, var(--surface-soft) 65%, var(--surface))" }}>
-            <div className="max-h-[min(58vh,620px)] min-h-0 flex-1 space-y-2 overflow-y-auto overscroll-contain pr-0.5" style={{ scrollbarGutter: "stable" }}>
+            <div className="max-h-[min(42vh,420px)] min-h-0 flex-1 space-y-2 overflow-y-auto overscroll-contain pr-0.5 lg:max-h-[min(58vh,620px)]" style={{ scrollbarGutter: "stable" }}>
               {members.map((member) => (
                 <TeamMemberCard key={member.id} member={member} active={member.id === selectedMemberId} onClick={() => onSelect(member.id)} />
               ))}
@@ -126,8 +126,8 @@ export function DepartmentWisePanel({ departments }: {
   return (
     <Surface className="p-5">
       <div className="mb-4"><p className="text-sm font-semibold text-[var(--text-main)]">Department-wise analytics</p><p className="mt-1 text-sm text-[var(--text-soft)]">Detailed CRM performance by department for CEO-level review.</p></div>
-      <div className="overflow-x-auto">
-        <table className="min-w-full border-separate border-spacing-y-2">
+      <div className="mb-4 overflow-x-auto">
+        <table className="min-w-[720px] w-full border-separate border-spacing-y-2">
           <thead>
             <tr className="text-left text-[11px] uppercase tracking-[0.18em] text-[var(--text-faint)]">
               <th className="px-3 py-2">Department</th><th className="px-3 py-2">Members</th><th className="px-3 py-2">Projects</th><th className="px-3 py-2">Tasks</th><th className="px-3 py-2">Completion</th><th className="px-3 py-2">Progress</th><th className="px-3 py-2">Attendance</th><th className="px-3 py-2">Open issues</th>

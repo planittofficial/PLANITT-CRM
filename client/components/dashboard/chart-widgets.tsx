@@ -70,13 +70,13 @@ export function SummaryStatCard({ label, value, helper, points }: { label: strin
   const path = buildLinePath(points, 140, 44);
   return (
     <Surface className="overflow-hidden p-3 sm:p-5">
-      <div className="flex items-start justify-between gap-4">
-        <div>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
+        <div className="min-w-0">
           <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-[var(--text-faint)]">{label}</p>
-          <h3 className="mt-2 text-xl sm:text-2xl lg:text-3xl font-semibold tracking-tight text-[var(--text-main)]">{value}</h3>
-          <p className="mt-2 text-sm text-[var(--text-soft)]">{helper}</p>
+          <h3 className="mt-2 text-xl font-semibold tracking-tight text-[var(--text-main)] sm:text-2xl lg:text-3xl">{value}</h3>
+          <p className="mt-1 text-sm text-[var(--text-soft)] sm:mt-2">{helper}</p>
         </div>
-        <div className="rounded-2xl border px-3 py-2" style={{ borderColor: "var(--border)", background: "var(--surface-soft)" }}>
+        <div className="hidden shrink-0 rounded-2xl border px-3 py-2 sm:block" style={{ borderColor: "var(--border)", background: "var(--surface-soft)" }}>
           <svg width="140" height="44" viewBox="0 0 140 44" fill="none" aria-hidden="true">
             <path d={path} stroke="var(--accent)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
@@ -94,7 +94,7 @@ export function LineChartCard({ title, subtitle, values, labels, suffix = "", st
   const path = buildLinePath(values, width, height - 24);
   const areaPath = values.length ? `${path} L ${width} ${height} L 0 ${height} Z` : "";
   return (
-    <Surface className="p-5">
+    <Surface className="p-4 sm:p-5">
       <div className="mb-5">
         <p className="text-sm font-semibold text-[var(--text-main)]">{title}</p>
         <p className="mt-1 text-sm text-[var(--text-soft)]">{subtitle}</p>
@@ -179,7 +179,7 @@ export function InsightTicker({ items }: { items: Array<{ label: string; value: 
 
 export function PerformanceBars({ title, subtitle, items }: { title: string; subtitle: string; items: Array<{ label: string; value: number; helper: string }> }) {
   return (
-    <Surface className="p-5">
+    <Surface className="p-4 sm:p-5">
       <div className="mb-5"><p className="text-sm font-semibold text-[var(--text-main)]">{title}</p><p className="mt-1 text-sm text-[var(--text-soft)]">{subtitle}</p></div>
       <div className="space-y-4">
         {items.map((item) => (
@@ -235,7 +235,7 @@ export function HeatmapGrid({ title, subtitle, items }: { title: string; subtitl
   }
 
   return (
-    <Surface className="p-5">
+    <Surface className="p-4 sm:p-5">
       <p className="text-sm font-semibold text-[var(--text-main)]">{title}</p>
       <p className="mt-1 text-sm text-[var(--text-soft)]">{subtitle}</p>
 <div className="mt-5 grid grid-cols-4 sm:grid-cols-5 gap-2">        {items.map((item) => (

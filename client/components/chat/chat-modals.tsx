@@ -49,9 +49,9 @@ export function CreateGroupModal({
   onSubmit,
 }: CreateGroupProps) {
   return (
-    <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/35 p-4">
+    <div className="fixed inset-0 z-40 flex items-end justify-center bg-black/35 p-0 sm:items-center sm:p-4">
       <div
-className="w-full max-w-md mx-4 md:mx-auto rounded-2xl border p-4"
+        className="max-h-[92dvh] w-full overflow-y-auto rounded-t-2xl border p-4 sm:max-w-md sm:rounded-2xl sm:mx-auto"
         style={{ background: "var(--surface)", borderColor: "var(--border)" }}
       >
         <h3 className="text-lg font-semibold text-[var(--text-main)]">Create group</h3>
@@ -126,9 +126,10 @@ export function StartDirectChatModal({
   onSubmit,
 }: StartDirectChatProps) {
   return (
-    <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/35 p-4">
+    <div className="fixed inset-0 z-40 flex items-end justify-center bg-black/35 p-0 sm:items-center sm:p-4">
       <div
-className="w-full max-w-md mx-4 md:mx-auto rounded-2xl border p-4"        style={{ background: "var(--surface)", borderColor: "var(--border)" }}
+        className="max-h-[92dvh] w-full overflow-y-auto rounded-t-2xl border p-4 sm:max-w-md sm:rounded-2xl sm:mx-auto"
+        style={{ background: "var(--surface)", borderColor: "var(--border)" }}
       >
         <h3 className="text-lg font-semibold text-[var(--text-main)]">Start one-to-one chat</h3>
         <p className="mt-1 text-sm text-[var(--text-soft)]">Select a member to open a private chat room.</p>
@@ -201,9 +202,9 @@ export function GroupSettingsDrawer({
   const nonMembers = allUsers.filter((u) => !members.some((m) => m.userId === u.id));
 
   return (
-    <div className="fixed inset-0 z-40 flex justify-end bg-black/30">
+    <div className="fixed inset-0 z-40 flex items-end justify-end bg-black/30 sm:items-stretch">
       <div
-        className="h-full w-full max-w-md overflow-y-auto border-l p-4"
+        className="h-[min(92dvh,100%)] w-full max-w-md overflow-y-auto rounded-t-2xl border-t border-l p-4 sm:h-full sm:rounded-none"
         style={{ background: "var(--surface)", borderColor: "var(--border)" }}
       >
         <div className="flex items-center justify-between">
@@ -337,9 +338,9 @@ export function MediaPanelDrawer({
   onDeleteSelected,
 }: MediaPanelProps) {
   return (
-    <div className="fixed inset-0 z-40 flex justify-end bg-black/30">
+    <div className="fixed inset-0 z-40 flex items-end justify-end bg-black/30 sm:items-stretch">
       <div
-        className="h-full w-full max-w-md overflow-y-auto border-l p-4"
+        className="h-[min(92dvh,100%)] w-full max-w-md overflow-y-auto rounded-t-2xl border-t border-l p-4 sm:h-full sm:rounded-none"
         style={{ background: "var(--surface)", borderColor: "var(--border)" }}
       >
         <div className="flex items-center justify-between">

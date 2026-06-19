@@ -19,6 +19,8 @@ import type { CRMUser, DashboardSummary, EmployeeDashboardSummary } from "@/type
 type CRMShellProps = {
   children: React.ReactNode;
   user: CRMUser;
+  /** Hides the in-page title/search bar on mobile to maximize content area (e.g. chat). */
+  compactMobileChrome?: boolean;
 };
 
 type NavItem = {
@@ -172,7 +174,7 @@ function CRMShellHeaderSearch() {
   );
 }
 
-export function CRMShell({ children, user }: CRMShellProps) {
+export function CRMShell({ children, user, compactMobileChrome = false }: CRMShellProps) {
   
   const { globalSearch } = useCrmSearch();
   const pathname = usePathname();
@@ -375,7 +377,7 @@ export function CRMShell({ children, user }: CRMShellProps) {
         />
       ) : null}
 
-      <div className="flex min-h-screen flex-col gap-3 px-2 pb-3 pt-[3.75rem] sm:px-3 sm:py-3 lg:h-screen lg:flex-row lg:gap-0 lg:overflow-hidden lg:px-0 lg:pb-0 lg:pt-0">
+      <div className="flex min-h-screen flex-col gap-2 px-2 pb-3 pt-[calc(3.75rem+var(--crm-safe-top))] sm:gap-3 sm:px-3 sm:py-3 lg:h-screen lg:flex-row lg:gap-0 lg:overflow-hidden lg:px-0 lg:pb-0 lg:pt-0">
         <aside
           className={`fixed bottom-0 left-0 top-14 z-50 w-[min(288px,90vw)] overflow-hidden rounded-r-lg border px-3 py-3 shadow-xl transition-transform duration-200 ease-out lg:relative lg:top-0 lg:z-30 lg:h-full lg:w-[240px] lg:shrink-0 lg:rounded-none lg:border-b-0 lg:border-l-0 lg:border-r lg:border-t-0 lg:shadow-none lg:transition-none ${
             mobileNavOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
@@ -466,7 +468,9 @@ export function CRMShell({ children, user }: CRMShellProps) {
 
         <main className="min-h-0 min-w-0 flex-1 overflow-x-hidden lg:flex lg:h-full lg:flex-col lg:overflow-hidden lg:p-3">
           <header
-            className="mb-3 flex shrink-0 flex-col gap-3 rounded-lg border px-3 py-3 sm:px-4 md:flex-row md:items-center md:justify-between"
+            className={`mb-2 flex shrink-0 flex-col gap-3 rounded-lg border px-3 py-3 sm:mb-3 sm:px-4 md:flex-row md:items-center md:justify-between ${
+              compactMobileChrome ? "hidden lg:flex" : ""
+            }`}
             style={{
               background: "var(--surface)",
               borderColor: "var(--border)",
@@ -631,7 +635,13 @@ export function CRMShell({ children, user }: CRMShellProps) {
               <p className="mt-1 text-xs text-[var(--text-soft)]">{latestItem.message}</p>
             </button>
           ) : null}
-          <div className="min-h-0 min-w-0 flex-1 overflow-x-hidden lg:flex lg:flex-col lg:overflow-y-auto">{children}</div>
+          <div
+            className={`min-h-0 min-w-0 flex-1 overflow-x-hidden lg:flex lg:flex-col ${
+              compactMobileChrome ? "overflow-hidden lg:overflow-y-auto" : "lg:overflow-y-auto"
+            }`}
+          >
+            {children}
+          </div>
         </main>
       </div>
     </div>

@@ -48,14 +48,72 @@
   --shadow-card: 0 14px 34px rgba(2, 6, 23, 0.32);
 }
 
+:root {
+  --crm-mobile-topbar: 3.5rem;
+  --crm-page-header: 4.75rem;
+  --crm-safe-top: env(safe-area-inset-top, 0px);
+  --crm-safe-bottom: env(safe-area-inset-bottom, 0px);
+  --crm-safe-left: env(safe-area-inset-left, 0px);
+  --crm-safe-right: env(safe-area-inset-right, 0px);
+}
+
 html {
   scroll-behavior: smooth;
   overflow-x: hidden;
+  -webkit-text-size-adjust: 100%;
 }
 
 body {
   min-height: 100vh;
+  min-height: 100dvh;
   overflow-x: hidden;
+  padding-left: var(--crm-safe-left);
+  padding-right: var(--crm-safe-right);
+}
+
+.crm-touch-target {
+  min-height: 44px;
+  min-width: 44px;
+}
+
+.crm-safe-bottom {
+  padding-bottom: max(0.75rem, var(--crm-safe-bottom));
+}
+
+.crm-chat-viewport {
+  height: calc(100dvh - var(--crm-mobile-topbar) - 0.75rem);
+}
+
+@media (min-width: 1024px) {
+  .crm-chat-viewport {
+    height: calc(100vh - 7.5rem);
+  }
+}
+
+.crm-table-scroll {
+  -webkit-overflow-scrolling: touch;
+  overflow-x: auto;
+}
+
+.crm-mobile-card-grid {
+  display: grid;
+  gap: 0.75rem;
+}
+
+@media (min-width: 1024px) {
+  .crm-mobile-card-grid {
+    display: none;
+  }
+}
+
+.crm-desktop-table {
+  display: none;
+}
+
+@media (min-width: 1024px) {
+  .crm-desktop-table {
+    display: block;
+  }
 }
 
 * {

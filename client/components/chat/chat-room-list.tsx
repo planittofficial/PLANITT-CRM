@@ -24,7 +24,7 @@ function RoomButton({
     <button
       type="button"
       onClick={onSelect}
-      className="w-full rounded-2xl border px-4 py-3 text-left transition"
+      className="crm-touch-target w-full rounded-2xl border px-4 py-3 text-left transition"
       style={{
         borderColor: active ? "var(--accent)" : "var(--border)",
         background: active

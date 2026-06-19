@@ -122,11 +122,12 @@ export default function DashboardPage() {
     <CRMShell user={user}>
       <div className="space-y-4">
         <Surface className="overflow-hidden p-0">
-<div className="grid gap-4 px-4 py-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-[1.1fr_0.9fr]">         <div>
+          <div className="grid grid-cols-1 gap-4 px-4 py-4 sm:grid-cols-2 lg:grid-cols-[1.1fr_0.9fr]">
+            <div>
               <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[var(--text-faint)]">
                 {summary.scope === "superadmin" ? "CEO command center" : summary.scope === "admin" ? "Admin command center" : "Personal command center"}
               </p>
-              <h1 className="mt-2 text-3xl font-semibold tracking-tight text-[var(--text-main)]">Welcome back, {user.name.split(" ")[0]}</h1>
+              <h1 className="mt-2 text-2xl font-semibold tracking-tight text-[var(--text-main)] sm:text-3xl">Welcome back, {user.name.split(" ")[0]}</h1>
               <p className="mt-2 max-w-2xl text-sm leading-6 text-[var(--text-soft)]">{leadershipView ? "Track key team health and progress in one place." : "See your daily attendance, work hours, and progress quickly."}</p>
               <div className="mt-4 grid max-w-2xl gap-2 sm:grid-cols-2">
                 <div className="rounded-xl border px-4 py-3" style={{ borderColor: "var(--border)", background: "var(--surface-soft)" }}>
@@ -181,7 +182,8 @@ export default function DashboardPage() {
                 <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[var(--text-faint)]">Analytics snapshot</p>
                 <h2 className="mt-2 text-2xl font-semibold text-[var(--text-main)]">Core metrics</h2>
               </div>
-              <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">                {overviewStats.map((stat) => <SummaryStatCard key={stat.label} label={stat.label} value={stat.value} helper={stat.helper} points={stat.points} />)}
+              <section className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                {overviewStats.map((stat) => <SummaryStatCard key={stat.label} label={stat.label} value={stat.value} helper={stat.helper} points={stat.points} />)}
               </section>
               <InsightTicker items={insightItems} />
               {leadershipView ? (
@@ -200,10 +202,12 @@ export default function DashboardPage() {
               {leadershipView && summary.scope === "superadmin" && summary.analytics.superAdmin?.departmentWise ? (
                 <DepartmentWisePanel departments={summary.analytics.superAdmin.departmentWise} />
               ) : null}
-<div className="grid gap-4 grid-cols-1 lg:grid-cols-2">                 <LineChartCard title={leadershipView ? "Organization work-hour trend" : "Personal work-hour trend"} subtitle="Daily work-hour movement for workload tracking." values={summary.analytics.workingHoursTrend.map((x) => x.hours)} labels={summary.analytics.workingHoursTrend.map((x) => x.label)} suffix="h" stroke="var(--accent)" fill="color-mix(in srgb, var(--accent) 14%, transparent)" />
+              <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+                <LineChartCard title={leadershipView ? "Organization work-hour trend" : "Personal work-hour trend"} subtitle="Daily work-hour movement for workload tracking." values={summary.analytics.workingHoursTrend.map((x) => x.hours)} labels={summary.analytics.workingHoursTrend.map((x) => x.label)} suffix="h" stroke="var(--accent)" fill="color-mix(in srgb, var(--accent) 14%, transparent)" />
                 <LineChartCard title="Task progress trend" subtitle="Completion momentum across recent days." values={summary.analytics.taskProgressTrend.map((x) => x.avgProgress)} labels={summary.analytics.taskProgressTrend.map((x) => x.label)} suffix="%" stroke="var(--success)" fill="color-mix(in srgb, var(--success) 12%, transparent)" />
               </div>
-<div className="grid gap-4 grid-cols-1 xl:grid-cols-2">            <ActivityBarsCard title="Created vs completed activity" subtitle="Daily workload creation compared with daily completion." labels={recentTrend.map((x) => x.label)} createdValues={recentTrend.map((x) => x.created)} completedValues={recentTrend.map((x) => x.completed)} />
+              <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+                <ActivityBarsCard title="Created vs completed activity" subtitle="Daily workload creation compared with daily completion." labels={recentTrend.map((x) => x.label)} createdValues={recentTrend.map((x) => x.created)} completedValues={recentTrend.map((x) => x.completed)} />
                 <PerformanceBars title="Operational quality indicators" subtitle="Modern CRM quality stack for delivery confidence." items={[{ label: "Task completion quality", value: completionRate, helper: "Share of tasks reaching done state" }, { label: "Live team availability", value: attendanceRate, helper: "Currently checked-in users" }, { label: "Momentum health", value: Math.max(0, Math.min(100, 50 + Math.round(progressDelta * 5))), helper: "Trend-adjusted execution pulse" }]} />
               </div>
             </section>
