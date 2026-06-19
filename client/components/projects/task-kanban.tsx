@@ -33,14 +33,20 @@ type Props = {
 
 export function TaskKanban({ groupedTasks, editingTaskId, editTaskForm, filteredAssignees, assignQuery, onAssignQueryChange, assignRole, onAssignRoleChange, assignRoleOptions, onEditTaskFormChange, onOpenEditor, onCancelEdit, onSaveEdit, onDelete, onStatusChange, onPriorityChange, toggleEditAssignee }: Props) {
   return (
-    <section className="grid gap-4 xl:grid-cols-3">
+    <section className="grid gap-4 xl:grid-cols-3 xl:items-start">
       {COLUMNS.map((col) => (
-        <div key={col.key} className="rounded-[20px] border p-5" style={{ background: "var(--surface)", borderColor: "var(--border)", boxShadow: "var(--shadow-soft)" }}>
-          <div className="flex items-center gap-3">
+        <div
+          key={col.key}
+          className="flex max-h-[min(55vh,520px)] flex-col overflow-hidden rounded-[20px] border p-4 sm:p-5 xl:max-h-[min(70vh,900px)]"
+          style={{ background: "var(--surface)", borderColor: "var(--border)", boxShadow: "var(--shadow-soft)" }}
+        >
+          <div className="flex shrink-0 items-center gap-3">
             <span className={`h-3 w-3 rounded-full ${col.tone}`} />
-            <h3 className="text-sm font-semibold uppercase tracking-[0.22em] text-[var(--text-soft)]">{col.label} ({groupedTasks[col.key].length})</h3>
+            <h3 className="text-sm font-semibold uppercase tracking-[0.22em] text-[var(--text-soft)]">
+              {col.label} ({groupedTasks[col.key].length})
+            </h3>
           </div>
-          <div className="mt-5 space-y-4">
+          <div className="mt-4 min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain pr-1">
             {groupTasksByAssignees(groupedTasks[col.key]).map((group) => (
               <div key={group.key} className="rounded-[18px] border p-3" style={{ borderColor: "var(--border)", background: "color-mix(in srgb, var(--surface-soft) 92%, var(--border))" }}>
                 <p className="mb-3 border-b pb-2 text-xs font-semibold uppercase tracking-wide text-[var(--text-soft)]" style={{ borderColor: "var(--border)" }}>
@@ -132,7 +138,14 @@ export function TaskKanban({ groupedTasks, editingTaskId, editTaskForm, filtered
                 {!groupedTasks[col.key].length ? <div className="rounded-[18px] border border-dashed p-6 text-sm" style={{ borderColor: "var(--border)", background: "var(--surface-soft)", color: "var(--text-soft)" }}>No tasks in this column yet.</div> : null}
               </div>
             ))}
-            {!groupedTasks[col.key].length ? <div className="rounded-[18px] border border-dashed p-6 text-sm" style={{ borderColor: "var(--border)", background: "var(--surface-soft)", color: "var(--text-soft)" }}>No tasks in this column yet.</div> : null}
+            {!groupedTasks[col.key].length ? (
+              <div
+                className="rounded-[18px] border border-dashed p-6 text-sm"
+                style={{ borderColor: "var(--border)", background: "var(--surface-soft)", color: "var(--text-soft)" }}
+              >
+                No tasks in this column yet.
+              </div>
+            ) : null}
           </div>
         </div>
       ))}
