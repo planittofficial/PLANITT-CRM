@@ -17,10 +17,16 @@ import { apiGet, apiPost } from "@/lib/api";
 import { normalizeErrorMessage } from "@/lib/error-message";
 import { ChatsSkeleton } from "@/components/shared/skeleton";
 import { roomKey } from "@/components/chat/chat-utils";
-import type { CRMUser, ChatRoomsResponse } from "@/types/crm";
+import type { CRMUser, ChatRoom, ChatRoomsResponse } from "@/types/crm";
 import { showToast } from "@/hooks/use-toast";
 
 type MobilePane = "rooms" | "conversation";
+
+function getRoomTypeLabel(type: ChatRoom["type"]) {
+  if (type === "DEPARTMENT") return "Department room";
+  if (type === "PROJECT") return "Project room";
+  return "Group room";
+}
 
 export default function ChatPage() {
   const { user, loading: sessionLoading, error: sessionError, retry: retrySession } = useSession();
@@ -35,6 +41,7 @@ export default function ChatPage() {
   const [draft, setDraft] = useState("");
   const [showStartDirectModal, setShowStartDirectModal] = useState(false);
   const [directTargetUserId, setDirectTargetUserId] = useState("");
+  const [roomToolsExpanded, setRoomToolsExpanded] = useState(false);
 
   const allRooms = useMemo(() => [...rooms.departments, ...rooms.projects, ...rooms.groups], [rooms]);
   const selectedRoom = allRooms.find((r) => roomKey(r) === selectedKey) ?? null;
@@ -65,10 +72,15 @@ export default function ChatPage() {
 
   const handleSelectRoom = (key: string) => {
     setSelectedKey(key);
+    setRoomToolsExpanded(false);
     if (isCompact) {
       setMobilePane("conversation");
     }
   };
+
+  useEffect(() => {
+    setRoomToolsExpanded(false);
+  }, [selectedKey]);
 
   useEffect(() => {
     if (!isCompact) {
@@ -238,76 +250,137 @@ export default function ChatPage() {
           >
             {selectedRoom ? (
               <>
-                <div className="shrink-0 border-b px-3 py-3 sm:px-5 sm:py-4" style={{ borderColor: "var(--border)" }}>
-                  <div className="flex items-start gap-2">
-                    {isCompact ? (
-                      <button
-                        type="button"
-                        onClick={() => setMobilePane("rooms")}
-                        className="crm-touch-target shrink-0 rounded-lg border px-3 text-sm font-semibold"
-                        style={{ borderColor: "var(--border)", color: "var(--text-main)", background: "var(--surface-soft)" }}
-                        aria-label="Back to rooms"
-                      >
-                        ←
-                      </button>
-                    ) : null}
-                    <div className="min-w-0 flex-1">
-                      <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[var(--text-faint)]">
-                        {selectedRoom.type === "DEPARTMENT"
-                          ? "Department room"
-                          : selectedRoom.type === "PROJECT"
-                            ? "Project room"
-                            : "Group room"}
-                      </p>
-                      <h2 className="mt-1 truncate text-lg font-semibold text-[var(--text-main)] sm:text-2xl">
-                        {selectedRoom.name}
-                      </h2>
-                      <p className="mt-0.5 truncate text-sm text-[var(--text-soft)]">{selectedRoom.subtitle}</p>
-                    </div>
-                  </div>
-
-                  <input
-                    value={messages_.search}
-                    onChange={(e) => messages_.setSearch(e.target.value)}
-                    placeholder="Search messages..."
-                    className="mt-3 h-11 w-full rounded-xl border px-3 text-base outline-none sm:text-sm"
-                    style={{ borderColor: "var(--border)", background: "var(--surface-soft)", color: "var(--text-main)" }}
-                  />
-
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    <button
-                      type="button"
-                      onClick={() => void media_.openMediaPanel()}
-                      className="crm-touch-target rounded-lg border px-3 py-2 text-xs font-semibold sm:py-1.5"
-                      style={{ borderColor: "var(--border)", color: "var(--text-main)" }}
-                    >
-                      Media
-                    </button>
-                    {canClearChat ? (
-                      <button
-                        type="button"
-                        onClick={() => void clearChat()}
-                        className="crm-touch-target rounded-lg border px-3 py-2 text-xs font-semibold sm:py-1.5"
-                        style={{ borderColor: "var(--border)", color: "var(--text-main)" }}
-                      >
-                        Clear chat
-                      </button>
-                    ) : null}
-                    {selectedRoom.type === "GROUP" && canManageGroups ? (
-                      <button
-                        type="button"
-                        onClick={() => void groups_.openGroupSettings(selectedRoom)}
-                        disabled={Boolean(selectedRoom.isDirect)}
-                        className="crm-touch-target rounded-lg border px-3 py-2 text-xs font-semibold disabled:cursor-not-allowed disabled:opacity-60 sm:py-1.5"
-                        style={{ borderColor: "var(--border)", color: "var(--text-main)" }}
-                      >
-                        Group settings
-                      </button>
-                    ) : null}
-                  </div>
+                <div className="shrink-0 border-b px-2 py-2 sm:px-5 sm:py-4" style={{ borderColor: "var(--border)" }}>
+                  {isCompact ? (
+                    <>
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setMobilePane("rooms")}
+                          className="crm-touch-target flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border text-sm font-semibold"
+                          style={{ borderColor: "var(--border)", color: "var(--text-main)", background: "var(--surface-soft)" }}
+                          aria-label="Back to rooms"
+                        >
+                          ←
+                        </button>
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-sm font-semibold text-[var(--text-main)]">{selectedRoom.name}</p>
+                          <p className="truncate text-xs text-[var(--text-soft)]">
+                            {getRoomTypeLabel(selectedRoom.type)}
+                            {selectedRoom.subtitle ? ` · ${selectedRoom.subtitle}` : ""}
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setRoomToolsExpanded((value) => !value)}
+                          className="crm-touch-target shrink-0 rounded-lg border px-3 py-2 text-xs font-semibold"
+                          style={{
+                            borderColor: "var(--border)",
+                            color: roomToolsExpanded ? "var(--accent-strong)" : "var(--text-main)",
+                            background: roomToolsExpanded ? "color-mix(in srgb, var(--accent) 10%, var(--surface))" : "var(--surface-soft)",
+                          }}
+                          aria-expanded={roomToolsExpanded}
+                        >
+                          {roomToolsExpanded ? "Minimize" : "Details"}
+                        </button>
+                      </div>
+                      {roomToolsExpanded ? (
+                        <div className="mt-2 space-y-2 border-t pt-2" style={{ borderColor: "var(--border)" }}>
+                          <input
+                            value={messages_.search}
+                            onChange={(e) => messages_.setSearch(e.target.value)}
+                            placeholder="Search messages..."
+                            className="h-10 w-full rounded-xl border px-3 text-base outline-none"
+                            style={{ borderColor: "var(--border)", background: "var(--surface-soft)", color: "var(--text-main)" }}
+                          />
+                          <div className="flex flex-wrap gap-2">
+                            <button
+                              type="button"
+                              onClick={() => void media_.openMediaPanel()}
+                              className="crm-touch-target rounded-lg border px-3 py-2 text-xs font-semibold"
+                              style={{ borderColor: "var(--border)", color: "var(--text-main)" }}
+                            >
+                              Media
+                            </button>
+                            {canClearChat ? (
+                              <button
+                                type="button"
+                                onClick={() => void clearChat()}
+                                className="crm-touch-target rounded-lg border px-3 py-2 text-xs font-semibold"
+                                style={{ borderColor: "var(--border)", color: "var(--text-main)" }}
+                              >
+                                Clear chat
+                              </button>
+                            ) : null}
+                            {selectedRoom.type === "GROUP" && canManageGroups ? (
+                              <button
+                                type="button"
+                                onClick={() => void groups_.openGroupSettings(selectedRoom)}
+                                disabled={Boolean(selectedRoom.isDirect)}
+                                className="crm-touch-target rounded-lg border px-3 py-2 text-xs font-semibold disabled:cursor-not-allowed disabled:opacity-60"
+                                style={{ borderColor: "var(--border)", color: "var(--text-main)" }}
+                              >
+                                Group settings
+                              </button>
+                            ) : null}
+                          </div>
+                        </div>
+                      ) : null}
+                    </>
+                  ) : (
+                    <>
+                      <div className="flex items-start gap-2">
+                        <div className="min-w-0 flex-1">
+                          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[var(--text-faint)]">
+                            {getRoomTypeLabel(selectedRoom.type)}
+                          </p>
+                          <h2 className="mt-1 truncate text-2xl font-semibold text-[var(--text-main)]">{selectedRoom.name}</h2>
+                          <p className="mt-0.5 truncate text-sm text-[var(--text-soft)]">{selectedRoom.subtitle}</p>
+                        </div>
+                      </div>
+                      <input
+                        value={messages_.search}
+                        onChange={(e) => messages_.setSearch(e.target.value)}
+                        placeholder="Search messages..."
+                        className="mt-3 h-11 w-full rounded-xl border px-3 text-sm outline-none"
+                        style={{ borderColor: "var(--border)", background: "var(--surface-soft)", color: "var(--text-main)" }}
+                      />
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        <button
+                          type="button"
+                          onClick={() => void media_.openMediaPanel()}
+                          className="crm-touch-target rounded-lg border px-3 py-1.5 text-xs font-semibold"
+                          style={{ borderColor: "var(--border)", color: "var(--text-main)" }}
+                        >
+                          Media
+                        </button>
+                        {canClearChat ? (
+                          <button
+                            type="button"
+                            onClick={() => void clearChat()}
+                            className="crm-touch-target rounded-lg border px-3 py-1.5 text-xs font-semibold"
+                            style={{ borderColor: "var(--border)", color: "var(--text-main)" }}
+                          >
+                            Clear chat
+                          </button>
+                        ) : null}
+                        {selectedRoom.type === "GROUP" && canManageGroups ? (
+                          <button
+                            type="button"
+                            onClick={() => void groups_.openGroupSettings(selectedRoom)}
+                            disabled={Boolean(selectedRoom.isDirect)}
+                            className="crm-touch-target rounded-lg border px-3 py-1.5 text-xs font-semibold disabled:cursor-not-allowed disabled:opacity-60"
+                            style={{ borderColor: "var(--border)", color: "var(--text-main)" }}
+                          >
+                            Group settings
+                          </button>
+                        ) : null}
+                      </div>
+                    </>
+                  )}
                 </div>
 
-                <div className="min-h-0 flex-1 space-y-3 overflow-y-auto overscroll-contain p-3 sm:p-4 lg:p-5">
+                <div className="min-h-0 flex-1 space-y-3 overflow-y-auto overscroll-contain p-2 sm:p-4 lg:p-5">
                   {!messages_.messagesLoading && messages_.hasMoreMessages ? (
                     <div className="mb-2 flex justify-center">
                       <button
@@ -347,7 +420,7 @@ export default function ChatPage() {
                 </div>
 
                 <div
-                  className="crm-safe-bottom shrink-0 border-t p-3 sm:p-4"
+                  className="crm-safe-bottom shrink-0 border-t px-2 py-2 sm:p-4"
                   style={{ borderColor: "var(--border)", background: "var(--surface)" }}
                 >
                   {messages_.replyTo ? (
@@ -387,47 +460,45 @@ export default function ChatPage() {
                       </button>
                     </div>
                   ) : null}
-                  <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
-                    <div className="flex min-w-0 flex-1 items-end gap-2">
-                      <input
-                        ref={messages_.fileInputRef}
-                        type="file"
-                        accept="image/*,application/pdf"
-                        className="hidden"
-                        onChange={(e) => messages_.setSelectedFile(e.target.files?.[0] ?? null)}
-                      />
-                      <button
-                        type="button"
-                        onClick={() => messages_.fileInputRef.current?.click()}
-                        className="crm-touch-target flex h-11 w-11 shrink-0 items-center justify-center rounded-full border text-2xl leading-none"
-                        style={{ borderColor: "var(--border)", color: "var(--text-main)", background: "var(--surface-soft)" }}
-                        aria-label="Attach file"
-                      >
-                        +
-                      </button>
-                      <textarea
-                        value={draft}
-                        onChange={(e) => setDraft(e.target.value)}
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter" && !e.shiftKey) {
-                            e.preventDefault();
-                            void messages_.sendMessage(draft, () => setDraft(""));
-                          }
-                        }}
-                        placeholder="Write a message..."
-                        rows={1}
-                        className="min-h-[44px] max-h-[120px] flex-1 resize-none rounded-2xl border px-4 py-3 text-base outline-none sm:text-sm"
-                        style={{ borderColor: "var(--border)", background: "var(--surface-soft)", color: "var(--text-main)" }}
-                      />
-                    </div>
+                  <div className="flex items-end gap-2">
+                    <input
+                      ref={messages_.fileInputRef}
+                      type="file"
+                      accept="image/*,application/pdf"
+                      className="hidden"
+                      onChange={(e) => messages_.setSelectedFile(e.target.files?.[0] ?? null)}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => messages_.fileInputRef.current?.click()}
+                      className="crm-touch-target flex h-11 w-11 shrink-0 items-center justify-center rounded-full border text-2xl leading-none"
+                      style={{ borderColor: "var(--border)", color: "var(--text-main)", background: "var(--surface-soft)" }}
+                      aria-label="Attach file"
+                    >
+                      +
+                    </button>
+                    <textarea
+                      value={draft}
+                      onChange={(e) => setDraft(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" && !e.shiftKey) {
+                          e.preventDefault();
+                          void messages_.sendMessage(draft, () => setDraft(""));
+                        }
+                      }}
+                      placeholder="Write a message..."
+                      rows={1}
+                      className="min-h-[44px] max-h-[100px] min-w-0 flex-1 resize-none rounded-2xl border px-3 py-2.5 text-base outline-none sm:max-h-[120px] sm:px-4 sm:py-3 sm:text-sm"
+                      style={{ borderColor: "var(--border)", background: "var(--surface-soft)", color: "var(--text-main)" }}
+                    />
                     <button
                       type="button"
                       onClick={() => void messages_.sendMessage(draft, () => setDraft(""))}
                       disabled={messages_.sending || (!draft.trim() && !messages_.selectedFile)}
-                      className="crm-touch-target h-11 w-full rounded-full px-5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
+                      className="crm-touch-target flex h-11 shrink-0 items-center justify-center rounded-full px-4 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
                       style={{ background: "var(--accent)" }}
                     >
-                      {messages_.sending ? "Sending..." : "Send"}
+                      {messages_.sending ? "…" : "Send"}
                     </button>
                   </div>
                 </div>

@@ -128,7 +128,7 @@ export function ChatMessageBubble({
           </div>
         )}
 
-        <p className="whitespace-pre-wrap break-words text-sm leading-6 text-[var(--text-main)]">
+        <p className="whitespace-pre-wrap break-words text-sm leading-6 text-[var(--text-main)] [overflow-wrap:anywhere]">
           {message.content}
         </p>
 
@@ -140,7 +140,7 @@ export function ChatMessageBubble({
                 href={url}
                 target="_blank"
                 rel="noreferrer"
-                className="rounded-xl border px-3 py-1.5 text-xs font-semibold"
+                className="max-w-full truncate rounded-xl border px-3 py-1.5 text-xs font-semibold"
                 style={{
                   borderColor: "var(--border)",
                   background: "var(--surface)",
