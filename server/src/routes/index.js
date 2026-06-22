@@ -12,6 +12,7 @@ import taskRouter from "./task.routes.js";
 import userRouter from "./user.routes.js";
 import leaveRouter from "./leave.routes.js";
 import notificationRouter from "./notification.routes.js";
+import reportsRouter from "./reports.routes.js";
 
 const router = Router();
 
@@ -28,5 +29,6 @@ router.use("/attendance", attendanceRouter);
 router.use("/activity-logs", activityLogRouter);
 router.use("/users", userRouter);
 router.use("/notifications", notificationRouter);
+router.use("/reports", reportsRouter);
 
 export default router;

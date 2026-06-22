@@ -37,6 +37,7 @@ const roleLabel: Record<CRMUser["role"], string> = {
 
 const pageTitles: Record<string, string> = {
   "/dashboard": "Dashboard",
+  "/analytics": "Analytics & Reports",
   "/projects": "Projects",
   "/tasks": "Tasks",
   "/leaves": "Leaves",
@@ -277,6 +278,9 @@ export function CRMShell({ children, user }: CRMShellProps) {
 
   const navItems: NavItem[] = [
     { href: "/dashboard", label: "Dashboard", icon: "D" },
+    ...(user.role === "SUPERADMIN" || user.role === "ADMIN" || user.role === "MANAGER"
+      ? [{ href: "/analytics", label: "Analytics", icon: "A" }]
+      : []),
     ...(user.role === "SUPERADMIN" || user.role === "ADMIN" || user.role === "MANAGER"
       ? [{ href: "/projects", label: "Projects", icon: "P" }]
       : []),

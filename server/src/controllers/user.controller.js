@@ -918,8 +918,43 @@ export async function getUserAnalytics(req, res) {
       return res.status(403).json({ error: "You do not have access to this team member analytics" });
     }
 
-    const heatmapDays = getLastNDays(35);
-    const trendDays = getLastNDays(14);
+    const parseIsoDate = (value, fallback) => {
+      const raw = typeof value === "string" ? value.trim() : "";
+      if (!raw) return fallback;
+      const d = new Date(raw);
+      return Number.isNaN(d.getTime()) ? fallback : d;
+    };
+    const startOfDay = (d) => {
+      const x = new Date(d);
+      x.setHours(0, 0, 0, 0);
+      return x;
+    };
+    const endOfDay = (d) => {
+      const x = new Date(d);
+      x.setHours(23, 59, 59, 999);
+      return x;
+    };
+    const buildDaysRange = (startDate, endDate) => {
+      const days = [];
+      const cursor = startOfDay(startDate);
+      const end = startOfDay(endDate);
+      while (cursor <= end) {
+        days.push(new Date(cursor));
+        cursor.setDate(cursor.getDate() + 1);
+      }
+      return days;
+    };
+
+    const now = new Date();
+    const defaultEnd = endOfDay(now);
+    const defaultStart = startOfDay(new Date(now.getTime() - 34 * 24 * 60 * 60 * 1000));
+    const requestedStart = startOfDay(parseIsoDate(req.query.startDate, defaultStart));
+    const requestedEnd = endOfDay(parseIsoDate(req.query.endDate, defaultEnd));
+
+    const rangeDays =
+      requestedStart <= requestedEnd ? buildDaysRange(requestedStart, requestedEnd) : getLastNDays(35);
+    const heatmapDays = rangeDays.slice(-90);
+    const trendDays = rangeDays.slice(-60);
     const heatmapStart = heatmapDays[0];
     const trendStart = trendDays[0];
 
