@@ -197,25 +197,8 @@ function SimpleTable({ title, subtitle, columns, rows }: { title: string; subtit
 
 export default function AnalyticsPage() {
   const { user, loading, error: sessionError, retry: retrySession } = useSession();
-  const sessionGate = renderSessionGate({
-    loading,
-    user,
-    error: sessionError,
-    retry: retrySession,
-    loadingTitle: "Loading analytics",
-    loadingDescription: "Preparing management reports.",
-  });
-  if (sessionGate) return sessionGate;
-  if (!user) return null;
-
-  const isLeadership = user.role === "SUPERADMIN" || user.role === "ADMIN" || user.role === "MANAGER";
-  if (!isLeadership) {
-    return (
-      <CRMShell user={user}>
-        <StatePanel title="Access restricted" description="Analytics & Reports is only available to Super Admin, Admin, and Manager accounts." />
-      </CRMShell>
-    );
-  }
+  const isLeadership =
+    user?.role === "SUPERADMIN" || user?.role === "ADMIN" || user?.role === "MANAGER";
 
   const [tab, setTab] = useState<ReportTab>("executive");
   const [startDate, setStartDate] = useState(() => isoDay(new Date(Date.now() - 13 * 24 * 60 * 60 * 1000)));
@@ -239,6 +222,8 @@ export default function AnalyticsPage() {
   const [employeeAnalytics, setEmployeeAnalytics] = useState<UserAnalyticsSummary | null>(null);
 
   useEffect(() => {
+    if (!isLeadership) return;
+
     let cancelled = false;
     async function loadPickers() {
       try {
@@ -251,9 +236,8 @@ export default function AnalyticsPage() {
         setEmployees(employeeDirectory.users);
         setDepartments(deps);
         setProjects(projs);
-      } catch (err) {
+      } catch {
         if (cancelled) return;
-        // Pickers are helpful but not blocking.
         setEmployees([]);
         setDepartments([]);
         setProjects([]);
@@ -263,7 +247,7 @@ export default function AnalyticsPage() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [isLeadership]);
 
   const commonQuery = useMemo(
     () =>
@@ -278,6 +262,8 @@ export default function AnalyticsPage() {
   );
 
   useEffect(() => {
+    if (!isLeadership) return;
+
     let cancelled = false;
     async function loadReport() {
       setLoadingReport(true);
@@ -328,7 +314,7 @@ export default function AnalyticsPage() {
     return () => {
       cancelled = true;
     };
-  }, [tab, commonQuery, startDate, endDate, employeeId, departmentId, projectId]);
+  }, [isLeadership, tab, commonQuery, startDate, endDate, employeeId, departmentId, projectId]);
 
   const exportParams = useMemo(() => {
     const base = { startDate, endDate };
@@ -357,6 +343,28 @@ export default function AnalyticsPage() {
       setLoadingReport(false);
     }
   };
+
+  const sessionGate = renderSessionGate({
+    loading,
+    user,
+    error: sessionError,
+    retry: retrySession,
+    loadingTitle: "Loading analytics",
+    loadingDescription: "Preparing management reports.",
+  });
+  if (sessionGate) return sessionGate;
+  if (!user) return null;
+
+  if (!isLeadership) {
+    return (
+      <CRMShell user={user}>
+        <StatePanel
+          title="Access restricted"
+          description="Analytics & Reports is only available to Super Admin, Admin, and Manager accounts."
+        />
+      </CRMShell>
+    );
+  }
 
   return (
     <CRMShell user={user}>
