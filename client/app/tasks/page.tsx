@@ -6,6 +6,7 @@ import { useCrmSearch } from "@/components/providers/crm-search-provider";
 import { TaskList } from "@/components/modules/task-list";
 import { StatePanel } from "@/components/shared/state-panel";
 import { renderSessionGate } from "@/components/shared/session-gate";
+import { ResponsiveSelect } from "@/components/shared/responsive-select";
 import { useRealtimeRefresh } from "@/hooks/use-realtime-refresh";
 import { useSession } from "@/hooks/use-session";
 import { MemberPickerToolbar, type MemberRoleFilter } from "@/components/shared/member-picker-toolbar";
@@ -95,6 +96,14 @@ useCrmSearch();
   const assignPickerRoleOptions = useMemo(
     () => [...taskAssignableRoles].sort((a, b) => a.localeCompare(b)),
     [taskAssignableRoles]
+  );
+  const projectFilterOptions = useMemo(
+    () => [{ value: "ALL", label: "All projects" }, ...projects.map((project) => ({ value: project.id, label: project.name }))],
+    [projects]
+  );
+  const priorityOptions = useMemo(
+    () => TASK_PRIORITY_OPTIONS.map((option) => ({ value: option.value, label: option.label })),
+    []
   );
 
   const directory = usePaginatedDirectoryUsers({
@@ -400,7 +409,7 @@ if (loading) {
 
         <Skeleton className="h-12 w-64" />
 
-        <div className="grid gap-4 md:grid-cols-3 xl:grid-cols-6">
+        <div className="grid gap-4 md:grid-cols-3 xl:grid-cols-4">
           {Array.from({ length: 6 }).map((_, i) => (
             <Skeleton
               key={i}
@@ -432,7 +441,7 @@ return (
               ? "Create and assign work in a focused workspace without oversized panels."
               : "Review assignments, update progress, and report blockers from one clean view."}
           </p>
-          <div className="mt-5 grid gap-3 md:grid-cols-3 xl:grid-cols-6">
+          <div className="mt-5 grid gap-3 md:grid-cols-3 xl:grid-cols-4">
             {[
               { label: "All tasks", value: taskAnalytics.total },
               { label: "Done", value: taskAnalytics.done },
@@ -465,6 +474,15 @@ return (
                 <div className="space-y-3">
                   <textarea
   readOnly
+  onClick={(e) => {
+  navigator.clipboard.writeText(
+    (e.target as HTMLTextAreaElement).value
+  );
+   showToast(
+    "Template copied to clipboard",
+    "success"
+   );
+}}
   className="min-h-36 w-full rounded-2xl border px-3 py-3 text-sm"
   style={fieldStyle}
   value={`Title: Dashboard Fix
@@ -552,8 +570,8 @@ Checklist:
                 <label className="grid gap-2">
                   <span className="text-sm font-medium text-[var(--text-main)]">Deadline</span>
                   <input
-                    type="datetime-local"
-                    className="h-12 rounded-2xl border px-4 text-sm outline-none"
+                    type="date"
+                    className="h-12 w-full min-w-0 rounded-2xl border px-4 text-sm outline-none"
                     style={fieldStyle}
                     value={form.deadlineAt}
                     onChange={(event) =>
@@ -563,23 +581,19 @@ Checklist:
                 </label>
                 <label className="grid gap-2">
                   <span className="text-sm font-medium text-(--text-main)">Priority</span>
-                  <select
-                    className="h-12 rounded-2xl border px-4 text-sm outline-none"
-                    style={fieldStyle}
+                  <ResponsiveSelect
+                  priorityColors
                     value={form.priority}
-                    onChange={(event) =>
+                    onChange={(value) =>
                       setForm((current) => ({
                         ...current,
-                        priority: event.target.value as TaskPriority,
+                        priority: value as TaskPriority,
                       }))
                     }
-                  >
-                    {TASK_PRIORITY_OPTIONS.map((opt) => (
-                      <option key={opt.value} value={opt.value}>
-                        {opt.label}
-                      </option>
-                    ))}
-                  </select>
+                    options={priorityOptions}
+                    ariaLabel="Select task priority"
+                    buttonClassName="h-12 px-4"
+                  />
                 </label>
                 <textarea
                   className="min-h-32 rounded-2xl border px-4 py-3 outline-none"
@@ -748,27 +762,21 @@ Checklist:
             </div>
             {filterOpen ? (
               <div
-                className="mt-4 grid gap-3 rounded-2xl border p-3 md:grid-cols-[minmax(220px,320px)_minmax(0,1fr)]"
+                className="mt-4 grid gap-3 rounded-2xl border p-3 md:grid-cols-[minmax(0,320px)_minmax(0,1fr)]"
                 style={{ borderColor: "var(--border)", background: "var(--surface-soft)" }}
               >
                 <label className="grid min-w-0 gap-1">
                   <span className="text-xs font-semibold uppercase tracking-[0.12em] text-(--text-soft)">Project</span>
-                  <select
-                    className="h-10 w-full rounded-xl border px-3 text-sm outline-none"
-                    style={fieldStyle}
+                  <ResponsiveSelect
                     value={selectedProjectId}
-                    onChange={(event) => {
-                      setSelectedProjectId(event.target.value);
+                    onChange={(value) => {
+                      setSelectedProjectId(value);
                       setLoading(true);
                     }}
-                  >
-                    <option value="ALL">All projects</option>
-                    {projects.map((project) => (
-                      <option key={project.id} value={project.id}>
-                        {project.name}
-                      </option>
-                    ))}
-                  </select>
+                    options={projectFilterOptions}
+                    ariaLabel="Filter tasks by project"
+                    buttonClassName="h-10 rounded-xl"
+                  />
                 </label>
                 <label className="grid min-w-0 gap-1">
                   <span className="text-xs font-semibold uppercase tracking-[0.12em] text-(--text-soft)">Task Name</span>

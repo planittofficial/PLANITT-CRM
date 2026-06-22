@@ -9,6 +9,7 @@ import type {
   ChatRoom,
 } from "@/types/crm";
 import { UserAvatar } from "@/components/shared/user-avatar";
+import { ResponsiveSelect } from "../shared/responsive-select";
 import { formatTime, resolveAttachmentUrl } from "./chat-utils";
 
 /* ─── Create Group Modal ─────────────────────────────────── */
@@ -48,9 +49,9 @@ export function CreateGroupModal({
   onSubmit,
 }: CreateGroupProps) {
   return (
-    <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/35 p-4">
+    <div className="fixed inset-0 z-40 flex items-end justify-center bg-black/35 p-0 sm:items-center sm:p-4">
       <div
-        className="w-full max-w-xl rounded-2xl border p-4"
+        className="max-h-[92dvh] w-full overflow-y-auto rounded-t-2xl border p-4 sm:max-w-md sm:rounded-2xl sm:mx-auto"
         style={{ background: "var(--surface)", borderColor: "var(--border)" }}
       >
         <h3 className="text-lg font-semibold text-[var(--text-main)]">Create group</h3>
@@ -125,26 +126,26 @@ export function StartDirectChatModal({
   onSubmit,
 }: StartDirectChatProps) {
   return (
-    <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/35 p-4">
+    <div className="fixed inset-0 z-40 flex items-end justify-center bg-black/35 p-0 sm:items-center sm:p-4">
       <div
-        className="w-full max-w-xl rounded-2xl border p-4"
+        className="max-h-[92dvh] w-full overflow-y-auto rounded-t-2xl border p-4 sm:max-w-md sm:rounded-2xl sm:mx-auto"
         style={{ background: "var(--surface)", borderColor: "var(--border)" }}
       >
         <h3 className="text-lg font-semibold text-[var(--text-main)]">Start one-to-one chat</h3>
         <p className="mt-1 text-sm text-[var(--text-soft)]">Select a member to open a private chat room.</p>
-        <select
-          value={selectedUserId}
-          onChange={(e) => onChangeUserId(e.target.value)}
-          className="mt-3 h-11 w-full rounded-xl border px-3 text-sm outline-none"
-          style={{ borderColor: "var(--border)", background: "var(--surface-soft)", color: "var(--text-main)" }}
-        >
-          <option value="">Select member</option>
-          {users.map((member) => (
-            <option key={member.id} value={member.id}>
-              {member.name} ({member.role})
-            </option>
-          ))}
-        </select>
+        <div className="mt-3">
+  <ResponsiveSelect
+    value={selectedUserId}
+    onChange={onChangeUserId}
+    ariaLabel="Select member"
+    placeholder="Select member"
+    options={users.map((member) => ({
+      value: member.id,
+      label: `${member.name} (${member.role})`,
+    }))}
+    buttonClassName="h-11"
+  />
+</div>
         <div className="mt-4 flex justify-end gap-2">
           <button
             type="button"
@@ -201,9 +202,9 @@ export function GroupSettingsDrawer({
   const nonMembers = allUsers.filter((u) => !members.some((m) => m.userId === u.id));
 
   return (
-    <div className="fixed inset-0 z-40 flex justify-end bg-black/30">
+    <div className="fixed inset-0 z-40 flex items-end justify-end bg-black/30 sm:items-stretch">
       <div
-        className="h-full w-full max-w-md overflow-y-auto border-l p-4"
+        className="h-[min(92dvh,100%)] w-full max-w-md overflow-y-auto rounded-t-2xl border-t border-l p-4 sm:h-full sm:rounded-none"
         style={{ background: "var(--surface)", borderColor: "var(--border)" }}
       >
         <div className="flex items-center justify-between">
@@ -337,9 +338,9 @@ export function MediaPanelDrawer({
   onDeleteSelected,
 }: MediaPanelProps) {
   return (
-    <div className="fixed inset-0 z-40 flex justify-end bg-black/30">
+    <div className="fixed inset-0 z-40 flex items-end justify-end bg-black/30 sm:items-stretch">
       <div
-        className="h-full w-full max-w-md overflow-y-auto border-l p-4"
+        className="h-[min(92dvh,100%)] w-full max-w-md overflow-y-auto rounded-t-2xl border-t border-l p-4 sm:h-full sm:rounded-none"
         style={{ background: "var(--surface)", borderColor: "var(--border)" }}
       >
         <div className="flex items-center justify-between">

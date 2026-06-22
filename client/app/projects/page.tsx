@@ -3,6 +3,7 @@
 import { useDeferredValue, useEffect, useMemo } from "react";
 import { CRMShell } from "@/components/layout/crm-shell";
 import { MemberPickerToolbar } from "@/components/shared/member-picker-toolbar";
+import { ResponsiveSelect } from "@/components/shared/responsive-select";
 import { StatePanel } from "@/components/shared/state-panel";
 import { useState } from "react";
 import { showToast } from "@/hooks/use-toast";
@@ -34,6 +35,18 @@ export default function ProjectsPage() {
   const [projectPasteText, setProjectPasteText] = useState("");
 
   const [projectSmartPasteText, setProjectSmartPasteText] = useState("");
+  const departmentOptions = useMemo(
+    () => [{ value: "", label: "Select department" }, ...departments.map((department) => ({ value: department.id, label: department.name }))],
+    [departments]
+  );
+  const ownerOptions = useMemo(
+    () => [{ value: "", label: "Select owner" }, ...team.filter((member) => ["SUPERADMIN", "ADMIN", "MANAGER"].includes(member.role)).map((member) => ({ value: member.id, label: `${member.name} - ${member.role}` }))],
+    [team]
+  );
+  const priorityOptions = useMemo(
+    () => TASK_PRIORITY_OPTIONS.map((option) => ({ value: option.value, label: option.label })),
+    []
+  );
   const handleProjectSmartPaste = () => {
 
   const parsed =
@@ -179,7 +192,7 @@ const handleTaskPaste = () => {
           <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[var(--text-faint)]">Projects analytics</p>
           <h1 className="mt-2 text-3xl font-semibold tracking-tight text-[var(--text-main)]">Project command center</h1>
           <p className="mt-3 text-sm leading-6 text-[var(--text-soft)]">A simple analytical view of project throughput, completion quality, and potential delivery risk.</p>
-          <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-5">
+          <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
             {[{ label: "Total projects", value: projectAnalytics.totalProjects }, { label: "Average progress", value: `${projectAnalytics.avgProgress}%` }, { label: "Total tasks", value: projectAnalytics.totalTasks }, { label: "Completion rate", value: `${projectAnalytics.completionRate}%` }, { label: "Risk projects", value: projectAnalytics.delayedProjects }].map((item) => (
               <div key={item.label} className="rounded-2xl border px-4 py-3" style={{ borderColor: "var(--border)", background: "var(--surface-soft)" }}>
                 <p className="text-[11px] uppercase tracking-[0.18em] text-[var(--text-faint)]">{item.label}</p>
@@ -223,6 +236,15 @@ const handleTaskPaste = () => {
               <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[var(--text-faint)]">Create project</p>
               <textarea
   readOnly
+  onClick={(e) => {
+  navigator.clipboard.writeText(
+    (e.target as HTMLTextAreaElement).value
+  );
+   showToast(
+    "Template copied to clipboard",
+    "success"
+   );
+}}
   className="min-h-28 w-full rounded-2xl border px-3 py-3 text-sm"
   style={FIELD_STYLE}
   value={`Title: CRM Dashboard
@@ -265,14 +287,8 @@ Internal analytics dashboard`}
 </div>
                 <input className="h-11 w-full min-w-0 box-border rounded-2xl border px-3 text-sm outline-none" style={FIELD_STYLE} placeholder="Project name" value={projectForm.name} onChange={(e) => setProjectForm((c) => ({ ...c, name: e.target.value }))} />
                 <textarea className="min-h-24 w-full min-w-0 box-border rounded-2xl border px-3 py-3 text-sm outline-none" style={FIELD_STYLE} placeholder="Project description" value={projectForm.description} onChange={(e) => setProjectForm((c) => ({ ...c, description: e.target.value }))} />
-                <select className="h-11 w-full min-w-0 box-border rounded-2xl border px-3 text-sm outline-none" style={FIELD_STYLE} value={projectForm.departmentId} onChange={(e) => setProjectForm((c) => ({ ...c, departmentId: e.target.value }))}>
-                  <option value="">Select department</option>
-                  {departments.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
-                </select>
-                <select className="h-11 w-full min-w-0 box-border rounded-2xl border px-3 text-sm outline-none" style={FIELD_STYLE} value={projectForm.ownerId} onChange={(e) => setProjectForm((c) => ({ ...c, ownerId: e.target.value }))}>
-                  <option value="">Select owner</option>
-                  {team.filter((m) => ["SUPERADMIN","ADMIN","MANAGER"].includes(m.role)).map((m) => <option key={m.id} value={m.id}>{m.name} - {m.role}</option>)}
-                </select>
+                <ResponsiveSelect value={projectForm.departmentId} onChange={(value) => setProjectForm((c) => ({ ...c, departmentId: value }))} options={departmentOptions} ariaLabel="Select project department" buttonClassName="h-11 box-border px-3" />
+                <ResponsiveSelect value={projectForm.ownerId} onChange={(value) => setProjectForm((c) => ({ ...c, ownerId: value }))} options={ownerOptions} ariaLabel="Select project owner" buttonClassName="h-11 box-border px-3" />
                 <button type="button" disabled={creatingProject} onClick={() => void createProject()} className="w-full min-w-0 box-border rounded-2xl px-4 py-3 text-sm font-semibold text-white transition disabled:cursor-wait disabled:opacity-70" style={{ background: "var(--accent-strong)" }}>{creatingProject ? "Creating..." : "Create board"}</button>
               </div>
             </Surface>
@@ -310,9 +326,9 @@ Internal analytics dashboard`}
                 <div className="mt-3 grid max-h-72 gap-3 overflow-auto sm:grid-cols-2">
                   {filteredProjectTeamRoster.length === 0 ? <p className="col-span-full rounded-2xl border px-4 py-6 text-sm text-[var(--text-soft)]" style={{ borderColor: "var(--border)" }}>No people in this department match your filters.</p>
                     : filteredProjectTeamRoster.map((m) => (
-                      <label key={m.id} className="flex items-center gap-3 rounded-2xl border px-4 py-3 text-sm" style={{ borderColor: "var(--border)", background: "var(--surface-soft)", color: "var(--text-main)" }}>
+                      <label key={m.id} className="flex min-w-0 items-center gap-3 rounded-2xl border px-4 py-3 text-sm" style={{ borderColor: "var(--border)", background: "var(--surface-soft)", color: "var(--text-main)" }}>
                         <input type="checkbox" checked={projectMemberDraftIds.includes(m.id)} onChange={() => toggleProjectMemberDraft(m.id)} />
-                        <span>{m.name} - {m.role}</span>
+                        <span className="min-w-0 truncate">{m.name} - {m.role}</span>
                       </label>
                     ))}
                 </div>
@@ -327,6 +343,15 @@ Internal analytics dashboard`}
                 <div className="mt-4 grid gap-3">
                   <textarea
   readOnly
+  onClick={(e) => {
+  navigator.clipboard.writeText(
+    (e.target as HTMLTextAreaElement).value
+  );
+   showToast(
+    "Template copied to clipboard",
+    "success"
+   );
+}}
   className="min-h-36 w-full rounded-2xl border px-3 py-3 text-sm"
   style={FIELD_STYLE}
   value={`Title: Dashboard Fix
@@ -373,29 +398,28 @@ Checklist:
     Auto-fill from paste
   </button>
 </div>
-                <div className="mt-6 grid gap-4 xl:grid-cols-[1fr_1fr]">
-                  <div className="grid gap-4">
+                <div className="mt-6 grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+                  <div className="grid min-w-0 gap-4">
                     <input className="h-12 rounded-2xl border px-4 outline-none" style={FIELD_STYLE} placeholder="Task title" value={taskForm.title} onChange={(e) => setTaskForm((c) => ({ ...c, title: e.target.value }))} />
                     <textarea className="min-h-28 rounded-2xl border px-4 py-3 outline-none" style={FIELD_STYLE} placeholder="Task description" value={taskForm.description} onChange={(e) => setTaskForm((c) => ({ ...c, description: e.target.value }))} />
                     <label className="grid gap-2"><span className="text-sm font-medium text-[var(--text-main)]">Priority</span>
-                      <select className="h-12 rounded-2xl border px-4 text-sm outline-none" style={FIELD_STYLE} value={taskForm.priority} onChange={(e) => setTaskForm((c) => ({ ...c, priority: e.target.value as typeof c.priority }))}>
-                        {TASK_PRIORITY_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-                      </select>
+                      <ResponsiveSelect priorityColors value={taskForm.priority} onChange={(value) => setTaskForm((c) => ({ ...c, priority: value as typeof c.priority }))} options={priorityOptions} ariaLabel="Select project task priority" buttonClassName="h-12 px-4" />
                     </label>
                     <label className="grid gap-2"><span className="text-sm font-medium text-[var(--text-main)]">Deadline</span>
-                      <input type="datetime-local" className="h-12 rounded-2xl border px-4 text-sm outline-none" style={FIELD_STYLE} value={taskForm.deadlineAt} onChange={(e) => setTaskForm((c) => ({ ...c, deadlineAt: e.target.value }))} />
+                      <input
+  type="date" className="h-12 w-full min-w-0 rounded-2xl border px-4 text-sm outline-none" style={FIELD_STYLE} value={taskForm.deadlineAt} onChange={(e) => setTaskForm((c) => ({ ...c, deadlineAt: e.target.value }))} />
                     </label>
                     <textarea className="min-h-28 rounded-2xl border px-4 py-3 outline-none" style={FIELD_STYLE} placeholder={"Subtasks checklist, one per line\nExample:\nBuild UI\nConnect API\nQA and deploy"} value={taskForm.checklistText} onChange={(e) => setTaskForm((c) => ({ ...c, checklistText: e.target.value }))} />
                   </div>
-                  <div>
+                  <div className="min-w-0">
                     <p className="text-sm font-medium text-[var(--text-main)]">{(selectedProject.members ?? []).length > 0 ? "Assign to project team members" : "Assign to team members"}</p>
                     <div className="mt-3"><MemberPickerToolbar searchQuery={projectAssignQuery} onSearchChange={setProjectAssignQuery} roleFilter={projectAssignRole} onRoleFilterChange={setProjectAssignRole} roleOptions={projectAssignRoleOptions} /></div>
                     <div className="mt-3 grid max-h-72 gap-3 overflow-auto sm:grid-cols-2">
                       {filteredProjectAssignees.length === 0 ? <p className="col-span-full rounded-2xl border px-4 py-6 text-sm text-[var(--text-soft)]" style={{ borderColor: "var(--border)" }}>No matches. Adjust search or role filter.</p>
                         : filteredProjectAssignees.map((m) => (
-                          <label key={m.id} className="flex items-center gap-3 rounded-2xl border px-4 py-3 text-sm" style={{ borderColor: "var(--border)", background: "var(--surface-soft)", color: "var(--text-main)" }}>
+                          <label key={m.id} className="flex min-w-0 items-center gap-3 rounded-2xl border px-4 py-3 text-sm" style={{ borderColor: "var(--border)", background: "var(--surface-soft)", color: "var(--text-main)" }}>
                             <input type="checkbox" checked={taskForm.userIds.includes(m.id)} onChange={() => setTaskForm((c) => ({ ...c, userIds: c.userIds.includes(m.id) ? c.userIds.filter((id) => id !== m.id) : [...c.userIds, m.id] }))} />
-                            <span>{m.name} - {m.role}</span>
+                            <span className="min-w-0 truncate">{m.name} - {m.role}</span>
                           </label>
                         ))}
                     </div>

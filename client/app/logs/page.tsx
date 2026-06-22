@@ -7,7 +7,7 @@ import { StatePanel } from "@/components/shared/state-panel";
 import { useSession } from "@/hooks/use-session";
 import { apiGet } from "@/lib/api";
 import { EmployeesSkeleton } from "@/components/shared/skeleton";
-
+import { ResponsiveSelect } from "@/components/shared/responsive-select";
 import { useCrmSearch } from "@/components/providers/crm-search-provider";
 import type { ActivityLogsResponse, UserRole } from "@/types/crm";
 import { showToast } from "@/hooks/use-toast";
@@ -143,14 +143,34 @@ export default function LogsPage() {
           <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-4">
             <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search action/path/method" className="rounded-xl border px-3 py-2 text-sm outline-none" style={{ borderColor: "var(--border)", background: "var(--surface-soft)", color: "var(--text-main)" }} />
             <input value={userId} onChange={(e) => setUserId(e.target.value)} placeholder="Filter by user ID" className="rounded-xl border px-3 py-2 text-sm outline-none" style={{ borderColor: "var(--border)", background: "var(--surface-soft)", color: "var(--text-main)" }} />
-            <select value={role} onChange={(e) => setRole(e.target.value as UserRole | "")} className="rounded-xl border px-3 py-2 text-sm outline-none" style={{ borderColor: "var(--border)", background: "var(--surface-soft)", color: "var(--text-main)" }}>
-              <option value="">All roles</option>
-              {["SUPERADMIN", "ADMIN", "MANAGER", "EMPLOYEE", "INTERN"].map((r) => <option key={r} value={r}>{r}</option>)}
-            </select>
-            <select value={method} onChange={(e) => setMethod(e.target.value)} className="rounded-xl border px-3 py-2 text-sm outline-none" style={{ borderColor: "var(--border)", background: "var(--surface-soft)", color: "var(--text-main)" }}>
-              <option value="">All methods</option>
-              {["GET", "POST", "PUT", "PATCH", "DELETE"].map((m) => <option key={m} value={m}>{m}</option>)}
-            </select>
+            <ResponsiveSelect
+  value={role ?? ""}
+  onChange={(value) =>
+    setRole(value as UserRole | "")
+  }
+  options={[
+    { value: "", label: "All roles" },
+    { value: "SUPERADMIN", label: "SUPERADMIN" },
+    { value: "ADMIN", label: "ADMIN" },
+    { value: "MANAGER", label: "MANAGER" },
+    { value: "EMPLOYEE", label: "EMPLOYEE" },
+    { value: "INTERN", label: "INTERN" },
+  ]}
+  ariaLabel="Filter by role"
+/>
+            <ResponsiveSelect
+  value={method}
+  onChange={setMethod}
+  options={[
+    { value: "", label: "All methods" },
+    { value: "GET", label: "GET" },
+    { value: "POST", label: "POST" },
+    { value: "PUT", label: "PUT" },
+    { value: "PATCH", label: "PATCH" },
+    { value: "DELETE", label: "DELETE" },
+  ]}
+  ariaLabel="Filter by method"
+/>
             <input value={statusCode} onChange={(e) => setStatusCode(e.target.value)} placeholder="Status code (200/404...)" className="rounded-xl border px-3 py-2 text-sm outline-none" style={{ borderColor: "var(--border)", background: "var(--surface-soft)", color: "var(--text-main)" }} />
             <label className="rounded-xl border px-3 py-2 text-sm" style={{ borderColor: "var(--border)", background: "var(--surface-soft)", color: "var(--text-main)" }}>
               <span className="mr-2 text-xs text-[var(--text-faint)]">From</span>

@@ -40,7 +40,74 @@ export function MemberRoster({ users, filteredUsers, departments, managers, data
         : users.length === 0 ? <p className="mt-6 rounded-xl border border-dashed p-8 text-center text-sm text-[var(--text-soft)]">No team members yet.</p>
         : filteredUsers.length === 0 ? <p className="mt-6 rounded-xl border border-dashed p-8 text-center text-sm text-[var(--text-soft)]">No matching members. Try a different search or role filter.</p>
         : (
-          <div className="mt-6 w-full min-w-0 overflow-x-auto rounded-[20px] border" style={{ borderColor: "var(--border)" }}>
+          <>
+          <div className="crm-mobile-card-grid mt-6">
+            {filteredUsers.map((member) => {
+              const locked = !canManageRow(member) || (member.role === "SUPERADMIN" && currentUserRole !== "SUPERADMIN");
+              return (
+                <article
+                  key={member.id}
+                  className="rounded-xl border p-4"
+                  style={{ borderColor: "var(--border)", background: "var(--surface-strong)" }}
+                >
+                  <div className="flex items-start gap-3">
+                    <UserAvatar
+                      name={member.name}
+                      avatarUrl={member.avatarUrl}
+                      authProvider={member.authProvider}
+                      className="h-10 w-10 shrink-0 rounded-full text-[10px]"
+                    />
+                    <div className="min-w-0 flex-1">
+                      <p className="font-semibold text-[var(--text-main)]">{member.name}</p>
+                      <p className="mt-0.5 text-xs text-[var(--text-soft)]">{member.designation?.trim() || "No designation"}</p>
+                      <p className="mt-1 text-xs text-[var(--text-faint)]">{member.email}</p>
+                    </div>
+                  </div>
+                  <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
+                    <div className="rounded-lg border px-2 py-1.5" style={{ borderColor: "var(--border)", background: "var(--surface-soft)" }}>
+                      <p className="text-[10px] uppercase tracking-wide text-[var(--text-faint)]">Role</p>
+                      <p className="mt-0.5 font-medium text-[var(--text-main)]">{member.role}</p>
+                    </div>
+                    <div className="rounded-lg border px-2 py-1.5" style={{ borderColor: "var(--border)", background: "var(--surface-soft)" }}>
+                      <p className="text-[10px] uppercase tracking-wide text-[var(--text-faint)]">Department</p>
+                      <p className="mt-0.5 truncate font-medium text-[var(--text-main)]">{member.department?.name || "—"}</p>
+                    </div>
+                  </div>
+                  {!locked && canEditEmail(member) ? (
+                    <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+                      <input
+                        className="h-10 min-w-0 flex-1 rounded-lg border px-3 text-xs outline-none"
+                        style={FIELD_STYLE}
+                        value={emailDrafts[member.id] ?? member.email}
+                        disabled={emailUpdatingId === member.id}
+                        onChange={(e) => onEmailDraftChange(member.id, e.target.value)}
+                      />
+                      <button
+                        type="button"
+                        className="crm-touch-target h-10 rounded-lg px-3 text-xs font-semibold text-white disabled:opacity-50"
+                        style={{ background: "var(--accent-strong)" }}
+                        disabled={emailUpdatingId === member.id || (emailDrafts[member.id] ?? member.email).trim() === member.email}
+                        onClick={() => onEmailUpdate(member)}
+                      >
+                        {emailUpdatingId === member.id ? "…" : "Update email"}
+                      </button>
+                    </div>
+                  ) : null}
+                  {canDelete(member) ? (
+                    <button
+                      type="button"
+                      className="crm-touch-target mt-3 w-full rounded-lg border border-rose-200 px-3 py-2 text-xs font-semibold text-rose-700 disabled:opacity-50"
+                      disabled={deletingId === member.id}
+                      onClick={() => onDelete(member)}
+                    >
+                      {deletingId === member.id ? "Removing…" : "Remove member"}
+                    </button>
+                  ) : null}
+                </article>
+              );
+            })}
+          </div>
+          <div className="crm-desktop-table mt-6 w-full min-w-0 overflow-x-auto rounded-[20px] border crm-table-scroll" style={{ borderColor: "var(--border)" }}>
             <table className="min-w-[920px] w-full text-left text-sm">
               <thead style={{ background: "var(--surface-soft)" }}>
                 <tr className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--text-faint)]">
@@ -90,20 +157,20 @@ export function MemberRoster({ users, filteredUsers, departments, managers, data
                       </td>
                       <td className="px-4 py-3 align-top sm:px-5 sm:py-4">
                         {locked ? <span className="inline-block rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase sm:text-xs" style={{ background: "var(--surface-soft)", color: "var(--text-soft)" }}>{member.role}</span>
-                          : <select className="max-w-[9.5rem] rounded-xl border px-2 py-1.5 text-xs font-semibold" style={FIELD_STYLE} value={member.role} disabled={updatingId === member.id} onChange={(e) => onAssign(member, "role", e.target.value)}>
+                          : <select className="w-full min-w-[8rem] max-w-[9.5rem] rounded-xl border px-2 py-1.5 text-xs font-semibold" style={FIELD_STYLE} value={member.role} disabled={updatingId === member.id} onChange={(e) => onAssign(member, "role", e.target.value)}>
                               {directoryRoleOptions.map((r) => <option key={r} value={r}>{r}</option>)}
                             </select>}
                       </td>
                       <td className="px-4 py-3 align-top sm:px-5 sm:py-4">
                         {locked ? <span className="text-xs">{member.department?.name || "—"}</span>
-                          : <select className="max-w-[10rem] rounded-xl border px-2 py-1.5 text-xs" style={FIELD_STYLE} value={member.department?.id ?? ""} disabled={updatingId === member.id} onChange={(e) => onAssign(member, "departmentId", e.target.value)}>
+                          : <select className="w-full min-w-[8.5rem] max-w-[10rem] rounded-xl border px-2 py-1.5 text-xs" style={FIELD_STYLE} value={member.department?.id ?? ""} disabled={updatingId === member.id} onChange={(e) => onAssign(member, "departmentId", e.target.value)}>
                               <option value="">Unassigned</option>
                               {departments.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
                             </select>}
                       </td>
                       <td className="px-4 py-3 align-top sm:px-5 sm:py-4">
                         {locked ? <span className="text-xs">{member.manager?.name || "—"}</span>
-                          : <select className="max-w-[10rem] rounded-xl border px-2 py-1.5 text-xs" style={FIELD_STYLE} value={member.manager?.id ?? ""} disabled={updatingId === member.id} onChange={(e) => onAssign(member, "managerId", e.target.value)}>
+                          : <select className="w-full min-w-[8.5rem] max-w-[10rem] rounded-xl border px-2 py-1.5 text-xs" style={FIELD_STYLE} value={member.manager?.id ?? ""} disabled={updatingId === member.id} onChange={(e) => onAssign(member, "managerId", e.target.value)}>
                               <option value="">Unassigned</option>
                               {managers.filter((m) => m.id !== member.id).map((m) => <option key={m.id} value={m.id}>{m.name} — {m.role}</option>)}
                             </select>}
@@ -127,6 +194,7 @@ export function MemberRoster({ users, filteredUsers, departments, managers, data
               </tbody>
             </table>
           </div>
+          </>
         )}
       {hasMore ? (
         <div className="mt-5 flex justify-center">
