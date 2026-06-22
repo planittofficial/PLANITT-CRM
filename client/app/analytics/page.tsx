@@ -10,6 +10,7 @@ import { useSession } from "@/hooks/use-session";
 import { apiGet, resolveApiBaseUrl } from "@/lib/api";
 import { getToken } from "@/lib/auth";
 import { showToast } from "@/hooks/use-toast";
+import { AnalyticsSkeleton } from "@/components/shared/skeleton";
 import type { CRMUser, Department, Project, UserAnalyticsSummary } from "@/types/crm";
 
 type ReportTab =
@@ -127,6 +128,12 @@ function isoDay(d: Date) {
   return x.toISOString().slice(0, 10);
 }
 
+const FILTER_FIELD_STYLE = {
+  borderColor: "var(--border)",
+  background: "var(--surface)",
+  color: "var(--text-main)",
+} as const;
+
 function buildQuery(params: Record<string, string | null | undefined>) {
   const qs = new URLSearchParams();
   for (const [k, v] of Object.entries(params)) {
@@ -161,15 +168,45 @@ async function downloadFile(path: string, filename: string) {
 
 function SimpleTable({ title, subtitle, columns, rows }: { title: string; subtitle: string; columns: Array<{ key: string; label: string }>; rows: Array<Record<string, unknown>> }) {
   return (
-    <Surface className="p-5">
+    <Surface className="p-3 sm:p-5">
       <p className="text-sm font-semibold text-[var(--text-main)]">{title}</p>
       <p className="mt-1 text-sm text-[var(--text-soft)]">{subtitle}</p>
-      <div className="mt-4 overflow-x-auto">
-        <table className="min-w-full border-separate border-spacing-y-2">
+
+      <div className="mt-4 space-y-3 lg:hidden">
+        {rows.length ? (
+          rows.map((row, idx) => (
+            <article
+              key={idx}
+              className="rounded-2xl border p-3"
+              style={{ borderColor: "var(--border)", background: "var(--surface-soft)" }}
+            >
+              <div className="space-y-2.5">
+                {columns.map((column) => (
+                  <div key={column.key} className="flex items-start justify-between gap-3">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--text-faint)]">
+                      {column.label}
+                    </p>
+                    <p className="max-w-[60%] text-right text-sm font-medium text-[var(--text-main)]">
+                      {String(row[column.key] ?? "—")}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </article>
+          ))
+        ) : (
+          <p className="rounded-2xl border px-4 py-6 text-center text-sm text-[var(--text-soft)]" style={{ borderColor: "var(--border)" }}>
+            No data available for the selected filters.
+          </p>
+        )}
+      </div>
+
+      <div className="crm-table-scroll mt-4 hidden overflow-x-auto lg:block">
+        <table className="min-w-[720px] w-full border-separate border-spacing-y-2">
           <thead>
             <tr className="text-left text-[11px] uppercase tracking-[0.18em] text-[var(--text-faint)]">
               {columns.map((c) => (
-                <th key={c.key} className="px-3 py-2">
+                <th key={c.key} className="whitespace-nowrap px-3 py-2">
                   {c.label}
                 </th>
               ))}
@@ -181,7 +218,7 @@ function SimpleTable({ title, subtitle, columns, rows }: { title: string; subtit
                 {columns.map((c, colIdx) => (
                   <td
                     key={`${idx}-${c.key}`}
-                    className={`${colIdx === 0 ? "rounded-l-2xl" : ""} ${colIdx === columns.length - 1 ? "rounded-r-2xl" : ""} px-3 py-3 text-sm text-[var(--text-soft)]`}
+                    className={`whitespace-nowrap ${colIdx === 0 ? "rounded-l-2xl" : ""} ${colIdx === columns.length - 1 ? "rounded-r-2xl" : ""} px-3 py-3 text-sm text-[var(--text-soft)]`}
                   >
                     <span className={colIdx === 0 ? "font-semibold text-[var(--text-main)]" : ""}>{String(r[c.key] ?? "—")}</span>
                   </td>
@@ -211,7 +248,8 @@ export default function AnalyticsPage() {
   const [departments, setDepartments] = useState<Department[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
 
-  const [loadingReport, setLoadingReport] = useState(false);
+  const [loadingPickers, setLoadingPickers] = useState(true);
+  const [loadingReport, setLoadingReport] = useState(true);
   const [reportError, setReportError] = useState("");
   const [executive, setExecutive] = useState<ExecutiveReport | null>(null);
   const [attendance, setAttendance] = useState<AttendanceReport | null>(null);
@@ -222,10 +260,14 @@ export default function AnalyticsPage() {
   const [employeeAnalytics, setEmployeeAnalytics] = useState<UserAnalyticsSummary | null>(null);
 
   useEffect(() => {
-    if (!isLeadership) return;
+    if (!isLeadership) {
+      setLoadingPickers(false);
+      return;
+    }
 
     let cancelled = false;
     async function loadPickers() {
+      setLoadingPickers(true);
       try {
         const [employeeDirectory, deps, projs] = await Promise.all([
           apiGet<{ users: CRMUser[] }>("/reports/employees"),
@@ -241,6 +283,8 @@ export default function AnalyticsPage() {
         setEmployees([]);
         setDepartments([]);
         setProjects([]);
+      } finally {
+        if (!cancelled) setLoadingPickers(false);
       }
     }
     void loadPickers();
@@ -295,7 +339,10 @@ export default function AnalyticsPage() {
           if (!cancelled) setLeaveReport(data);
         } else if (tab === "employee") {
           if (!employeeId) {
-            if (!cancelled) setEmployeeAnalytics(null);
+            if (!cancelled) {
+              setEmployeeAnalytics(null);
+              setLoadingReport(false);
+            }
             return;
           }
           const data = await apiGet<UserAnalyticsSummary>(
@@ -327,6 +374,8 @@ export default function AnalyticsPage() {
   }, [tab, startDate, endDate, employeeId, departmentId, projectId]);
 
   const exportButtonsEnabled = Boolean(exportParams);
+  const showReportLoading = loadingReport || loadingPickers;
+  const showEmployeePrompt = tab === "employee" && !employeeId && !showReportLoading;
 
   const handleExport = async (format: "csv" | "pdf") => {
     if (!exportParams) return;
@@ -368,20 +417,20 @@ export default function AnalyticsPage() {
 
   return (
     <CRMShell user={user}>
-      <div className="space-y-4">
-        <Surface className="p-5">
+      <div className="min-w-0 space-y-3 sm:space-y-4">
+        <Surface className="p-3 sm:p-5">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[var(--text-faint)]">Management module</p>
-              <h2 className="mt-2 text-2xl font-semibold text-[var(--text-main)]">Analytics & Reports</h2>
-              <p className="mt-2 max-w-2xl text-sm text-[var(--text-soft)]">
+            <div className="min-w-0">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-[var(--text-faint)] sm:text-xs">Management module</p>
+              <h2 className="mt-2 text-xl font-semibold text-[var(--text-main)] sm:text-2xl">Analytics & Reports</h2>
+              <p className="mt-2 max-w-2xl text-sm leading-6 text-[var(--text-soft)]">
                 Drill down by employee, department, project, and date range. Export reports in CSV or PDF.
               </p>
             </div>
-            <div className="flex flex-wrap items-center gap-2">
+            <div className="grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto sm:flex-wrap sm:items-center">
               <button
                 type="button"
-                className="h-10 rounded-lg border px-3 text-xs font-bold"
+                className="crm-touch-target h-10 rounded-lg border px-3 text-xs font-bold"
                 style={{ borderColor: "var(--border)", background: exportButtonsEnabled ? "var(--surface)" : "var(--surface-soft)", color: "var(--text-main)" }}
                 disabled={!exportButtonsEnabled || loadingReport}
                 onClick={() => void handleExport("csv")}
@@ -390,7 +439,7 @@ export default function AnalyticsPage() {
               </button>
               <button
                 type="button"
-                className="h-10 rounded-lg border px-3 text-xs font-bold"
+                className="crm-touch-target h-10 rounded-lg border px-3 text-xs font-bold"
                 style={{ borderColor: "var(--border)", background: exportButtonsEnabled ? "var(--surface)" : "var(--surface-soft)", color: "var(--text-main)" }}
                 disabled={!exportButtonsEnabled || loadingReport}
                 onClick={() => void handleExport("pdf")}
@@ -399,18 +448,35 @@ export default function AnalyticsPage() {
               </button>
             </div>
           </div>
-          <div className="mt-5 grid gap-2 md:grid-cols-2 lg:grid-cols-5">
+          <div className="mt-4 grid grid-cols-1 gap-2 sm:mt-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
             <label className="rounded-xl border px-3 py-2" style={{ borderColor: "var(--border)", background: "var(--surface-soft)" }}>
               <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--text-faint)]">Start date</p>
-              <input className="mt-2 w-full bg-transparent text-sm text-[var(--text-main)] outline-none" type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
+              <input
+                className="crm-input mt-2 h-10 w-full rounded-lg px-3 text-sm outline-none"
+                style={FILTER_FIELD_STYLE}
+                type="date"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+              />
             </label>
             <label className="rounded-xl border px-3 py-2" style={{ borderColor: "var(--border)", background: "var(--surface-soft)" }}>
               <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--text-faint)]">End date</p>
-              <input className="mt-2 w-full bg-transparent text-sm text-[var(--text-main)] outline-none" type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
+              <input
+                className="crm-input mt-2 h-10 w-full rounded-lg px-3 text-sm outline-none"
+                style={FILTER_FIELD_STYLE}
+                type="date"
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
+              />
             </label>
             <label className="rounded-xl border px-3 py-2" style={{ borderColor: "var(--border)", background: "var(--surface-soft)" }}>
               <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--text-faint)]">Employee</p>
-              <select className="mt-2 w-full bg-transparent text-sm text-[var(--text-main)] outline-none" value={employeeId} onChange={(e) => setEmployeeId(e.target.value)}>
+              <select
+                className="crm-input mt-2 h-10 w-full rounded-lg px-3 text-sm outline-none"
+                style={FILTER_FIELD_STYLE}
+                value={employeeId}
+                onChange={(e) => setEmployeeId(e.target.value)}
+              >
                 <option value="">All</option>
                 {employees.map((u) => (
                   <option key={u.id} value={u.id}>
@@ -421,7 +487,12 @@ export default function AnalyticsPage() {
             </label>
             <label className="rounded-xl border px-3 py-2" style={{ borderColor: "var(--border)", background: "var(--surface-soft)" }}>
               <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--text-faint)]">Department</p>
-              <select className="mt-2 w-full bg-transparent text-sm text-[var(--text-main)] outline-none" value={departmentId} onChange={(e) => setDepartmentId(e.target.value)}>
+              <select
+                className="crm-input mt-2 h-10 w-full rounded-lg px-3 text-sm outline-none"
+                style={FILTER_FIELD_STYLE}
+                value={departmentId}
+                onChange={(e) => setDepartmentId(e.target.value)}
+              >
                 <option value="">All</option>
                 {departments.map((d) => (
                   <option key={d.id} value={d.id}>
@@ -432,7 +503,12 @@ export default function AnalyticsPage() {
             </label>
             <label className="rounded-xl border px-3 py-2" style={{ borderColor: "var(--border)", background: "var(--surface-soft)" }}>
               <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--text-faint)]">Project</p>
-              <select className="mt-2 w-full bg-transparent text-sm text-[var(--text-main)] outline-none" value={projectId} onChange={(e) => setProjectId(e.target.value)}>
+              <select
+                className="crm-input mt-2 h-10 w-full rounded-lg px-3 text-sm outline-none"
+                style={FILTER_FIELD_STYLE}
+                value={projectId}
+                onChange={(e) => setProjectId(e.target.value)}
+              >
                 <option value="">All</option>
                 {projects.map((p) => (
                   <option key={p.id} value={p.id}>
@@ -445,7 +521,7 @@ export default function AnalyticsPage() {
         </Surface>
 
         <Surface className="p-2">
-          <div className="grid grid-cols-2 gap-2 md:grid-cols-4 xl:grid-cols-7">
+          <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1 [-webkit-overflow-scrolling:touch] sm:mx-0 sm:grid sm:grid-cols-3 sm:overflow-visible sm:px-0 sm:pb-0 lg:grid-cols-4 xl:grid-cols-7">
             {([
               ["executive", "Executive"],
               ["employee", "Employee"],
@@ -459,7 +535,7 @@ export default function AnalyticsPage() {
                 key={key}
                 type="button"
                 onClick={() => setTab(key)}
-                className="rounded-xl px-4 py-2.5 text-sm font-semibold transition"
+                className="crm-touch-target min-w-[7.25rem] shrink-0 snap-start rounded-xl px-3 py-2.5 text-xs font-semibold transition sm:min-w-0 sm:w-full sm:px-4 sm:text-sm"
                 style={{ background: tab === key ? "var(--accent)" : "var(--surface-soft)", color: tab === key ? "white" : "var(--text-main)" }}
               >
                 {label}
@@ -470,15 +546,17 @@ export default function AnalyticsPage() {
 
         {reportError ? <StatePanel title="Report unavailable" description={reportError} /> : null}
 
-        {tab === "executive" && executive ? (
-          <div className="space-y-4">
-            <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        {showReportLoading ? <AnalyticsSkeleton /> : null}
+
+        {!showReportLoading && tab === "executive" && executive ? (
+          <div className="space-y-3 sm:space-y-4">
+            <section className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 xl:grid-cols-4">
               <MilestoneCard title="Employees" value={`${executive.kpis.employeeCount}`} helper="Total active employees + leadership roles" />
               <MilestoneCard title="Interns" value={`${executive.kpis.internCount}`} helper="Total intern workforce" />
               <MilestoneCard title="Projects" value={`${executive.kpis.projectCount}`} helper="All projects in the system" />
               <MilestoneCard title="Task completion" value={`${executive.kpis.completionRate}%`} helper={`${executive.kpis.completedTasks}/${executive.kpis.totalTasks} completed in range`} />
             </section>
-            <div className="grid gap-4 xl:grid-cols-2">
+            <div className="grid grid-cols-1 gap-3 sm:gap-4 xl:grid-cols-2">
               <LineChartCard
                 title="Working hours trend"
                 subtitle="Average working hours across selected scope."
@@ -508,7 +586,7 @@ export default function AnalyticsPage() {
           </div>
         ) : null}
 
-        {tab === "department" && deptReport ? (
+        {!showReportLoading && tab === "department" && deptReport ? (
           <SimpleTable
             title="Department performance"
             subtitle="Members, project load, and task delivery across departments."
@@ -533,7 +611,7 @@ export default function AnalyticsPage() {
           />
         ) : null}
 
-        {tab === "project" && projectReport ? (
+        {!showReportLoading && tab === "project" && projectReport ? (
           <SimpleTable
             title="Project health"
             subtitle="Task flow and delivery confidence at project-level."
@@ -556,9 +634,9 @@ export default function AnalyticsPage() {
           />
         ) : null}
 
-        {tab === "attendance" && attendance ? (
-          <div className="space-y-4">
-            <section className="grid gap-4 md:grid-cols-3">
+        {!showReportLoading && tab === "attendance" && attendance ? (
+          <div className="space-y-3 sm:space-y-4">
+            <section className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 md:grid-cols-3">
               <MilestoneCard title="Entries" value={`${attendance.kpis.totalEntries}`} helper="Attendance rows in selected range" />
               <MilestoneCard title="Total hours" value={`${attendance.kpis.totalHours}h`} helper="Sum of check-in/out hours" />
               <MilestoneCard title="Unique employees" value={`${attendance.kpis.uniqueEmployees}`} helper="Distinct users with entries" />
@@ -591,9 +669,9 @@ export default function AnalyticsPage() {
           </div>
         ) : null}
 
-        {tab === "taskSla" && taskSla ? (
-          <div className="space-y-4">
-            <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        {!showReportLoading && tab === "taskSla" && taskSla ? (
+          <div className="space-y-3 sm:space-y-4">
+            <section className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 xl:grid-cols-4">
               <MilestoneCard title="Tasks w/ deadline" value={`${taskSla.kpis.tasksWithDeadline}`} helper="Deadline-tracked tasks in scope" />
               <MilestoneCard title="Overdue open" value={`${taskSla.kpis.overdueOpen}`} helper="Open tasks past deadline" />
               <MilestoneCard title="On-time rate" value={`${taskSla.kpis.onTimeRate}%`} helper="Completed tasks on-time vs late" />
@@ -630,15 +708,15 @@ export default function AnalyticsPage() {
           </div>
         ) : null}
 
-        {tab === "leave" && leaveReport ? (
-          <div className="space-y-4">
-            <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        {!showReportLoading && tab === "leave" && leaveReport ? (
+          <div className="space-y-3 sm:space-y-4">
+            <section className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 xl:grid-cols-4">
               <MilestoneCard title="Requests" value={`${leaveReport.kpis.totalRequests}`} helper="Total leave requests in range" />
               <MilestoneCard title="Approved" value={`${leaveReport.charts.statusBreakdown.find((x) => x.label === "APPROVED")?.value ?? 0}`} helper="Approved leaves" />
               <MilestoneCard title="Pending" value={`${leaveReport.charts.statusBreakdown.find((x) => x.label === "PENDING")?.value ?? 0}`} helper="Pending approvals" />
               <MilestoneCard title="Rejected" value={`${leaveReport.charts.statusBreakdown.find((x) => x.label === "REJECTED")?.value ?? 0}`} helper="Rejected requests" />
             </section>
-            <div className="grid gap-4 xl:grid-cols-2">
+            <div className="grid grid-cols-1 gap-3 sm:gap-4 xl:grid-cols-2">
               <DonutChartCard
                 title="By status"
                 subtitle="Leave request outcomes."
@@ -679,26 +757,27 @@ export default function AnalyticsPage() {
           </div>
         ) : null}
 
-        {tab === "employee" ? (
-          !employeeId ? (
-            <StatePanel title="Employee report" description="Pick an employee from the filters above to load detailed performance analytics." />
-          ) : employeeAnalytics ? (
-            <div className="space-y-4">
-              <Surface className="p-5">
+        {showEmployeePrompt ? (
+          <StatePanel title="Employee report" description="Pick an employee from the filters above to load detailed performance analytics." />
+        ) : null}
+
+        {!showReportLoading && tab === "employee" && employeeId && employeeAnalytics ? (
+            <div className="space-y-3 sm:space-y-4">
+              <Surface className="p-3 sm:p-5">
                 <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[var(--text-faint)]">Selected employee</p>
-                <h3 className="mt-2 text-2xl font-semibold text-[var(--text-main)]">{employeeAnalytics.user.name}</h3>
-                <p className="mt-2 text-sm text-[var(--text-soft)]">
+                <h3 className="mt-2 text-xl font-semibold text-[var(--text-main)] sm:text-2xl">{employeeAnalytics.user.name}</h3>
+                <p className="mt-2 text-sm leading-6 text-[var(--text-soft)]">
                   {employeeAnalytics.user.designation || "Team member"} · {employeeAnalytics.user.role} ·{" "}
                   {employeeAnalytics.user.department?.name || "No department"}
                 </p>
               </Surface>
-              <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+              <section className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 xl:grid-cols-4">
                 <MilestoneCard title="Assigned tasks" value={`${employeeAnalytics.metrics.totalTasks}`} helper="Total tasks assigned" />
                 <MilestoneCard title="Completed" value={`${employeeAnalytics.metrics.completedTasks}`} helper="Done tasks in scope" />
                 <MilestoneCard title="Avg progress" value={`${employeeAnalytics.metrics.avgProgress}%`} helper="Average task progress" />
                 <MilestoneCard title="Avg hours/day" value={`${employeeAnalytics.metrics.avgDailyHours}h`} helper="Average working hours per day" />
               </section>
-              <div className="grid gap-4 xl:grid-cols-2">
+              <div className="grid grid-cols-1 gap-3 sm:gap-4 xl:grid-cols-2">
                 <LineChartCard
                   title="Daily work hours"
                   subtitle="Working-hour movement in the selected range."
@@ -720,8 +799,7 @@ export default function AnalyticsPage() {
               </div>
               <StatusBreakdownCard title="Task status split" items={employeeAnalytics.taskStatusBreakdown} />
             </div>
-          ) : null
-        ) : null}
+          ) : null}
       </div>
     </CRMShell>
   );

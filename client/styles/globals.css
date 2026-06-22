@@ -141,6 +141,16 @@ textarea {
 
 select {
   max-width: 100%;
+  color-scheme: light;
+}
+
+:root[data-theme="dark"] select {
+  color-scheme: dark;
+}
+
+select option {
+  background-color: var(--surface-strong);
+  color: var(--text-main);
 }
 
 @media (max-width: 767px) {

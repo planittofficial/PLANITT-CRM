@@ -58,7 +58,7 @@ export function TaskSummaryList({ tasks }: { tasks: UserAnalyticsSummary["recent
 export function StatusBreakdownCard({ title, items }: { title: string; items: Array<{ label: string; value: number }> }) {
   const total = Math.max(items.reduce((s, x) => s + x.value, 0), 1);
   return (
-    <Surface className="p-5">
+    <Surface className="p-3 sm:p-5">
       <p className="text-sm font-semibold text-[var(--text-main)]">{title}</p>
       <div className="mt-5 space-y-4">
         {items.map((item, index) => {
@@ -86,12 +86,12 @@ export function DonutChartCard({ title, subtitle, items }: { title: string; subt
   const r = 58; const circ = 2 * Math.PI * r;
   let offset = 0;
   return (
-    <Surface className="p-5">
+    <Surface className="p-3 sm:p-5">
       <p className="text-sm font-semibold text-[var(--text-main)]">{title}</p>
       <p className="mt-1 text-sm text-[var(--text-soft)]">{subtitle}</p>
-      <div className="mt-5 flex items-center gap-5">
-        <div className="relative h-40 w-40 shrink-0">
-          <svg viewBox="0 0 160 160" className="h-40 w-40 -rotate-90" aria-hidden="true">
+      <div className="mt-5 flex flex-col items-center gap-5 sm:flex-row sm:items-center">
+        <div className="relative h-32 w-32 shrink-0 sm:h-40 sm:w-40">
+          <svg viewBox="0 0 160 160" className="h-32 w-32 -rotate-90 sm:h-40 sm:w-40" aria-hidden="true">
             <circle cx="80" cy="80" r={r} fill="none" stroke="var(--surface-soft)" strokeWidth="20" />
             {items.map((item) => {
               const v = Math.max(0, item.value);
@@ -105,7 +105,7 @@ export function DonutChartCard({ title, subtitle, items }: { title: string; subt
             <p className="mt-1 text-2xl font-semibold text-[var(--text-main)]">{total}</p>
           </div>
         </div>
-        <div className="min-w-0 flex-1 space-y-2.5">
+        <div className="w-full min-w-0 flex-1 space-y-2.5">
           {items.map((item) => {
             const pct = Math.round((Math.max(0, item.value) / total) * 100);
             return (
@@ -125,10 +125,10 @@ export function DonutChartCard({ title, subtitle, items }: { title: string; subt
 
 export function MilestoneCard({ title, value, helper }: { title: string; value: string; helper: string }) {
   return (
-    <Surface className="p-5">
+    <Surface className="p-4 sm:p-5">
       <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--text-faint)]">{title}</p>
-      <p className="mt-3 text-3xl font-semibold tracking-tight text-[var(--text-main)]">{value}</p>
-      <p className="mt-2 text-sm text-[var(--text-soft)]">{helper}</p>
+      <p className="mt-2 text-2xl font-semibold tracking-tight text-[var(--text-main)] sm:mt-3 sm:text-3xl">{value}</p>
+      <p className="mt-2 text-sm leading-6 text-[var(--text-soft)]">{helper}</p>
     </Surface>
   );
 }

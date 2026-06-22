@@ -96,3 +96,21 @@ export function ChatsSkeleton() {
     </div>
   );
 }
+
+export function AnalyticsSkeleton() {
+  return (
+    <div className="space-y-3 sm:space-y-4" aria-busy="true" aria-label="Loading analytics report">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 xl:grid-cols-4">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <Skeleton key={`kpi-${i}`} className="h-28 w-full sm:h-32" />
+        ))}
+      </div>
+      <div className="grid grid-cols-1 gap-3 sm:gap-4 xl:grid-cols-2">
+        <Skeleton className="h-56 w-full sm:h-72" />
+        <Skeleton className="h-56 w-full sm:h-72" />
+      </div>
+      <Skeleton className="h-48 w-full sm:h-64" />
+      <Skeleton className="h-44 w-full sm:h-56" />
+    </div>
+  );
+}
