@@ -103,6 +103,7 @@ function NotificationsContent({
     { key: "attendanceAlerts", label: "Attendance alerts" },
     { key: "chatMentions", label: "Chat mentions" },
     { key: "leaveRequests", label: "Leave requests" },
+    { key: "credentialAlerts", label: "Credential expiry alerts" },
   ];
 
   return (

@@ -42,6 +42,7 @@ model User {
   notificationPreference    NotificationPreference?    @relation("UserNotificationPrefs")
   createdBy                 User?                      @relation("UserCreator", fields: [createdById], references: [id])
   createdUsers              User[]                     @relation("UserCreator")
+  createdCredentials        Credential[]               @relation("CredentialCreator")
   department                Department?                @relation("DepartmentMembers", fields: [departmentId], references: [id])
   manager                   User?                      @relation("ManagerReports", fields: [managerId], references: [id])
   directReports             User[]                     @relation("ManagerReports")
@@ -114,6 +115,7 @@ model Project {
   owner        User?           @relation(fields: [ownerId], references: [id])
   members      ProjectMember[]
   tasks        Task[]
+  credentialUsages CredentialUsage[]
 }
 
 model ProjectMember {
@@ -379,6 +381,8 @@ enum NotificationType {
   LEAVE_REQUEST
   LEAVE_APPROVED
   LEAVE_REJECTED
+  CREDENTIAL_EXPIRING
+  CREDENTIAL_EXPIRED
 }
 
 enum NotificationPriority {
@@ -429,9 +433,56 @@ model NotificationPreference {
   attendanceAlerts  Boolean  @default(true)
   chatMentions      Boolean  @default(true)
   leaveRequests     Boolean  @default(true)
+  credentialAlerts  Boolean  @default(true)
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
   user              User     @relation("UserNotificationPrefs", fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([role])
+}
+
+model Credential {
+  id            String            @id @default(cuid())
+  name          String
+  provider      String?
+  /** Env var name used by apps, e.g. GROK_API_KEY */
+  envKey        String?
+  /**
+   * Optional policy knob for APIs that expire after N days (e.g. Grok = 90).
+   * If set and expiresAt is empty, the UI can still compute a suggested expiry.
+   */
+  validityDays  Int?
+  /** Explicit expiry timestamp when known (recommended). */
+  expiresAt     DateTime?
+  rotatedAt     DateTime?
+  notes         String?
+  createdById   String?
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+
+  createdBy     User?             @relation("CredentialCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  usages        CredentialUsage[]
+
+  @@index([expiresAt])
+  @@index([createdAt])
+}
+
+model CredentialUsage {
+  id           String   @id @default(cuid())
+  credentialId String
+  projectId    String
+  /** Optional: DEV/STAGING/PROD or custom label */
+  environment  String?
+  /** Optional override: env var name in that project */
+  envKey       String?
+  notes        String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  credential   Credential @relation(fields: [credentialId], references: [id], onDelete: Cascade)
+  project      Project    @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([credentialId])
+  @@index([projectId])
+  @@unique([credentialId, projectId, environment, envKey])
 }

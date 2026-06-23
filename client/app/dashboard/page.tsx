@@ -1,31 +1,61 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { CRMShell } from "@/components/layout/crm-shell";
 import { AttendanceCard } from "@/components/modules/attendance-card";
-import { MemberPickerToolbar } from "@/components/shared/member-picker-toolbar";
 import { StatePanel } from "@/components/shared/state-panel";
 import { renderSessionGate } from "@/components/shared/session-gate";
 import { Surface, buildLinePath, SummaryStatCard, LineChartCard, ActivityBarsCard, InsightTicker, PerformanceBars, HeatmapGrid, formatRole } from "@/components/dashboard/chart-widgets";
-import { TeamAnalyticsPanel, DepartmentWisePanel } from "@/components/dashboard/team-analytics-panel";
 import { GoogleWorkspacePanel } from "@/components/dashboard/google-workspace-panel";
+import { TaskSummaryList } from "@/components/dashboard/data-panels";
 import { useCrmSearch } from "@/components/providers/crm-search-provider";
 import { Skeleton } from "@/components/shared/skeleton";
 import { canUseGoogleWorkspace, useDashboardData } from "@/hooks/use-dashboard-data";
-import type { EmployeeDashboardSummary } from "@/types/crm";
+import { apiGet } from "@/lib/api";
+import type { EmployeeDashboardSummary, UserAnalyticsSummary } from "@/types/crm";
 
 export default function DashboardPage() {
   const { globalSearch, searchSubmitted } = useCrmSearch();
   const {
-    user, loading, error, sessionError, retrySession, summary, teamLoading, analyticsLoading,
-    selectedMemberId, selectedAnalytics, teamDirectoryRoleFilter, teamDirectoryRoleOptions,
-    filteredTeamMembers, overviewStats, leadershipView, setGlobalSearch,
-    setTeamDirectoryRoleFilter, setSelectedMemberId, workspaceStatus, workspaceProjects,
+    user, loading, error, sessionError, retrySession, summary,
+    overviewStats, leadershipView,
+    workspaceStatus, workspaceProjects,
     workspaceUsers, selectedWorkspaceProjectId, workspaceActionLoading, meetResult, sheetResult,
     driveResult, workspaceLoading, workspaceMessage, activeDashboardTab, setActiveDashboardTab,
     setMeetResult, setSheetResult, setDriveResult, setSelectedWorkspaceProjectId, setWorkspaceMessage,
     handleGoogleConnect, handleGoogleDisconnect, runWorkspaceAction,
   } = useDashboardData();
+
+  const [myAnalytics, setMyAnalytics] = useState<UserAnalyticsSummary | null>(null);
+  const [myAnalyticsLoading, setMyAnalyticsLoading] = useState(false);
+
+  const myAttendanceHeatmap = useMemo(() => {
+    if (!summary) return [];
+    if (summary.scope === "employee") return summary.analytics.attendanceHeatmap;
+    return myAnalytics?.analytics.attendanceHeatmap ?? [];
+  }, [summary, myAnalytics]);
+
+  useEffect(() => {
+    if (!user || !summary) return;
+    if (summary.scope === "employee") return;
+
+    let cancelled = false;
+    async function loadMine() {
+      setMyAnalyticsLoading(true);
+      try {
+        const data = await apiGet<UserAnalyticsSummary>(`/users/${user.id}/analytics`);
+        if (!cancelled) setMyAnalytics(data);
+      } catch {
+        if (!cancelled) setMyAnalytics(null);
+      } finally {
+        if (!cancelled) setMyAnalyticsLoading(false);
+      }
+    }
+    void loadMine();
+    return () => {
+      cancelled = true;
+    };
+  }, [user, summary]);
 
   useEffect(() => {
     if (!searchSubmitted) return;
@@ -40,12 +70,12 @@ export default function DashboardPage() {
 
     if (q.includes("attendance") || q.includes("attendence")) {
       setActiveDashboardTab("analytics");
-      jump("analytics-section");
+      jump("overview-section");
       return;
     }
     if (q.includes("team") || q.includes("member")) {
       setActiveDashboardTab("analytics");
-      jump("team-directory");
+      jump("overview-section");
       return;
     }
     if (q.includes("analytics") || q.includes("overview") || q.includes("metrics")) {
@@ -118,6 +148,65 @@ export default function DashboardPage() {
     { label: "Throughput forecast", value: `${forecastCompleted} completed by next week`, tone: (forecastCompletionRate >= completionRate ? "positive" : "neutral") as "neutral" | "positive" | "warning" },
   ];
 
+  if (summary.scope === "employee") {
+    const employeeSummary = summary as EmployeeDashboardSummary;
+    return (
+      <CRMShell user={user}>
+        <div className="space-y-4">
+          <Surface className="overflow-hidden p-0">
+            <div className="grid gap-4 px-4 py-4 lg:grid-cols-[1.1fr_0.9fr]">
+              <div className="min-w-0">
+                <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[var(--text-faint)]">
+                  Personal dashboard
+                </p>
+                <h1 className="mt-2 text-3xl font-semibold tracking-tight text-[var(--text-main)]">
+                  Welcome back, {user.name.split(" ")[0]}
+                </h1>
+                <p className="mt-2 max-w-2xl text-sm leading-6 text-[var(--text-soft)]">
+                  Your work summary and attendance status. Company analytics are available only to managers and admins.
+                </p>
+              </div>
+              <div className="rounded-[20px] border p-4" style={{ borderColor: "var(--border)", background: "linear-gradient(135deg, color-mix(in srgb, var(--accent) 10%, var(--surface)) 0%, var(--surface-soft) 100%)" }}>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div className="rounded-2xl border p-3" style={{ borderColor: "var(--border)", background: "var(--surface)" }}>
+                    <p className="text-[11px] uppercase tracking-[0.2em] text-[var(--text-faint)]">My tasks</p>
+                    <p className="mt-1 text-2xl font-semibold text-[var(--text-main)]">{employeeSummary.metrics.myTasks}</p>
+                  </div>
+                  <div className="rounded-2xl border p-3" style={{ borderColor: "var(--border)", background: "var(--surface)" }}>
+                    <p className="text-[11px] uppercase tracking-[0.2em] text-[var(--text-faint)]">Completion</p>
+                    <p className="mt-1 text-2xl font-semibold text-[var(--text-main)]">{completionRate}%</p>
+                  </div>
+                </div>
+                <div className="mt-3 rounded-2xl border p-3" style={{ borderColor: "var(--border)", background: "var(--surface)" }}>
+                  <p className="text-sm font-semibold text-[var(--text-main)]">Momentum</p>
+                  <div className="mt-2 h-20 overflow-hidden rounded-xl border p-2" style={{ borderColor: "var(--border)", background: "var(--surface-soft)" }}>
+                    <svg viewBox="0 0 360 80" className="h-full w-full" aria-hidden="true">
+                      <path d={buildLinePath(employeeSummary.analytics.taskProgressTrend.map((x) => x.avgProgress), 360, 80)} fill="none" stroke="var(--accent-strong)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </Surface>
+
+          <AttendanceCard initialCheckedIn={employeeSummary.metrics.checkedIn} />
+
+          <Surface className="p-5">
+            <div className="mb-4">
+              <p className="text-sm font-semibold text-[var(--text-main)]">Recent tasks</p>
+              <p className="mt-1 text-sm text-[var(--text-soft)]">Your latest assigned work items.</p>
+            </div>
+            {employeeSummary.recentTasks.length ? (
+              <TaskSummaryList tasks={employeeSummary.recentTasks} />
+            ) : (
+              <StatePanel title="No tasks yet" description="No assigned tasks found for your account." />
+            )}
+          </Surface>
+        </div>
+      </CRMShell>
+    );
+  }
+
   return (
     <CRMShell user={user}>
       <div className="space-y-4">
@@ -132,7 +221,7 @@ export default function DashboardPage() {
               <div className="mt-4 grid max-w-2xl gap-2 sm:grid-cols-2">
                 <div className="rounded-xl border px-4 py-3" style={{ borderColor: "var(--border)", background: "var(--surface-soft)" }}>
                   <p className="text-[11px] uppercase tracking-[0.18em] text-[var(--text-faint)]">Focus</p>
-                  <p className="mt-1 text-sm font-semibold text-[var(--text-main)]">{leadershipView ? "Operations" : "My work"}</p>
+                  <p className="mt-1 text-sm font-semibold text-[var(--text-main)]">My work</p>
                 </div>
                 <div className="rounded-xl border px-4 py-3" style={{ borderColor: "var(--border)", background: "var(--surface-soft)" }}>
                   <p className="text-[11px] uppercase tracking-[0.18em] text-[var(--text-faint)]">Mode</p>
@@ -186,24 +275,8 @@ export default function DashboardPage() {
                 {overviewStats.map((stat) => <SummaryStatCard key={stat.label} label={stat.label} value={stat.value} helper={stat.helper} points={stat.points} />)}
               </section>
               <InsightTicker items={insightItems} />
-              {leadershipView ? (
-                <section className="space-y-4" id="team-directory">
-                  <div>
-                    <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[var(--text-faint)]">Team directory</p>
-                    <h2 className="mt-2 text-2xl font-semibold text-[var(--text-main)]">Member performance</h2>
-                    <p className="mt-2 max-w-2xl text-sm text-[var(--text-soft)]">Use the header search or the filters below to find people. Select a card to load attendance, progress, and tasks.</p>
-                  </div>
-                  <MemberPickerToolbar searchQuery={globalSearch } onSearchChange={setGlobalSearch} roleFilter={teamDirectoryRoleFilter} onRoleFilterChange={setTeamDirectoryRoleFilter} roleOptions={teamDirectoryRoleOptions} />
-                  {teamLoading ? <StatePanel title="Loading team directory" description="Fetching people and baseline analytics." />
-                    : filteredTeamMembers.length === 0 ? <StatePanel title="No matching team members" description="Try a different search or clear the role filter." />
-                    : <TeamAnalyticsPanel members={filteredTeamMembers} selectedMemberId={selectedMemberId} selectedAnalytics={selectedAnalytics} analyticsLoading={analyticsLoading} directoryTitle="Roster" directorySubtitle="Live roster and analytics" onSelect={setSelectedMemberId} />}
-                </section>
-              ) : null}
-              {leadershipView && summary.scope === "superadmin" && summary.analytics.superAdmin?.departmentWise ? (
-                <DepartmentWisePanel departments={summary.analytics.superAdmin.departmentWise} />
-              ) : null}
               <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-                <LineChartCard title={leadershipView ? "Organization work-hour trend" : "Personal work-hour trend"} subtitle="Daily work-hour movement for workload tracking." values={summary.analytics.workingHoursTrend.map((x) => x.hours)} labels={summary.analytics.workingHoursTrend.map((x) => x.label)} suffix="h" stroke="var(--accent)" fill="color-mix(in srgb, var(--accent) 14%, transparent)" />
+                <LineChartCard title="Personal work-hour trend" subtitle="Daily work-hour movement for workload tracking." values={summary.analytics.workingHoursTrend.map((x) => x.hours)} labels={summary.analytics.workingHoursTrend.map((x) => x.label)} suffix="h" stroke="var(--accent)" fill="color-mix(in srgb, var(--accent) 14%, transparent)" />
                 <LineChartCard title="Task progress trend" subtitle="Completion momentum across recent days." values={summary.analytics.taskProgressTrend.map((x) => x.avgProgress)} labels={summary.analytics.taskProgressTrend.map((x) => x.label)} suffix="%" stroke="var(--success)" fill="color-mix(in srgb, var(--success) 12%, transparent)" />
               </div>
               <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
@@ -212,7 +285,13 @@ export default function DashboardPage() {
               </div>
             </section>
             <section className="space-y-4" id="analytics-section">
-              <HeatmapGrid title={summary.scope === "employee" ? "Attendance heatmap" : "Team attendance heatmap"} subtitle="Recent attendance pattern." items={summary.analytics.attendanceHeatmap} />
+              {myAnalyticsLoading ? (
+                <StatePanel title="Loading your attendance heatmap" description="Preparing your recent attendance pattern." />
+              ) : myAttendanceHeatmap.length ? (
+                <HeatmapGrid title="My attendance heatmap" subtitle="Your attendance pattern over the past few weeks." items={myAttendanceHeatmap} />
+              ) : (
+                <StatePanel title="No attendance yet" description="No attendance history found for your account in this period." />
+              )}
             </section>
           </>
         ) : (

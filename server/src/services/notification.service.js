@@ -13,6 +13,7 @@ const DEFAULT_NOTIFICATION_PREFERENCES = {
   attendanceAlerts: true,
   chatMentions: true,
   leaveRequests: true,
+  credentialAlerts: true,
 };
 
 const ROLE_NOTIFICATION_DEFAULTS = {
@@ -486,6 +487,8 @@ export async function isNotificationTypeEnabled(userId, notificationType) {
       LEAVE_REQUEST: preferences.leaveRequests,
       LEAVE_APPROVED: preferences.leaveRequests,
       LEAVE_REJECTED: preferences.leaveRequests,
+      CREDENTIAL_EXPIRING: preferences.credentialAlerts,
+      CREDENTIAL_EXPIRED: preferences.credentialAlerts,
     };
 
     return preferenceMap[notificationType] !== false;

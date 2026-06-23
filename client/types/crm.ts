@@ -560,3 +560,49 @@ export type ActivityLogsResponse = {
   hasMore: boolean;
   nextOffset: number;
 };
+
+export type CredentialStatus = "UNKNOWN" | "VALID" | "EXPIRING_SOON" | "EXPIRED";
+
+export type CredentialUsage = {
+  id: string;
+  credentialId: string;
+  projectId: string;
+  environment?: string | null;
+  envKey?: string | null;
+  notes?: string | null;
+  createdAt: string;
+  updatedAt: string;
+  project: {
+    id: string;
+    name: string;
+    department?: {
+      id: string;
+      name: string;
+      code: string;
+    } | null;
+  };
+};
+
+export type Credential = {
+  id: string;
+  name: string;
+  provider?: string | null;
+  envKey?: string | null;
+  validityDays?: number | null;
+  expiresAt?: string | null;
+  rotatedAt?: string | null;
+  notes?: string | null;
+  createdById?: string | null;
+  createdAt: string;
+  updatedAt: string;
+  createdBy?: {
+    id: string;
+    name: string;
+    email: string;
+    role: UserRole;
+  } | null;
+  usages: CredentialUsage[];
+  derivedExpiresAt?: string | null;
+  status: CredentialStatus;
+  daysLeft: number | null;
+};

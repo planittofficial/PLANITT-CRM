@@ -47,6 +47,7 @@ const pageTitles: Record<string, string> = {
   "/departments": "Departments",
   "/logs": "Logs",
   "/chat": "Chats",
+  "/credentials": "Credentials",
   "/settings": "Settings",
   "/notifications": "Notifications",
 };
@@ -285,6 +286,9 @@ export function CRMShell({ children, user, compactMobileChrome = false }: CRMShe
       : []),
     ...(user.role === "SUPERADMIN" || user.role === "ADMIN" || user.role === "MANAGER"
       ? [{ href: "/projects", label: "Projects", icon: "P" }]
+      : []),
+    ...(user.role === "SUPERADMIN" || user.role === "ADMIN" || user.role === "MANAGER"
+      ? [{ href: "/credentials", label: "Credentials", icon: "K" }]
       : []),
     { href: "/tasks", label: "Tasks", icon: "T" },
     { href: "/leaves", label: "Leaves", icon: "L" },

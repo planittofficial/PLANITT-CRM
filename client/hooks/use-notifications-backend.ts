@@ -35,6 +35,7 @@ export type NotificationPreferences = {
   attendanceAlerts: boolean;
   chatMentions: boolean;
   leaveRequests: boolean;
+  credentialAlerts: boolean;
 };
 
 export function useNotificationsBackend(user: CRMUser) {

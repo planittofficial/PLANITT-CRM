@@ -4,6 +4,7 @@ import app from "./src/app.js";
 import { initSocket } from "./src/socket.js";
 import prisma from "./src/config/db.js";
 import { getJwtSecret } from "./src/config/security.js";
+import { startCredentialExpiryScheduler } from "./src/services/credential-expiry.service.js";
 
 const port = process.env.PORT || 5000;
 
@@ -44,8 +45,10 @@ async function connectDatabaseWithRetry(maxAttempts = 5) {
 
 async function start() {
   getJwtSecret();
+  let dbConnected = false;
   try {
     await connectDatabaseWithRetry();
+    dbConnected = true;
   } catch (err) {
     if (process.env.NODE_ENV === "production") {
       throw err;
@@ -53,6 +56,10 @@ async function start() {
     console.error(
       "Unable to connect to database after multiple attempts. Starting server in degraded mode; some API routes may fail."
     );
+  }
+
+  if (dbConnected) {
+    startCredentialExpiryScheduler();
   }
 
   server.listen(port, () => {

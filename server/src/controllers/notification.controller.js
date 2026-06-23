@@ -208,6 +208,7 @@ export async function updatePreferences(req, res) {
       "attendanceAlerts",
       "chatMentions",
       "leaveRequests",
+      "credentialAlerts",
     ];
 
     const sanitizedUpdates = {};
