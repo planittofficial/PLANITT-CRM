@@ -18,7 +18,8 @@ function formatUsageSummary(usages = []) {
     .map((usage) => {
       const env = usage.environment ? ` (${usage.environment})` : "";
       const key = usage.envKey ? ` — ${usage.envKey}` : "";
-      return `${usage.project.name}${env}${key}`;
+      const name = usage.project?.name ?? usage.projectName ?? "Unnamed project";
+      return `${name}${env}${key}`;
     })
     .join("; ");
 }

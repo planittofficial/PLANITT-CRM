@@ -566,13 +566,15 @@ export type CredentialStatus = "UNKNOWN" | "VALID" | "EXPIRING_SOON" | "EXPIRED"
 export type CredentialUsage = {
   id: string;
   credentialId: string;
-  projectId: string;
+  projectId?: string | null;
+  projectName?: string | null;
+  displayName?: string;
   environment?: string | null;
   envKey?: string | null;
   notes?: string | null;
   createdAt: string;
   updatedAt: string;
-  project: {
+  project?: {
     id: string;
     name: string;
     department?: {
@@ -580,7 +582,7 @@ export type CredentialUsage = {
       name: string;
       code: string;
     } | null;
-  };
+  } | null;
 };
 
 export type Credential = {

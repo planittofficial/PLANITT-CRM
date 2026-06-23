@@ -7,7 +7,7 @@
   "scripts": {
     "dev": "node --watch index.js",
     "build": "prisma generate",
-    "build:render-api": "npm ci --prefix .. && cd .. && node ./node_modules/prisma/build/index.js migrate deploy --schema ./server/prisma/schema.prisma && node ./node_modules/prisma/build/index.js generate --schema ./server/prisma/schema.prisma",
+    "build:render-api": "npm ci --prefix .. && cd .. && node ./server/scripts/render-migrate-deploy.mjs",
     "migrate:deploy": "prisma migrate deploy",
     "start": "node index.js"
   },

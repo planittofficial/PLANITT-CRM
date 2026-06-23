@@ -470,7 +470,9 @@ model Credential {
 model CredentialUsage {
   id           String   @id @default(cuid())
   credentialId String
-  projectId    String
+  projectId    String?
+  /** Custom project/repo name when not linked to a CRM project board */
+  projectName  String?
   /** Optional: DEV/STAGING/PROD or custom label */
   environment  String?
   /** Optional override: env var name in that project */
@@ -480,9 +482,9 @@ model CredentialUsage {
   updatedAt    DateTime @updatedAt
 
   credential   Credential @relation(fields: [credentialId], references: [id], onDelete: Cascade)
-  project      Project    @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  project      Project?   @relation(fields: [projectId], references: [id], onDelete: Cascade)
 
   @@index([credentialId])
   @@index([projectId])
-  @@unique([credentialId, projectId, environment, envKey])
+  @@index([projectName])
 }

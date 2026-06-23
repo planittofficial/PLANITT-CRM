@@ -12,7 +12,7 @@
     "dev:server": "npm run dev --workspace server",
     "build": "npm run build --workspace client",
     "start": "npm run start --workspace server",
-    "build:render-api": "npm ci && node ./node_modules/prisma/build/index.js migrate deploy --schema ./server/prisma/schema.prisma && node ./node_modules/prisma/build/index.js generate --schema ./server/prisma/schema.prisma"
+    "build:render-api": "npm ci && node ./server/scripts/render-migrate-deploy.mjs"
   },
   "devDependencies": {
     "prisma": "^6.19.3"

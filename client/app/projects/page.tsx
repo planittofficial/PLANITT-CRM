@@ -8,6 +8,7 @@ import { StatePanel } from "@/components/shared/state-panel";
 import { useState } from "react";
 import { showToast } from "@/hooks/use-toast";
 import { ProjectsSkeleton } from "@/components/shared/skeleton";
+import { ProjectCredentialsPanel } from "@/components/credentials/project-credentials-panel";
 import { TaskKanban } from "@/components/projects/task-kanban";
 import { parseSmartTaskPaste } from "@/lib/smart-paste";
 import { useProjectsData, TASK_PRIORITY_OPTIONS } from "@/hooks/use-projects-data";
@@ -315,6 +316,10 @@ Internal analytics dashboard`}
                 </>
               ) : <StatePanel title="No project selected" description="Create a board or select one from the left panel." />}
             </Surface>
+
+            {selectedProject ? (
+              <ProjectCredentialsPanel projectId={selectedProject.id} />
+            ) : null}
 
             {selectedProject ? (
               <Surface>
