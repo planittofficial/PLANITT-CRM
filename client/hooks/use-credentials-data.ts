@@ -18,7 +18,7 @@ const EMPTY_USAGE: UsageDraft = { projectId: "", environment: "PROD", envKey: ""
 
 export function useCredentialsData() {
   const { user, loading: sessionLoading, error: sessionError, retry: retrySession } = useSession({
-    allowedRoles: ["SUPERADMIN", "ADMIN", "MANAGER"],
+    allowedRoles: ["SUPERADMIN", "ADMIN"],
   });
 
   const [items, setItems] = useState<Credential[]>([]);

@@ -6,7 +6,7 @@ import {
   isNotificationTypeEnabled,
 } from "./notification.service.js";
 
-const LEADERSHIP_ROLES = ["SUPERADMIN", "ADMIN", "MANAGER"];
+const ADMIN_ROLES = ["SUPERADMIN", "ADMIN"];
 const ALERT_COOLDOWN_MS = 24 * 60 * 60 * 1000;
 
 function formatUsageSummary(usages = []) {
@@ -35,30 +35,8 @@ async function wasAlertSentRecently(credentialId, alertKind) {
   return Boolean(existing);
 }
 
-async function collectRecipientIds(credential) {
-  const recipientIds = new Set(await getNotificationRecipientsByRoles(LEADERSHIP_ROLES));
-
-  const projectIds = Array.from(new Set((credential.usages ?? []).map((u) => u.projectId).filter(Boolean)));
-  if (!projectIds.length) {
-    return Array.from(recipientIds);
-  }
-
-  const projects = await prisma.project.findMany({
-    where: { id: { in: projectIds } },
-    select: {
-      ownerId: true,
-      members: { select: { userId: true } },
-    },
-  });
-
-  for (const project of projects) {
-    if (project.ownerId) recipientIds.add(project.ownerId);
-    for (const member of project.members) {
-      recipientIds.add(member.userId);
-    }
-  }
-
-  return Array.from(recipientIds);
+async function collectRecipientIds() {
+  return getNotificationRecipientsByRoles(ADMIN_ROLES);
 }
 
 async function notifyRecipients({
@@ -112,7 +90,7 @@ async function processCredentialAlert(credential) {
     ? new Date(derivedExpiresAt).toLocaleDateString()
     : "unknown date";
 
-  const recipientIds = await collectRecipientIds(credential);
+  const recipientIds = await collectRecipientIds();
   if (!recipientIds.length) {
     return { credentialId: credential.id, skipped: true, reason: "no_recipients" };
   }

@@ -287,7 +287,7 @@ export function CRMShell({ children, user, compactMobileChrome = false }: CRMShe
     ...(user.role === "SUPERADMIN" || user.role === "ADMIN" || user.role === "MANAGER"
       ? [{ href: "/projects", label: "Projects", icon: "P" }]
       : []),
-    ...(user.role === "SUPERADMIN" || user.role === "ADMIN" || user.role === "MANAGER"
+    ...(user.role === "SUPERADMIN" || user.role === "ADMIN"
       ? [{ href: "/credentials", label: "Credentials", icon: "K" }]
       : []),
     { href: "/tasks", label: "Tasks", icon: "T" },

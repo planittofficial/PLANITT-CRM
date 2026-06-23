@@ -10,7 +10,7 @@ import {
 import { authMiddleware, authorizeRoles } from "../middleware/auth.middleware.js";
 
 const router = express.Router();
-const credentialRoles = ["SUPERADMIN", "ADMIN", "MANAGER"];
+const credentialRoles = ["SUPERADMIN", "ADMIN"];
 
 router.get("/", authMiddleware, authorizeRoles(...credentialRoles), getCredentials);
 router.post("/", authMiddleware, authorizeRoles(...credentialRoles), createCredential);
