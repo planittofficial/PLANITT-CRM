@@ -60,7 +60,7 @@ export function ProjectLinkPicker({
   const canAddCustom = mode === "custom" && customProjectName.trim().length > 0;
 
   return (
-    <div className="space-y-3">
+    <div className="min-w-0 space-y-3">
       <div
         className="inline-flex rounded-xl border p-1"
         style={{ borderColor: "var(--border)", background: "var(--surface-soft)" }}
@@ -100,8 +100,11 @@ export function ProjectLinkPicker({
       {mode === "listed" ? (
         <div>
           <p className="text-sm font-medium text-[var(--text-main)]">Choose from CRM projects</p>
-          <p className="mt-1 text-xs text-[var(--text-soft)]">Pick a project board that already exists in the CRM.</p>
-          <div className="mt-2">
+          <p className="mt-1 text-xs text-[var(--text-soft)]">
+            Pick a project board that already exists in the CRM.
+            {projects.length > 0 ? ` ${projects.length} project${projects.length === 1 ? "" : "s"} available.` : " No projects found in CRM yet."}
+          </p>
+          <div className="relative z-10 mt-2">
             <ResponsiveSelect
               value={selectedProjectId}
               onChange={onSelectedProjectIdChange}

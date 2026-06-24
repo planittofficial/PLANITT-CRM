@@ -6,7 +6,7 @@ import {
   type PendingProjectLink,
 } from "@/components/credentials/project-link-picker";
 import { apiDelete, apiGet, apiPost, apiPut } from "@/lib/api";
-import { credentialProjectNames } from "@/lib/credential-usage";
+import { credentialProjectNames, looksLikeSecret } from "@/lib/credential-usage";
 import { useSession } from "@/hooks/use-session";
 import { renderSessionGate } from "@/components/shared/session-gate";
 import type { Credential, Project } from "@/types/crm";
@@ -81,6 +81,9 @@ export function useCredentialsData() {
       expiresAt: selected.expiresAt ? new Date(selected.expiresAt).toISOString().slice(0, 10) : "",
       notes: selected.notes ?? "",
     });
+    setLinkDraft({ environment: "PROD", envKey: "", notes: "" });
+    setLinkPicker(EMPTY_PICKER);
+    setLinkPendingLinks([]);
   }, [selected?.id, selected?.updatedAt]);
 
   const load = async () => {
@@ -288,6 +291,10 @@ export function useCredentialsData() {
     const { projectIds, customProjectNames } = pendingLinksToPayload(linkPendingLinks);
     if (!projectIds.length && !customProjectNames.length) {
       showToast("Add at least one project using the dropdown or custom name field.", "error");
+      return;
+    }
+    if (looksLikeSecret(linkDraft.envKey)) {
+      showToast("Env override must be a variable name (e.g. DATABASE_URL), not a connection string.", "error");
       return;
     }
     try {

@@ -1,32 +1,36 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { CRMShell } from "@/components/layout/crm-shell";
 import { StatePanel } from "@/components/shared/state-panel";
 import { ResponsiveSelect } from "@/components/shared/responsive-select";
 import { ProjectLinkPicker } from "@/components/credentials/project-link-picker";
+import { CredentialFlowGraph } from "@/components/credentials/credential-flow-graph";
+import { EnvVariableChip } from "@/components/credentials/credential-summary-header";
 import { useCredentialsData } from "@/hooks/use-credentials-data";
-import { credentialProjectNames, statusLabel, usageDisplayName } from "@/lib/credential-usage";
+import {
+  credentialProjectNames,
+  looksLikeSecret,
+  resolveEnvKeyDisplay,
+  searchableCredentialText,
+  statusLabel,
+  statusTone,
+  usageDisplayName,
+} from "@/lib/credential-usage";
+import type { Credential } from "@/types/crm";
 
 const FIELD_STYLE = { borderColor: "var(--border)", background: "var(--surface-soft)", color: "var(--text-main)" } as const;
 const ENV_OPTIONS = ["PROD", "STAGING", "DEV", "LOCAL"].map((x) => ({ value: x, label: x }));
 
-function Surface({ children }: { children: React.ReactNode }) {
-  return (
-    <section
-      className="rounded-[20px] border p-5"
-      style={{ background: "var(--surface)", borderColor: "var(--border)", boxShadow: "var(--shadow-soft)" }}
-    >
-      {children}
-    </section>
-  );
-}
+type FilterKey = "ALL" | "ACTION" | "EXPIRED" | "VALID";
+type WorkspaceTab = "analyze" | "manage";
 
-function statusStyle(status: string) {
-  if (status === "EXPIRED") return { bg: "color-mix(in srgb, var(--danger) 16%, var(--surface-soft))", fg: "var(--danger)" };
-  if (status === "EXPIRING_SOON") return { bg: "color-mix(in srgb, #f59e0b 16%, var(--surface-soft))", fg: "#b45309" };
-  if (status === "VALID") return { bg: "color-mix(in srgb, var(--success) 14%, var(--surface-soft))", fg: "var(--success)" };
-  return { bg: "var(--surface-soft)", fg: "var(--text-soft)" };
+function matchesFilter(credential: Credential, filter: FilterKey) {
+  if (filter === "ALL") return true;
+  if (filter === "ACTION") return credential.status === "EXPIRED" || credential.status === "EXPIRING_SOON";
+  if (filter === "EXPIRED") return credential.status === "EXPIRED";
+  if (filter === "VALID") return credential.status === "VALID";
+  return true;
 }
 
 export default function CredentialsPage() {
@@ -68,180 +72,181 @@ export default function CredentialsPage() {
     removeUsage,
   } = useCredentialsData();
 
+  const [filter, setFilter] = useState<FilterKey>("ALL");
+  const [search, setSearch] = useState("");
+  const [workspaceTab, setWorkspaceTab] = useState<WorkspaceTab>("analyze");
+  const [highlightedUsageId, setHighlightedUsageId] = useState<string | undefined>();
+  const [showAddForm, setShowAddForm] = useState(false);
+
   const envOptions = useMemo(() => ENV_OPTIONS, []);
+
+  const filteredItems = useMemo(() => {
+    const query = search.trim().toLowerCase();
+    return items.filter((credential) => {
+      if (!matchesFilter(credential, filter)) return false;
+      if (!query) return true;
+      return searchableCredentialText(credential).includes(query);
+    });
+  }, [items, filter, search]);
 
   if (sessionGate) return sessionGate;
   if (!user) return null;
 
   return (
     <CRMShell user={user}>
-      <div className="min-w-0 space-y-4 overflow-x-hidden pb-4">
-        <Surface>
-          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[var(--text-faint)]">Credentials registry</p>
-          <h1 className="mt-2 text-3xl font-semibold tracking-tight text-[var(--text-main)]">API keys & project usage map</h1>
-          <p className="mt-3 max-w-3xl text-sm leading-6 text-[var(--text-soft)]">
-            Register each API key once, link it to multiple projects, and show developers exactly where the same key must be updated when it expires.
-          </p>
-          <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
-            {[
-              { label: "Total keys", value: counts.total },
-              { label: "Expired", value: counts.expired },
-              { label: "Expiring soon", value: counts.expiringSoon },
-              { label: "No project links", value: counts.withoutProjects },
-              { label: "Unknown expiry", value: counts.unknown },
-            ].map((stat) => (
-              <div key={stat.label} className="rounded-2xl border px-4 py-3" style={{ borderColor: "var(--border)", background: "var(--surface-soft)" }}>
-                <p className="text-[11px] uppercase tracking-[0.18em] text-[var(--text-faint)]">{stat.label}</p>
-                <p className="mt-2 text-xl font-semibold text-[var(--text-main)]">{stat.value}</p>
+      <div className="min-h-0 min-w-0 overflow-x-hidden lg:flex lg:h-full lg:flex-col">
+        {/* Unified workspace shell */}
+        <div
+          className="flex h-[min(78dvh,900px)] min-w-0 flex-1 flex-col overflow-hidden rounded-[22px] border lg:h-full lg:min-h-0"
+          style={{ background: "var(--surface)", borderColor: "var(--border)", boxShadow: "var(--shadow-soft)" }}
+        >
+          {/* Top bar */}
+          <header className="shrink-0 border-b px-4 py-4 sm:px-5" style={{ borderColor: "var(--border)" }}>
+            <div className="flex min-w-0 flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+              <div className="min-w-0">
+                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--text-faint)]">Credentials</p>
+                <h1 className="mt-1 truncate text-xl font-semibold text-[var(--text-main)] sm:text-2xl">API key deployment map</h1>
               </div>
-            ))}
-          </div>
-        </Surface>
-
-        {actionRequired.length > 0 ? (
-          <Surface>
-            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[var(--text-faint)]">Action required</p>
-            <div className="mt-3 space-y-2">
-              {actionRequired.map((credential) => (
-                <button
-                  key={credential.id}
-                  type="button"
-                  onClick={() => setSelectedId(credential.id)}
-                  className="flex w-full flex-col gap-2 rounded-2xl border px-4 py-4 text-left sm:flex-row sm:items-center sm:justify-between"
-                  style={{ borderColor: "var(--border)", background: "var(--surface-soft)" }}
-                >
-                  <div>
-                    <p className="font-semibold text-[var(--text-main)]">{credential.name}</p>
-                    <p className="mt-1 text-sm text-[var(--text-soft)]">
-                      {statusLabel(credential.status, credential.daysLeft)} • update in:{" "}
-                      {credentialProjectNames(credential).join(", ") || "no projects linked yet"}
-                    </p>
+              <div className="flex min-w-0 flex-wrap gap-2">
+                {[
+                  { label: "Total", value: counts.total, color: "var(--text-main)" },
+                  { label: "Expired", value: counts.expired, color: "var(--danger)" },
+                  { label: "Expiring", value: counts.expiringSoon, color: "#b45309" },
+                  { label: "Unlinked", value: counts.withoutProjects, color: "var(--text-soft)" },
+                ].map((stat) => (
+                  <div
+                    key={stat.label}
+                    className="rounded-lg border px-3 py-1.5"
+                    style={{ borderColor: "var(--border)", background: "var(--surface-soft)" }}
+                  >
+                    <span className="text-[10px] uppercase tracking-[0.12em] text-[var(--text-faint)]">{stat.label} </span>
+                    <span className="ml-1 text-sm font-bold" style={{ color: stat.color }}>
+                      {stat.value}
+                    </span>
                   </div>
-                  <span className="text-xs font-bold uppercase tracking-[0.16em]" style={{ color: statusStyle(credential.status).fg }}>
-                    {credential.status}
-                  </span>
-                </button>
-              ))}
+                ))}
+              </div>
             </div>
-          </Surface>
-        ) : null}
 
-        <div className="grid gap-4 xl:grid-cols-[360px_1fr]">
-          <aside className="space-y-4">
-            <Surface>
-              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[var(--text-faint)]">All credentials</p>
-              <div className="mt-4 space-y-3">
-                {items.length === 0 ? (
-                  <p className="rounded-2xl border px-4 py-6 text-sm text-[var(--text-soft)]" style={{ borderColor: "var(--border)" }}>
-                    No credentials added yet.
-                  </p>
-                ) : (
-                  items.map((credential) => {
-                    const sel = credential.id === selectedId;
-                    const badge = statusStyle(credential.status);
-                    const projectNames = credentialProjectNames(credential);
+            {actionRequired.length > 0 ? (
+              <div className="mt-3 flex min-w-0 flex-wrap gap-2">
+                {actionRequired.map((credential) => {
+                  const tone = statusTone(credential.status);
+                  return (
+                    <button
+                      key={credential.id}
+                      type="button"
+                      onClick={() => {
+                        setSelectedId(credential.id);
+                        setWorkspaceTab("analyze");
+                        setHighlightedUsageId(undefined);
+                      }}
+                      className="max-w-full truncate rounded-lg border px-2.5 py-1.5 text-xs font-semibold"
+                      style={{ borderColor: tone.stroke, background: tone.fill, color: "var(--text-main)" }}
+                    >
+                      {credential.name} · {statusLabel(credential.status, credential.daysLeft)}
+                    </button>
+                  );
+                })}
+              </div>
+            ) : null}
+          </header>
+
+          {/* Split body */}
+          <div className="grid min-h-0 min-w-0 flex-1 grid-cols-1 xl:grid-cols-[minmax(0,280px)_minmax(0,1fr)]">
+            {/* Registry rail */}
+            <aside
+              className="flex min-h-0 min-w-0 flex-col border-b xl:border-b-0 xl:border-r"
+              style={{ borderColor: "var(--border)", background: "var(--surface-soft)" }}
+            >
+              <div className="shrink-0 space-y-3 border-b p-4" style={{ borderColor: "var(--border)" }}>
+                <input
+                  className="h-10 w-full min-w-0 rounded-xl border px-3 text-sm outline-none"
+                  style={FIELD_STYLE}
+                  placeholder="Search keys or projects..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                />
+                <div className="flex min-w-0 flex-wrap gap-1.5">
+                  {(
+                    [
+                      { key: "ALL", label: "All" },
+                      { key: "ACTION", label: "Action" },
+                      { key: "EXPIRED", label: "Expired" },
+                      { key: "VALID", label: "Valid" },
+                    ] as const
+                  ).map((chip) => {
+                    const active = filter === chip.key;
                     return (
                       <button
-                        key={credential.id}
+                        key={chip.key}
                         type="button"
-                        onClick={() => setSelectedId(credential.id)}
-                        className="w-full rounded-2xl border px-4 py-4 text-left transition"
+                        onClick={() => setFilter(chip.key)}
+                        className="rounded-full px-2.5 py-1 text-[11px] font-semibold"
                         style={
-                          sel
-                            ? { borderColor: "#0f172a", background: "#0f172a", color: "#ffffff" }
-                            : { borderColor: "var(--border)", background: "var(--surface-soft)", color: "var(--text-main)" }
+                          active
+                            ? { background: "#0f172a", color: "#fff" }
+                            : { background: "var(--surface)", color: "var(--text-soft)" }
                         }
                       >
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="min-w-0">
-                            <p className="truncate font-semibold">{credential.name}</p>
-                            <p className={`mt-1 text-xs ${sel ? "text-slate-300" : "text-[var(--text-soft)]"}`}>
-                              {credential.provider ?? "Provider not set"}
-                              {credential.envKey ? ` • ${credential.envKey}` : ""}
-                            </p>
-                          </div>
-                          <span
-                            className="shrink-0 rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.18em]"
-                            style={{ background: sel ? "rgba(255,255,255,0.14)" : badge.bg, color: sel ? "white" : badge.fg }}
-                          >
-                            {statusLabel(credential.status, credential.daysLeft)}
-                          </span>
-                        </div>
-                        <div className="mt-3 flex flex-wrap gap-1.5">
-                          {projectNames.length ? (
-                            projectNames.map((name) => (
-                              <span
-                                key={name}
-                                className="rounded-full px-2 py-0.5 text-[10px] font-semibold"
-                                style={{
-                                  background: sel ? "rgba(255,255,255,0.12)" : "var(--surface)",
-                                  color: sel ? "white" : "var(--text-soft)",
-                                }}
-                              >
-                                {name}
-                              </span>
-                            ))
-                          ) : (
-                            <span className={`text-xs ${sel ? "text-slate-300" : "text-[var(--text-faint)]"}`}>No projects linked</span>
-                          )}
-                        </div>
+                        {chip.label}
                       </button>
                     );
-                  })
-                )}
+                  })}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowAddForm((v) => !v)}
+                  className="h-9 w-full rounded-xl border text-xs font-semibold"
+                  style={{ borderColor: "var(--border)", background: "var(--surface)", color: "var(--text-main)" }}
+                >
+                  {showAddForm ? "Close add form" : "+ Add credential"}
+                </button>
               </div>
-            </Surface>
 
-            <Surface>
-              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[var(--text-faint)]">Add credential</p>
-              <div className="mt-4 grid gap-3">
-                <input
-                  className="h-11 w-full rounded-2xl border px-4 text-sm outline-none"
-                  style={FIELD_STYLE}
-                  placeholder="Credential name (e.g. Grok API Key)"
-                  value={createForm.name}
-                  onChange={(e) => setCreateForm((c) => ({ ...c, name: e.target.value }))}
-                />
-                <div className="grid gap-3 sm:grid-cols-2">
+              {showAddForm ? (
+                <div className="max-h-[40vh] shrink-0 space-y-2.5 overflow-y-auto overscroll-contain border-b p-4" style={{ borderColor: "var(--border)" }}>
                   <input
-                    className="h-11 w-full rounded-2xl border px-4 text-sm outline-none"
+                    className="h-10 w-full min-w-0 rounded-xl border px-3 text-sm outline-none"
                     style={FIELD_STYLE}
-                    placeholder="Provider (e.g. Grok)"
-                    value={createForm.provider}
-                    onChange={(e) => setCreateForm((c) => ({ ...c, provider: e.target.value }))}
+                    placeholder="Name"
+                    value={createForm.name}
+                    onChange={(e) => setCreateForm((c) => ({ ...c, name: e.target.value }))}
                   />
-                  <input
-                    className="h-11 w-full rounded-2xl border px-4 text-sm outline-none"
-                    style={FIELD_STYLE}
-                    placeholder="Env key (e.g. GROK_API_KEY)"
-                    value={createForm.envKey}
-                    onChange={(e) => setCreateForm((c) => ({ ...c, envKey: e.target.value }))}
-                  />
-                </div>
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <input
-                    className="h-11 w-full rounded-2xl border px-4 text-sm outline-none"
-                    style={FIELD_STYLE}
-                    placeholder="Validity days (e.g. 90)"
-                    value={createForm.validityDays}
-                    onChange={(e) => setCreateForm((c) => ({ ...c, validityDays: e.target.value }))}
-                  />
-                  <input
-                    type="date"
-                    className="h-11 w-full rounded-2xl border px-4 text-sm outline-none"
-                    style={FIELD_STYLE}
-                    value={createForm.expiresAt}
-                    onChange={(e) => setCreateForm((c) => ({ ...c, expiresAt: e.target.value }))}
-                    aria-label="Expiry date"
-                  />
-                </div>
-
-                <div>
-                  <p className="text-sm font-medium text-[var(--text-main)]">Link to projects</p>
-                  <p className="mt-1 text-xs text-[var(--text-soft)]">
-                    Use the dropdown for CRM projects, or switch to custom name if the project is not listed yet. Add multiple projects one by one.
-                  </p>
-                  <div className="mt-3">
+                  <div className="grid min-w-0 gap-2">
+                    <input
+                      className="h-10 w-full min-w-0 rounded-xl border px-3 text-sm outline-none"
+                      style={FIELD_STYLE}
+                      placeholder="Provider"
+                      value={createForm.provider}
+                      onChange={(e) => setCreateForm((c) => ({ ...c, provider: e.target.value }))}
+                    />
+                    <input
+                      className="h-10 w-full min-w-0 rounded-xl border px-3 text-sm outline-none"
+                      style={FIELD_STYLE}
+                      placeholder="Env variable name (e.g. MONGODB_URI)"
+                      value={createForm.envKey}
+                      onChange={(e) => setCreateForm((c) => ({ ...c, envKey: e.target.value }))}
+                    />
+                  </div>
+                  <div className="grid min-w-0 gap-2 sm:grid-cols-2">
+                    <input
+                      className="h-10 w-full min-w-0 rounded-xl border px-3 text-sm outline-none"
+                      style={FIELD_STYLE}
+                      placeholder="Validity days"
+                      value={createForm.validityDays}
+                      onChange={(e) => setCreateForm((c) => ({ ...c, validityDays: e.target.value }))}
+                    />
+                    <input
+                      type="date"
+                      className="h-10 w-full min-w-0 rounded-xl border px-3 text-sm outline-none"
+                      style={FIELD_STYLE}
+                      value={createForm.expiresAt}
+                      onChange={(e) => setCreateForm((c) => ({ ...c, expiresAt: e.target.value }))}
+                      aria-label="Expiry date"
+                    />
+                  </div>
+                  <div className="min-w-0">
                     <ProjectLinkPicker
                       projects={projects}
                       mode={createPicker.mode}
@@ -255,223 +260,378 @@ export default function CredentialsPage() {
                       onRemove={(key) => setCreatePendingLinks((current) => current.filter((link) => link.key !== key))}
                     />
                   </div>
-                </div>
-
-                <textarea
-                  className="min-h-20 w-full rounded-2xl border px-4 py-3 text-sm outline-none"
-                  style={FIELD_STYLE}
-                  placeholder="Notes (optional)"
-                  value={createForm.notes}
-                  onChange={(e) => setCreateForm((c) => ({ ...c, notes: e.target.value }))}
-                />
-                <button
-                  type="button"
-                  disabled={saving || !createForm.name.trim()}
-                  onClick={() => void createCredential()}
-                  className="w-full rounded-2xl px-4 py-3 text-sm font-semibold text-white disabled:cursor-wait disabled:opacity-70"
-                  style={{ background: "var(--accent-strong)" }}
-                >
-                  {saving ? "Saving..." : "Add credential & link projects"}
-                </button>
-              </div>
-            </Surface>
-          </aside>
-
-          <section className="space-y-4">
-            {!selected ? (
-              <Surface>
-                <StatePanel title="No credential selected" description={items.length ? "Pick a credential from the left list." : "Add your first credential to begin tracking."} />
-              </Surface>
-            ) : (
-              <>
-                <Surface>
-                  <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-                    <div className="min-w-0">
-                      <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[var(--text-faint)]">Credential detail</p>
-                      <h2 className="mt-2 truncate text-2xl font-semibold text-[var(--text-main)]">{selected.name}</h2>
-                      <p className="mt-2 text-sm text-[var(--text-soft)]">
-                        {statusLabel(selected.status, selected.daysLeft)}
-                        {selected.derivedExpiresAt ? ` • Expires ${new Date(selected.derivedExpiresAt).toLocaleDateString()}` : ""}
-                      </p>
-                    </div>
-                    <div className="flex flex-wrap items-center gap-2">
-                      <button
-                        type="button"
-                        disabled={saving}
-                        onClick={() => void rotateCredential()}
-                        className="h-11 rounded-2xl border px-4 text-sm font-semibold disabled:opacity-70"
-                        style={{ borderColor: "var(--border)", background: "var(--surface-soft)", color: "var(--text-main)" }}
-                      >
-                        Mark rotated now
-                      </button>
-                      <button
-                        type="button"
-                        disabled={saving}
-                        onClick={() => void deleteCredential(selected.id)}
-                        className="h-11 rounded-2xl px-4 text-sm font-semibold text-white disabled:opacity-70"
-                        style={{ background: "var(--danger)" }}
-                      >
-                        Delete
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="mt-5 grid gap-3 md:grid-cols-2">
-                    <label className="text-sm font-medium text-[var(--text-main)]">
-                      Name
-                      <input className="mt-2 h-11 w-full rounded-2xl border px-4 text-sm outline-none" style={FIELD_STYLE} value={editForm.name} onChange={(e) => setEditForm((c) => ({ ...c, name: e.target.value }))} />
-                    </label>
-                    <label className="text-sm font-medium text-[var(--text-main)]">
-                      Provider
-                      <input className="mt-2 h-11 w-full rounded-2xl border px-4 text-sm outline-none" style={FIELD_STYLE} value={editForm.provider} onChange={(e) => setEditForm((c) => ({ ...c, provider: e.target.value }))} />
-                    </label>
-                    <label className="text-sm font-medium text-[var(--text-main)]">
-                      Default env key
-                      <input className="mt-2 h-11 w-full rounded-2xl border px-4 text-sm outline-none" style={FIELD_STYLE} value={editForm.envKey} onChange={(e) => setEditForm((c) => ({ ...c, envKey: e.target.value }))} />
-                    </label>
-                    <label className="text-sm font-medium text-[var(--text-main)]">
-                      Validity days
-                      <input className="mt-2 h-11 w-full rounded-2xl border px-4 text-sm outline-none" style={FIELD_STYLE} value={editForm.validityDays} onChange={(e) => setEditForm((c) => ({ ...c, validityDays: e.target.value }))} />
-                    </label>
-                    <label className="text-sm font-medium text-[var(--text-main)]">
-                      Expires on
-                      <input type="date" className="mt-2 h-11 w-full rounded-2xl border px-4 text-sm outline-none" style={FIELD_STYLE} value={editForm.expiresAt} onChange={(e) => setEditForm((c) => ({ ...c, expiresAt: e.target.value }))} />
-                    </label>
-                  </div>
-
-                  <label className="mt-4 block text-sm font-medium text-[var(--text-main)]">
-                    Notes
-                    <textarea className="mt-2 min-h-24 w-full rounded-2xl border px-4 py-3 text-sm outline-none" style={FIELD_STYLE} value={editForm.notes} onChange={(e) => setEditForm((c) => ({ ...c, notes: e.target.value }))} />
-                  </label>
-
                   <button
                     type="button"
-                    disabled={saving}
-                    onClick={() => void saveCredentialEdits()}
-                    className="mt-4 h-11 rounded-2xl px-5 text-sm font-semibold text-white disabled:opacity-70"
+                    disabled={saving || !createForm.name.trim()}
+                    onClick={() => void createCredential()}
+                    className="h-10 w-full rounded-xl text-sm font-semibold text-white disabled:opacity-70"
                     style={{ background: "var(--accent-strong)" }}
                   >
-                    {saving ? "Saving..." : "Save credential changes"}
+                    {saving ? "Saving..." : "Add credential"}
                   </button>
-                </Surface>
+                </div>
+              ) : null}
 
-                <Surface>
-                  <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[var(--text-faint)]">Used in projects</p>
-                  <h3 className="mt-2 text-xl font-semibold text-[var(--text-main)]">Where this API key is used</h3>
-                  <p className="mt-2 text-sm text-[var(--text-soft)]">
-                    Developers see this list on each linked project board. Link multiple CRM projects and add custom repo names for anything outside the CRM.
+              <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-2">
+                {filteredItems.length === 0 ? (
+                  <p className="px-2 py-6 text-center text-sm text-[var(--text-soft)]">
+                    {items.length === 0 ? "No credentials yet." : "No matches."}
                   </p>
+                ) : (
+                  <ul className="space-y-1">
+                    {filteredItems.map((credential) => {
+                      const sel = credential.id === selectedId;
+                      const tone = statusTone(credential.status);
+                      const projectCount = (credential.usages ?? []).length;
+                      return (
+                        <li key={credential.id}>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setSelectedId(credential.id);
+                              setHighlightedUsageId(undefined);
+                            }}
+                            className="flex w-full min-w-0 items-center gap-2.5 rounded-xl px-3 py-2.5 text-left transition"
+                            style={
+                              sel
+                                ? {
+                                    background: "var(--surface)",
+                                    boxShadow: `inset 3px 0 0 ${tone.stroke}`,
+                                  }
+                                : { background: "transparent" }
+                            }
+                          >
+                            <span
+                              className="h-2 w-2 shrink-0 rounded-full"
+                              style={{ background: tone.stroke, boxShadow: tone.pulse ? `0 0 6px ${tone.glow}` : undefined }}
+                            />
+                            <div className="min-w-0 flex-1">
+                              <p className="truncate text-sm font-semibold text-[var(--text-main)]">{credential.name}</p>
+                              <p className="truncate text-[11px] text-[var(--text-soft)]">
+                                {projectCount} target{projectCount === 1 ? "" : "s"}
+                              </p>
+                            </div>
+                            <span className="shrink-0 text-[10px] font-bold" style={{ color: tone.text }}>
+                              {credential.status === "EXPIRING_SOON" && credential.daysLeft !== null
+                                ? `${credential.daysLeft}d`
+                                : credential.status === "VALID"
+                                  ? "OK"
+                                  : credential.status === "EXPIRED"
+                                    ? "!"
+                                    : "?"}
+                            </span>
+                          </button>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
+              </div>
+            </aside>
 
-                  {(selected.usages ?? []).length > 0 ? (
-                    <div className="mt-4 overflow-x-auto rounded-2xl border" style={{ borderColor: "var(--border)" }}>
-                      <table className="min-w-full text-left text-sm">
-                        <thead style={{ background: "var(--surface-soft)" }}>
-                          <tr className="text-xs uppercase tracking-[0.16em] text-[var(--text-faint)]">
-                            <th className="px-4 py-3">Project name</th>
-                            <th className="px-4 py-3">Environment</th>
-                            <th className="px-4 py-3">Env key</th>
-                            <th className="px-4 py-3">Notes</th>
-                            <th className="px-4 py-3" />
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {selected.usages.map((usage) => (
-                            <tr key={usage.id} className="border-t" style={{ borderColor: "var(--border)" }}>
-                              <td className="px-4 py-3 font-semibold text-[var(--text-main)]">{usageDisplayName(usage)}</td>
-                              <td className="px-4 py-3 text-[var(--text-soft)]">{usage.environment ?? "ALL"}</td>
-                              <td className="px-4 py-3 text-[var(--text-soft)]">{usage.envKey ?? selected.envKey ?? "—"}</td>
-                              <td className="px-4 py-3 text-[var(--text-soft)]">{usage.notes ?? "—"}</td>
-                              <td className="px-4 py-3">
+            {/* Main workspace */}
+            <main className="min-h-0 min-w-0 overflow-y-auto overscroll-contain">
+              {!selected ? (
+                <div className="flex h-full min-h-[320px] items-center justify-center p-6">
+                  <StatePanel
+                    title="Select a credential"
+                    description={
+                      items.length
+                        ? "Choose a key from the registry to inspect its deployment pipeline."
+                        : "Add your first credential using the button in the left panel."
+                    }
+                  />
+                </div>
+              ) : (
+                <div className="min-w-0 p-4 sm:p-5">
+                  {(() => {
+                    const tone = statusTone(selected.status);
+                    const deploymentsCount = (selected.usages ?? []).length;
+                    return (
+                      <div className="min-w-0 overflow-hidden rounded-2xl border" style={{ borderColor: tone.stroke, background: "var(--surface)" }}>
+                        <div className="flex min-w-0">
+                          <div className="w-1 shrink-0" style={{ background: tone.stroke }} aria-hidden />
+                          <div className="min-w-0 flex-1 p-4 sm:p-5">
+                            <div className="flex min-w-0 flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                              <div className="min-w-0">
+                                <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[var(--text-faint)]">Credential</p>
+                                <div className="mt-2 flex min-w-0 flex-wrap items-center gap-2">
+                                  <h2 className="min-w-0 truncate text-xl font-semibold tracking-tight text-[var(--text-main)]">{selected.name}</h2>
+                                  <span
+                                    className="shrink-0 rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.12em]"
+                                    style={{ background: tone.fill, color: tone.text }}
+                                  >
+                                    {statusLabel(selected.status, selected.daysLeft)}
+                                  </span>
+                                </div>
+                                <div className="mt-3 flex min-w-0 flex-wrap items-center gap-2">
+                                  <span className="text-sm text-[var(--text-soft)]">{selected.provider?.trim() || "Provider not set"}</span>
+                                  <span className="text-[11px] text-[var(--text-faint)]">•</span>
+                                  <EnvVariableChip value={selected.envKey} credentialName={selected.name} />
+                                  <span className="text-[11px] text-[var(--text-faint)]">•</span>
+                                  <span className="text-sm text-[var(--text-soft)]">
+                                    {deploymentsCount} deployment target{deploymentsCount === 1 ? "" : "s"}
+                                  </span>
+                                </div>
+                              </div>
+
+                              <div className="flex shrink-0 flex-wrap items-center gap-2">
+                                <div
+                                  className="inline-flex rounded-xl border p-1"
+                                  style={{ borderColor: "var(--border)", background: "var(--surface-soft)" }}
+                                >
+                                  {(
+                                    [
+                                      { key: "analyze", label: "Analyze" },
+                                      { key: "manage", label: "Manage" },
+                                    ] as const
+                                  ).map((tab) => (
+                                    <button
+                                      key={tab.key}
+                                      type="button"
+                                      onClick={() => setWorkspaceTab(tab.key)}
+                                      className="rounded-lg px-3 py-1.5 text-xs font-semibold"
+                                      style={
+                                        workspaceTab === tab.key
+                                          ? { background: "var(--surface)", color: "var(--text-main)", boxShadow: "var(--shadow-soft)" }
+                                          : { color: "var(--text-soft)" }
+                                      }
+                                    >
+                                      {tab.label}
+                                    </button>
+                                  ))}
+                                </div>
                                 <button
                                   type="button"
                                   disabled={saving}
-                                  onClick={() => void removeUsage(selected.id, usage.id)}
-                                  className="rounded-lg px-3 py-1.5 text-xs font-bold text-white disabled:opacity-70"
+                                  onClick={() => void rotateCredential()}
+                                  className="h-9 rounded-xl border px-3 text-xs font-semibold disabled:opacity-70"
+                                  style={{ borderColor: "var(--border)", background: "var(--surface)", color: "var(--text-main)" }}
+                                >
+                                  Mark rotated
+                                </button>
+                                <button
+                                  type="button"
+                                  disabled={saving}
+                                  onClick={() => void deleteCredential(selected.id)}
+                                  className="h-9 rounded-xl px-3 text-xs font-semibold text-white disabled:opacity-70"
                                   style={{ background: "var(--danger)" }}
                                 >
-                                  Remove
+                                  Delete
                                 </button>
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  ) : (
-                    <p className="mt-4 rounded-2xl border px-4 py-6 text-sm text-[var(--text-soft)]" style={{ borderColor: "var(--border)" }}>
-                      No projects linked yet. Add CRM projects or custom project names below.
-                    </p>
-                  )}
+                              </div>
+                            </div>
 
-                  <div className="mt-5 grid gap-3 md:grid-cols-2">
-                    <label className="text-sm font-medium text-[var(--text-main)]">
-                      Default environment for new links
-                      <div className="mt-2">
-                        <ResponsiveSelect
-                          value={linkDraft.environment}
-                          onChange={(value) => setLinkDraft((c) => ({ ...c, environment: value }))}
-                          options={envOptions}
-                          ariaLabel="Select environment"
-                          buttonClassName="h-11 px-4"
-                        />
+                            <div className="mt-4 border-t pt-4" style={{ borderColor: "var(--border)" }}>
+                              {workspaceTab === "analyze" ? (
+                                <CredentialFlowGraph
+                                  credential={selected}
+                                  selectedUsageId={highlightedUsageId}
+                                  onUsageClick={(usage) => setHighlightedUsageId(usage.id)}
+                                />
+                              ) : (
+                                <div className="min-w-0 space-y-5">
+                                  <div>
+                                    <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--text-faint)]">Credential settings</p>
+                                    {looksLikeSecret(editForm.envKey) ? (
+                                      <p
+                                        className="mt-2 rounded-xl border px-3 py-2 text-xs text-[var(--danger)]"
+                                        style={{
+                                          borderColor: "var(--danger)",
+                                          background: "color-mix(in srgb, var(--danger) 8%, var(--surface))",
+                                        }}
+                                      >
+                                        The env variable field contains a connection string. Store only the variable name (e.g. DATABASE_URL), not the secret value.
+                                      </p>
+                                    ) : null}
+                                    <div className="mt-4 grid min-w-0 gap-3 sm:grid-cols-2">
+                                      {(
+                                        [
+                                          { key: "name", label: "Name", value: editForm.name, onChange: (v: string) => setEditForm((c) => ({ ...c, name: v })) },
+                                          { key: "provider", label: "Provider", value: editForm.provider, onChange: (v: string) => setEditForm((c) => ({ ...c, provider: v })) },
+                                          { key: "envKey", label: "Env variable name", value: editForm.envKey, onChange: (v: string) => setEditForm((c) => ({ ...c, envKey: v })) },
+                                          { key: "validityDays", label: "Validity days", value: editForm.validityDays, onChange: (v: string) => setEditForm((c) => ({ ...c, validityDays: v })) },
+                                        ] as const
+                                      ).map((field) => (
+                                        <label key={field.key} className="min-w-0 text-sm font-medium text-[var(--text-main)]">
+                                          {field.label}
+                                          <input
+                                            className="mt-1.5 h-10 w-full min-w-0 rounded-xl border px-3 text-sm outline-none"
+                                            style={FIELD_STYLE}
+                                            value={field.value}
+                                            onChange={(e) => field.onChange(e.target.value)}
+                                          />
+                                        </label>
+                                      ))}
+                                      <label className="min-w-0 text-sm font-medium text-[var(--text-main)] sm:col-span-2">
+                                        Expires on
+                                        <input
+                                          type="date"
+                                          className="mt-1.5 h-10 w-full min-w-0 rounded-xl border px-3 text-sm outline-none"
+                                          style={FIELD_STYLE}
+                                          value={editForm.expiresAt}
+                                          onChange={(e) => setEditForm((c) => ({ ...c, expiresAt: e.target.value }))}
+                                        />
+                                      </label>
+                                    </div>
+                                    <label className="mt-3 block min-w-0 text-sm font-medium text-[var(--text-main)]">
+                                      Notes
+                                      <textarea
+                                        className="mt-1.5 min-h-20 w-full min-w-0 rounded-xl border px-3 py-2 text-sm outline-none"
+                                        style={FIELD_STYLE}
+                                        value={editForm.notes}
+                                        onChange={(e) => setEditForm((c) => ({ ...c, notes: e.target.value }))}
+                                      />
+                                    </label>
+                                    <button
+                                      type="button"
+                                      disabled={saving}
+                                      onClick={() => void saveCredentialEdits()}
+                                      className="mt-4 h-10 rounded-xl px-4 text-sm font-semibold text-white disabled:opacity-70"
+                                      style={{ background: "var(--accent-strong)" }}
+                                    >
+                                      {saving ? "Saving..." : "Save changes"}
+                                    </button>
+                                  </div>
+
+                                  <div className="border-t pt-5" style={{ borderColor: "var(--border)" }}>
+                                    <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--text-faint)]">Project links</p>
+                                    <p className="mt-1 text-sm text-[var(--text-soft)]">
+                                      Add projects (or unlisted repos) as deployment targets for this credential.
+                                    </p>
+                                    {projects.length === 0 ? (
+                                      <p
+                                        className="mt-2 rounded-xl border px-3 py-2 text-xs text-[var(--text-soft)]"
+                                        style={{ borderColor: "var(--border)", background: "var(--surface-soft)" }}
+                                      >
+                                        No CRM projects found. Create projects first, or use &quot;New / unlisted project&quot;.
+                                      </p>
+                                    ) : null}
+
+                                    {(selected.usages ?? []).length > 0 ? (
+                                      <ul className="mt-3 space-y-2">
+                                        {selected.usages.map((usage) => (
+                                          <li
+                                            key={usage.id}
+                                            className="flex min-w-0 flex-wrap items-center justify-between gap-2 rounded-xl border px-3 py-2.5"
+                                            style={{ borderColor: "var(--border)", background: "var(--surface-soft)" }}
+                                          >
+                                            <div className="min-w-0 flex-1">
+                                              <p className="truncate text-sm font-semibold text-[var(--text-main)]">{usageDisplayName(usage)}</p>
+                                              <div className="mt-1.5 flex flex-wrap items-center gap-2">
+                                                <span
+                                                  className="rounded-full px-2 py-0.5 text-[10px] font-bold uppercase"
+                                                  style={{
+                                                    background: "var(--surface)",
+                                                    color: "var(--text-soft)",
+                                                    border: "1px solid var(--border)",
+                                                  }}
+                                                >
+                                                  {usage.environment ?? "ALL"}
+                                                </span>
+                                                <EnvVariableChip value={usage.envKey ?? selected.envKey} credentialName={selected.name} />
+                                              </div>
+                                            </div>
+                                            <button
+                                              type="button"
+                                              disabled={saving}
+                                              onClick={() => void removeUsage(selected.id, usage.id)}
+                                              className="shrink-0 rounded-lg px-2.5 py-1 text-[11px] font-bold text-white disabled:opacity-70"
+                                              style={{ background: "var(--danger)" }}
+                                            >
+                                              Remove
+                                            </button>
+                                          </li>
+                                        ))}
+                                      </ul>
+                                    ) : null}
+
+                                    <div className="mt-4 grid min-w-0 gap-3 sm:grid-cols-2">
+                                      <label className="min-w-0 text-sm font-medium text-[var(--text-main)]">
+                                        Environment
+                                        <div className="mt-1.5 min-w-0">
+                                          <ResponsiveSelect
+                                            value={linkDraft.environment}
+                                            onChange={(value) => setLinkDraft((c) => ({ ...c, environment: value }))}
+                                            options={envOptions}
+                                            ariaLabel="Select environment"
+                                            buttonClassName="h-10 px-3 w-full"
+                                          />
+                                        </div>
+                                      </label>
+                                      <label className="min-w-0 text-sm font-medium text-[var(--text-main)]">
+                                        Env variable override
+                                        <input
+                                          className="mt-1.5 h-10 w-full min-w-0 rounded-xl border px-3 text-sm outline-none"
+                                          style={FIELD_STYLE}
+                                          placeholder={resolveEnvKeyDisplay(selected.envKey, selected.name).label}
+                                          value={linkDraft.envKey}
+                                          onChange={(e) => setLinkDraft((c) => ({ ...c, envKey: e.target.value }))}
+                                        />
+                                        <p className="mt-1 text-[11px] text-[var(--text-faint)]">
+                                          Optional. Use the env variable name only (e.g. DATABASE_URL), not the secret value.
+                                        </p>
+                                        {looksLikeSecret(linkDraft.envKey) ? (
+                                          <p className="mt-1 text-[11px] font-semibold text-[var(--danger)]">
+                                            Do not paste connection strings here — use the variable name only.
+                                          </p>
+                                        ) : null}
+                                      </label>
+                                    </div>
+
+                                    <div className="mt-4 min-w-0">
+                                      <ProjectLinkPicker
+                                        projects={projects}
+                                        mode={linkPicker.mode}
+                                        onModeChange={(mode) => setLinkPicker((current) => ({ ...current, mode }))}
+                                        selectedProjectId={linkPicker.projectId}
+                                        onSelectedProjectIdChange={(value) => setLinkPicker((current) => ({ ...current, projectId: value }))}
+                                        customProjectName={linkPicker.customName}
+                                        onCustomProjectNameChange={(value) => setLinkPicker((current) => ({ ...current, customName: value }))}
+                                        pendingLinks={linkPendingLinks}
+                                        onAdd={addLinkPendingLink}
+                                        onRemove={(key) => setLinkPendingLinks((current) => current.filter((link) => link.key !== key))}
+                                        excludedProjectIds={linkedProjectIdsForSelected}
+                                        excludedCustomNames={linkedCustomNamesForSelected}
+                                      />
+                                    </div>
+
+                                    <textarea
+                                      className="mt-3 min-h-16 w-full min-w-0 rounded-xl border px-3 py-2 text-sm outline-none"
+                                      style={FIELD_STYLE}
+                                      placeholder="Notes for new links (optional)"
+                                      value={linkDraft.notes}
+                                      onChange={(e) => setLinkDraft((c) => ({ ...c, notes: e.target.value }))}
+                                    />
+
+                                    <button
+                                      type="button"
+                                      disabled={saving || linkPendingLinks.length === 0}
+                                      onClick={() => void linkProjects(selected.id)}
+                                      className="mt-3 h-10 rounded-xl px-4 text-sm font-semibold text-white disabled:opacity-70"
+                                      style={{ background: "var(--accent-strong)" }}
+                                    >
+                                      {saving ? "Saving..." : "Link projects"}
+                                    </button>
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
                       </div>
-                    </label>
-                    <label className="text-sm font-medium text-[var(--text-main)]">
-                      Env key override (optional)
-                      <input
-                        className="mt-2 h-11 w-full rounded-2xl border px-4 text-sm outline-none"
-                        style={FIELD_STYLE}
-                        placeholder={selected.envKey ?? "GROK_API_KEY"}
-                        value={linkDraft.envKey}
-                        onChange={(e) => setLinkDraft((c) => ({ ...c, envKey: e.target.value }))}
-                      />
-                    </label>
-                  </div>
+                    );
+                  })()}
 
-                  <div className="mt-5">
-                    <ProjectLinkPicker
-                      projects={projects}
-                      mode={linkPicker.mode}
-                      onModeChange={(mode) => setLinkPicker((current) => ({ ...current, mode }))}
-                      selectedProjectId={linkPicker.projectId}
-                      onSelectedProjectIdChange={(value) => setLinkPicker((current) => ({ ...current, projectId: value }))}
-                      customProjectName={linkPicker.customName}
-                      onCustomProjectNameChange={(value) => setLinkPicker((current) => ({ ...current, customName: value }))}
-                      pendingLinks={linkPendingLinks}
-                      onAdd={addLinkPendingLink}
-                      onRemove={(key) => setLinkPendingLinks((current) => current.filter((link) => link.key !== key))}
-                      excludedProjectIds={linkedProjectIdsForSelected}
-                      excludedCustomNames={linkedCustomNamesForSelected}
-                    />
-                  </div>
-
-                  <textarea
-                    className="mt-3 min-h-20 w-full rounded-2xl border px-4 py-3 text-sm outline-none"
-                    style={FIELD_STYLE}
-                    placeholder="Shared notes for these new links (optional)"
-                    value={linkDraft.notes}
-                    onChange={(e) => setLinkDraft((c) => ({ ...c, notes: e.target.value }))}
-                  />
-
-                  <button
-                    type="button"
-                    disabled={saving || linkPendingLinks.length === 0}
-                    onClick={() => void linkProjects(selected.id)}
-                    className="mt-3 h-11 rounded-2xl px-5 text-sm font-semibold text-white disabled:opacity-70"
-                    style={{ background: "var(--accent-strong)" }}
-                  >
-                    {saving ? "Saving..." : "Link added projects"}
-                  </button>
-                </Surface>
-
-                {error ? (
-                  <Surface>
-                    <StatePanel title="Something went wrong" description={error} />
-                  </Surface>
-                ) : null}
-              </>
-            )}
-          </section>
+                  {error ? (
+                    <div className="mt-4 rounded-2xl border p-4" style={{ borderColor: "var(--danger)" }}>
+                      <StatePanel title="Something went wrong" description={error} />
+                    </div>
+                  ) : null}
+                </div>
+              )}
+            </main>
+          </div>
         </div>
       </div>
     </CRMShell>

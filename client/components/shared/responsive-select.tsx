@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useId, useMemo, useRef, useState } from "react";
+import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 
 export type ResponsiveSelectOption = {
   value: string;
@@ -51,6 +52,7 @@ export function ResponsiveSelect({
   priorityColors = false,
 }: ResponsiveSelectProps) {
   const [open, setOpen] = useState(false);
+  const [menuRect, setMenuRect] = useState<{ top: number; left: number; width: number } | null>(null);
   const rootRef = useRef<HTMLDivElement | null>(null);
   const listboxId = useId();
 
@@ -60,56 +62,86 @@ export function ResponsiveSelect({
   );
 
   const priorityStyle = !priorityColors
-  ? {
-      borderColor: "var(--border)",
-      background: "var(--surface-soft)",
-      color: "var(--text-main)",
-    }
-  : value === "URGENT"
-  ? {
-      background: "#7f1d1d",
-      color: "#fca5a5",
-      borderColor: "#dc2626",
-    }
-  : value === "HIGH"
-  ? {
-      background: "#7c2d12",
-      color: "#fdba74",
-      borderColor: "#ea580c",
-    }
-  : value === "MEDIUM"
-  ? {
-      background: "#1e3a8a",
-      color: "#93c5fd",
-      borderColor: "#2563eb",
-    }
-  : value === "LOW"
-  ? {
-      background: "#14532d",
-      color: "#86efac",
-      borderColor: "#16a34a",
-    }
-  : {
-      borderColor: "var(--border)",
-      background: "var(--surface-soft)",
-      color: "var(--text-main)",
-    };
+    ? {
+        borderColor: "var(--border)",
+        background: "var(--surface-soft)",
+        color: "var(--text-main)",
+      }
+    : value === "URGENT"
+      ? {
+          background: "#7f1d1d",
+          color: "#fca5a5",
+          borderColor: "#dc2626",
+        }
+      : value === "HIGH"
+        ? {
+            background: "#7c2d12",
+            color: "#fdba74",
+            borderColor: "#ea580c",
+          }
+        : value === "MEDIUM"
+          ? {
+              background: "#1e3a8a",
+              color: "#93c5fd",
+              borderColor: "#2563eb",
+            }
+          : value === "LOW"
+            ? {
+                background: "#14532d",
+                color: "#86efac",
+                borderColor: "#16a34a",
+              }
+            : {
+                borderColor: "var(--border)",
+                background: "var(--surface-soft)",
+                color: "var(--text-main)",
+              };
 
-  useEffect(() => {
+  const updateMenuPosition = () => {
+    const node = rootRef.current;
+    if (!node) return;
+    const rect = node.getBoundingClientRect();
+    setMenuRect({
+      top: rect.bottom + 6,
+      left: rect.left,
+      width: rect.width,
+    });
+  };
+
+  useLayoutEffect(() => {
     if (!open) {
+      setMenuRect(null);
       return;
     }
+    updateMenuPosition();
+  }, [open, options.length]);
+
+  useEffect(() => {
+    if (!open) return;
+
+    const handleReposition = () => updateMenuPosition();
+    window.addEventListener("resize", handleReposition);
+    window.addEventListener("scroll", handleReposition, true);
+
+    return () => {
+      window.removeEventListener("resize", handleReposition);
+      window.removeEventListener("scroll", handleReposition, true);
+    };
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) return;
 
     const handlePointerDown = (event: MouseEvent | TouchEvent) => {
-      if (!rootRef.current?.contains(event.target as Node)) {
-        setOpen(false);
-      }
+      const target = event.target as Node;
+      if (rootRef.current?.contains(target)) return;
+      const menu = document.getElementById(listboxId);
+      if (menu?.contains(target)) return;
+      setOpen(false);
     };
 
     const handleEscape = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        setOpen(false);
-      }
+      if (event.key === "Escape") setOpen(false);
     };
 
     document.addEventListener("mousedown", handlePointerDown);
@@ -121,7 +153,52 @@ export function ResponsiveSelect({
       document.removeEventListener("touchstart", handlePointerDown);
       document.removeEventListener("keydown", handleEscape);
     };
-  }, [open]);
+  }, [open, listboxId]);
+
+  const menu =
+    open && menuRect && typeof document !== "undefined"
+      ? createPortal(
+          <div
+            id={listboxId}
+            role="listbox"
+            className={`z-[200] max-h-64 overflow-y-auto rounded-2xl border py-1 shadow-lg ${menuClassName}`.trim()}
+            style={{
+              position: "fixed",
+              top: menuRect.top,
+              left: menuRect.left,
+              width: menuRect.width,
+              borderColor: "var(--border)",
+              background: "var(--surface)",
+              boxShadow: "var(--shadow-card)",
+            }}
+          >
+            {options.map((option) => {
+              const selected = option.value === value;
+              return (
+                <button
+                  key={option.value || "__empty__"}
+                  type="button"
+                  role="option"
+                  aria-selected={selected}
+                  disabled={option.disabled}
+                  className="block w-full px-3 py-2.5 text-left text-sm transition disabled:cursor-not-allowed disabled:opacity-50"
+                  style={{
+                    background: selected ? "color-mix(in srgb, var(--accent) 14%, var(--surface))" : "transparent",
+                    color: selected ? "var(--accent-strong)" : "var(--text-main)",
+                  }}
+                  onClick={() => {
+                    onChange(option.value);
+                    setOpen(false);
+                  }}
+                >
+                  <span className="block break-words">{option.label}</span>
+                </button>
+              );
+            })}
+          </div>,
+          document.body
+        )
+      : null;
 
   return (
     <div ref={rootRef} className={`relative min-w-0 ${className}`.trim()}>
@@ -139,44 +216,7 @@ export function ResponsiveSelect({
         <span className="truncate">{selectedOption?.label ?? placeholder}</span>
         <Chevron open={open} />
       </button>
-
-      {open ? (
-        <div
-          id={listboxId}
-          role="listbox"
-          className={`absolute left-0 right-0 top-[calc(100%+0.35rem)] z-50 max-h-64 overflow-y-auto rounded-2xl border py-1 shadow-lg ${menuClassName}`.trim()}
-          style={{
-            borderColor: "var(--border)",
-            background: "var(--surface)",
-            boxShadow: "var(--shadow-card)",
-          }}
-        >
-          {options.map((option) => {
-            const selected = option.value === value;
-
-            return (
-              <button
-                key={option.value}
-                type="button"
-                role="option"
-                aria-selected={selected}
-                disabled={option.disabled}
-                className="block w-full px-3 py-2 text-left text-sm transition disabled:cursor-not-allowed disabled:opacity-50"
-                style={{
-                  background: selected ? "color-mix(in srgb, var(--accent) 14%, var(--surface))" : "transparent",
-                  color: selected ? "var(--accent-strong)" : "var(--text-main)",
-                }}
-                onClick={() => {
-                  onChange(option.value);
-                  setOpen(false);
-                }}
-              >
-                <span className="block break-words">{option.label}</span>
-              </button>
-            );
-          })}
-        </div>
-      ) : null}
+      {menu}
     </div>
   );
 }

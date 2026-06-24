@@ -2,20 +2,14 @@
 
 import { useEffect, useState } from "react";
 import { apiGet } from "@/lib/api";
-import { statusLabel, usageDisplayName } from "@/lib/credential-usage";
+import { statusLabel, statusTone } from "@/lib/credential-usage";
+import { EnvVariableChip } from "@/components/credentials/credential-summary-header";
 import type { Credential } from "@/types/crm";
 
 type ProjectCredentialsResponse = {
   project: { id: string; name: string };
   credentials: Credential[];
 };
-
-function statusColor(status: Credential["status"]) {
-  if (status === "EXPIRED") return "var(--danger)";
-  if (status === "EXPIRING_SOON") return "#b45309";
-  if (status === "VALID") return "var(--success)";
-  return "var(--text-soft)";
-}
 
 export function ProjectCredentialsPanel({ projectId }: { projectId: string }) {
   const [credentials, setCredentials] = useState<Credential[]>([]);
@@ -57,7 +51,7 @@ export function ProjectCredentialsPanel({ projectId }: { projectId: string }) {
       <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[var(--text-faint)]">API credentials</p>
       <h3 className="mt-2 text-xl font-semibold text-[var(--text-main)]">Keys used in this project</h3>
       <p className="mt-2 max-w-3xl text-sm leading-6 text-[var(--text-soft)]">
-        Developers can see which API keys power this project and whether any are expiring or already expired.
+        Credential metadata for this project. Secret values are never displayed here.
       </p>
 
       {loading ? (
@@ -71,47 +65,56 @@ export function ProjectCredentialsPanel({ projectId }: { projectId: string }) {
       ) : (
         <div className="mt-4 space-y-3">
           {credentials.map((credential) => {
+            const tone = statusTone(credential.status);
             const projectUsages = (credential.usages ?? []).filter(
               (usage) => usage.projectId === projectId || usage.projectName === projectName
             );
             return (
               <div
                 key={credential.id}
-                className="rounded-2xl border px-4 py-4"
-                style={{ borderColor: "var(--border)", background: "var(--surface-soft)" }}
+                className="min-w-0 overflow-hidden rounded-2xl border"
+                style={{ borderColor: tone.stroke, background: "var(--surface-soft)" }}
               >
-                <div className="flex flex-wrap items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <p className="font-semibold text-[var(--text-main)]">{credential.name}</p>
-                    <p className="mt-1 text-xs text-[var(--text-soft)]">
-                      {credential.provider ?? "Provider not set"}
-                      {credential.envKey ? ` • ${credential.envKey}` : ""}
-                    </p>
+                <div className="flex min-w-0">
+                  <div className="w-1 shrink-0" style={{ background: tone.stroke }} aria-hidden />
+                  <div className="min-w-0 flex-1 px-4 py-4">
+                    <div className="flex min-w-0 flex-wrap items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="truncate font-semibold text-[var(--text-main)]">{credential.name}</p>
+                        <p className="mt-1 text-xs text-[var(--text-soft)]">{credential.provider ?? "Provider not set"}</p>
+                      </div>
+                      <span
+                        className="shrink-0 rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.16em]"
+                        style={{ background: tone.fill, color: tone.text }}
+                      >
+                        {statusLabel(credential.status, credential.daysLeft)}
+                      </span>
+                    </div>
+                    <div className="mt-3">
+                      <EnvVariableChip value={credential.envKey} credentialName={credential.name} />
+                    </div>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {projectUsages.map((usage) => (
+                        <span
+                          key={usage.id}
+                          className="inline-flex max-w-full min-w-0 items-center gap-2 rounded-full border px-3 py-1 text-xs font-semibold"
+                          style={{ borderColor: "var(--border)", color: "var(--text-main)", background: "var(--surface)" }}
+                        >
+                          <span className="shrink-0 uppercase text-[10px] text-[var(--text-faint)]">
+                            {usage.environment ?? "ALL"}
+                          </span>
+                          <EnvVariableChip value={usage.envKey ?? credential.envKey} credentialName={credential.name} />
+                        </span>
+                      ))}
+                    </div>
+                    {credential.derivedExpiresAt ? (
+                      <p className="mt-3 text-xs text-[var(--text-faint)]">
+                        Expires {new Date(credential.derivedExpiresAt).toLocaleDateString()}
+                        {credential.daysLeft !== null ? ` · ${credential.daysLeft} days left` : ""}
+                      </p>
+                    ) : null}
                   </div>
-                  <span
-                    className="rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.16em] text-white"
-                    style={{ background: statusColor(credential.status) }}
-                  >
-                    {statusLabel(credential.status, credential.daysLeft)}
-                  </span>
                 </div>
-                <div className="mt-3 flex flex-wrap gap-2">
-                  {projectUsages.map((usage) => (
-                    <span
-                      key={usage.id}
-                      className="rounded-full border px-3 py-1 text-xs font-semibold"
-                      style={{ borderColor: "var(--border)", color: "var(--text-main)", background: "var(--surface)" }}
-                    >
-                      {usage.environment ?? "ALL"} • {usage.envKey ?? credential.envKey ?? "env key not set"}
-                    </span>
-                  ))}
-                </div>
-                {credential.derivedExpiresAt ? (
-                  <p className="mt-3 text-xs text-[var(--text-faint)]">
-                    Expires {new Date(credential.derivedExpiresAt).toLocaleDateString()}
-                    {credential.daysLeft !== null ? ` (${credential.daysLeft} days left)` : ""}
-                  </p>
-                ) : null}
               </div>
             );
           })}
