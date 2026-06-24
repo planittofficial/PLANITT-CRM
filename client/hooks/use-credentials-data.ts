@@ -21,7 +21,13 @@ const EMPTY_EDIT = {
   notes: "",
 };
 
-const EMPTY_PICKER = { mode: "listed" as const, projectId: "", customName: "" };
+type ProjectPickerState = {
+  mode: "listed" | "custom";
+  projectId: string;
+  customName: string;
+};
+
+const EMPTY_PICKER: ProjectPickerState = { mode: "listed", projectId: "", customName: "" };
 
 function makeLinkKey(kind: PendingProjectLink["kind"], value: string) {
   return `${kind}:${value}`;
@@ -49,7 +55,7 @@ export function useCredentialsData() {
     expiresAt: "",
     notes: "",
   });
-  const [createPicker, setCreatePicker] = useState(EMPTY_PICKER);
+  const [createPicker, setCreatePicker] = useState<ProjectPickerState>(EMPTY_PICKER);
   const [createPendingLinks, setCreatePendingLinks] = useState<PendingProjectLink[]>([]);
 
   const [linkDraft, setLinkDraft] = useState({
@@ -57,7 +63,7 @@ export function useCredentialsData() {
     envKey: "",
     notes: "",
   });
-  const [linkPicker, setLinkPicker] = useState(EMPTY_PICKER);
+  const [linkPicker, setLinkPicker] = useState<ProjectPickerState>(EMPTY_PICKER);
   const [linkPendingLinks, setLinkPendingLinks] = useState<PendingProjectLink[]>([]);
 
   const [editForm, setEditForm] = useState(EMPTY_EDIT);

@@ -39,11 +39,12 @@ export default function DashboardPage() {
     if (!user || !summary) return;
     if (summary.scope === "employee") return;
 
+    const userId = user.id;
     let cancelled = false;
     async function loadMine() {
       setMyAnalyticsLoading(true);
       try {
-        const data = await apiGet<UserAnalyticsSummary>(`/users/${user.id}/analytics`);
+        const data = await apiGet<UserAnalyticsSummary>(`/users/${userId}/analytics`);
         if (!cancelled) setMyAnalytics(data);
       } catch {
         if (!cancelled) setMyAnalytics(null);
