@@ -61,7 +61,7 @@ function TargetNode({
         }}
       >
         <div className="flex min-w-0 items-start justify-between gap-2">
-          <p className="min-w-0 truncate text-sm font-semibold text-[var(--text-main)]">{usageDisplayName(usage)}</p>
+          <p className="min-w-0 truncate text-sm font-semibold text-(--text-main)">{usageDisplayName(usage)}</p>
           <span
             className="shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase"
             style={{ background: tone.fill, color: tone.text }}
@@ -72,9 +72,9 @@ function TargetNode({
         <div className="mt-2">
           <EnvVariableChip value={usage.envKey ?? credential.envKey} credentialName={credential.name} />
         </div>
-        {usage.notes ? <p className="mt-2 line-clamp-2 text-xs text-[var(--text-faint)]">{usage.notes}</p> : null}
+        {usage.notes ? <p className="mt-2 line-clamp-2 text-xs text-(--text-faint)">{usage.notes}</p> : null}
         {credential.status === "EXPIRED" ? (
-          <p className="mt-2 text-xs font-semibold text-[var(--danger)]">Rotate key here</p>
+          <p className="mt-2 text-xs font-semibold text-(--danger)">Rotate key here</p>
         ) : credential.status === "EXPIRING_SOON" ? (
           <p className="mt-2 text-xs font-semibold" style={{ color: tone.text }}>
             Update before expiry
@@ -120,8 +120,8 @@ export function CredentialFlowGraph({ credential, selectedUsageId, onUsageClick 
         <div className="relative min-w-0 p-4 sm:p-5">
           <div className="flex min-w-0 flex-wrap items-center justify-between gap-2 border-b pb-4" style={{ borderColor: "var(--border)" }}>
             <div className="min-w-0">
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--text-faint)]">Deployment pipeline</p>
-              <p className="mt-1 text-sm text-[var(--text-soft)]">Environments that consume this key — update each when rotating.</p>
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-(--text-faint)">Deployment pipeline</p>
+              <p className="mt-1 text-sm text-(--text-soft)">Environments that consume this key — update each when rotating.</p>
             </div>
             <div className="flex shrink-0 flex-wrap gap-1.5">
               {[
@@ -131,7 +131,7 @@ export function CredentialFlowGraph({ credential, selectedUsageId, onUsageClick 
               ].map((item) => (
                 <span
                   key={item.label}
-                  className="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-semibold text-[var(--text-soft)]"
+                  className="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-semibold text-(--text-soft)"
                   style={{ borderColor: "var(--border)", background: "var(--surface)" }}
                 >
                   <span className="h-1.5 w-1.5 rounded-full" style={{ background: item.color }} />
@@ -143,7 +143,7 @@ export function CredentialFlowGraph({ credential, selectedUsageId, onUsageClick 
 
           {usages.length === 0 ? (
             <div
-              className="mt-4 rounded-xl border border-dashed px-4 py-10 text-center text-sm text-[var(--text-soft)]"
+              className="mt-4 rounded-xl border border-dashed px-4 py-10 text-center text-sm text-(--text-soft)"
               style={{ borderColor: "var(--border)", background: "var(--surface-soft)" }}
             >
               No deployment targets linked. Open <strong>Manage</strong> to add projects.

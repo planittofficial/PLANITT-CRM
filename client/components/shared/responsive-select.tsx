@@ -161,7 +161,7 @@ export function ResponsiveSelect({
           <div
             id={listboxId}
             role="listbox"
-            className={`z-[200] max-h-64 overflow-y-auto rounded-2xl border py-1 shadow-lg ${menuClassName}`.trim()}
+            className={`z-200 max-h-64 overflow-y-auto rounded-2xl border py-1 shadow-lg ${menuClassName}`.trim()}
             style={{
               position: "fixed",
               top: menuRect.top,
@@ -191,7 +191,7 @@ export function ResponsiveSelect({
                     setOpen(false);
                   }}
                 >
-                  <span className="block break-words">{option.label}</span>
+                  <span className="block wrap-break-word">{option.label}</span>
                 </button>
               );
             })}

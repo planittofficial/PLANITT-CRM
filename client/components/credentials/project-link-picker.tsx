@@ -99,8 +99,8 @@ export function ProjectLinkPicker({
 
       {mode === "listed" ? (
         <div>
-          <p className="text-sm font-medium text-[var(--text-main)]">Choose from CRM projects</p>
-          <p className="mt-1 text-xs text-[var(--text-soft)]">
+          <p className="text-sm font-medium text-(--text-main)">Choose from CRM projects</p>
+          <p className="mt-1 text-xs text-(--text-soft)">
             Pick a project board that already exists in the CRM.
             {projects.length > 0 ? ` ${projects.length} project${projects.length === 1 ? "" : "s"} available.` : " No projects found in CRM yet."}
           </p>
@@ -116,8 +116,8 @@ export function ProjectLinkPicker({
         </div>
       ) : (
         <div>
-          <p className="text-sm font-medium text-[var(--text-main)]">Project not in the list?</p>
-          <p className="mt-1 text-xs text-[var(--text-soft)]">Type the project or repo name manually if it is not created in CRM yet.</p>
+          <p className="text-sm font-medium text-(--text-main)">Project not in the list?</p>
+          <p className="mt-1 text-xs text-(--text-soft)">Type the project or repo name manually if it is not created in CRM yet.</p>
           <input
             className="mt-2 h-11 w-full rounded-2xl border px-4 text-sm outline-none"
             style={FIELD_STYLE}
@@ -143,7 +143,7 @@ export function ProjectLinkPicker({
 
       {pendingLinks.length > 0 ? (
         <div className="rounded-2xl border p-3" style={{ borderColor: "var(--border)", background: "var(--surface-soft)" }}>
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--text-faint)]">
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-(--text-faint)">
             Projects to link ({pendingLinks.length})
           </p>
           <div className="mt-2 flex flex-wrap gap-2">
@@ -154,13 +154,13 @@ export function ProjectLinkPicker({
                 style={{ borderColor: "var(--border)", background: "var(--surface)", color: "var(--text-main)" }}
               >
                 <span>{link.kind === "listed" ? link.label : link.projectName}</span>
-                <span className="rounded-full px-1.5 py-0.5 text-[10px] uppercase tracking-[0.12em] text-[var(--text-faint)]">
+                <span className="rounded-full px-1.5 py-0.5 text-[10px] uppercase tracking-[0.12em] text-(--text-faint)">
                   {link.kind === "listed" ? "CRM" : "Custom"}
                 </span>
                 <button
                   type="button"
                   onClick={() => onRemove(link.key)}
-                  className="text-[var(--text-soft)] hover:text-[var(--danger)]"
+                  className="text-(--text-soft) hover:text-(--danger)"
                   aria-label={`Remove ${link.kind === "listed" ? link.label : link.projectName}`}
                 >
                   ×
@@ -170,7 +170,7 @@ export function ProjectLinkPicker({
           </div>
         </div>
       ) : (
-        <p className="text-xs text-[var(--text-faint)]">Add one or more projects using the dropdown or custom name field.</p>
+        <p className="text-xs text-(--text-faint)">Add one or more projects using the dropdown or custom name field.</p>
       )}
     </div>
   );

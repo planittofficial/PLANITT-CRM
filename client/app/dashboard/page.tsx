@@ -157,29 +157,29 @@ export default function DashboardPage() {
           <Surface className="overflow-hidden p-0">
             <div className="grid gap-4 px-4 py-4 lg:grid-cols-[1.1fr_0.9fr]">
               <div className="min-w-0">
-                <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[var(--text-faint)]">
+                <p className="text-xs font-semibold uppercase tracking-[0.24em] text-(--text-faint)">
                   Personal dashboard
                 </p>
-                <h1 className="mt-2 text-3xl font-semibold tracking-tight text-[var(--text-main)]">
+                <h1 className="mt-2 text-3xl font-semibold tracking-tight text-(--text-main)">
                   Welcome back, {user.name.split(" ")[0]}
                 </h1>
-                <p className="mt-2 max-w-2xl text-sm leading-6 text-[var(--text-soft)]">
+                <p className="mt-2 max-w-2xl text-sm leading-6 text-(--text-soft)">
                   Your work summary and attendance status. Company analytics are available only to managers and admins.
                 </p>
               </div>
               <div className="rounded-[20px] border p-4" style={{ borderColor: "var(--border)", background: "linear-gradient(135deg, color-mix(in srgb, var(--accent) 10%, var(--surface)) 0%, var(--surface-soft) 100%)" }}>
                 <div className="grid gap-3 sm:grid-cols-2">
                   <div className="rounded-2xl border p-3" style={{ borderColor: "var(--border)", background: "var(--surface)" }}>
-                    <p className="text-[11px] uppercase tracking-[0.2em] text-[var(--text-faint)]">My tasks</p>
-                    <p className="mt-1 text-2xl font-semibold text-[var(--text-main)]">{employeeSummary.metrics.myTasks}</p>
+                    <p className="text-[11px] uppercase tracking-[0.2em] text-(--text-faint)">My tasks</p>
+                    <p className="mt-1 text-2xl font-semibold text-(--text-main)">{employeeSummary.metrics.myTasks}</p>
                   </div>
                   <div className="rounded-2xl border p-3" style={{ borderColor: "var(--border)", background: "var(--surface)" }}>
-                    <p className="text-[11px] uppercase tracking-[0.2em] text-[var(--text-faint)]">Completion</p>
-                    <p className="mt-1 text-2xl font-semibold text-[var(--text-main)]">{completionRate}%</p>
+                    <p className="text-[11px] uppercase tracking-[0.2em] text-(--text-faint)">Completion</p>
+                    <p className="mt-1 text-2xl font-semibold text-(--text-main)">{completionRate}%</p>
                   </div>
                 </div>
                 <div className="mt-3 rounded-2xl border p-3" style={{ borderColor: "var(--border)", background: "var(--surface)" }}>
-                  <p className="text-sm font-semibold text-[var(--text-main)]">Momentum</p>
+                  <p className="text-sm font-semibold text-(--text-main)">Momentum</p>
                   <div className="mt-2 h-20 overflow-hidden rounded-xl border p-2" style={{ borderColor: "var(--border)", background: "var(--surface-soft)" }}>
                     <svg viewBox="0 0 360 80" className="h-full w-full" aria-hidden="true">
                       <path d={buildLinePath(employeeSummary.analytics.taskProgressTrend.map((x) => x.avgProgress), 360, 80)} fill="none" stroke="var(--accent-strong)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
@@ -194,8 +194,8 @@ export default function DashboardPage() {
 
           <Surface className="p-5">
             <div className="mb-4">
-              <p className="text-sm font-semibold text-[var(--text-main)]">Recent tasks</p>
-              <p className="mt-1 text-sm text-[var(--text-soft)]">Your latest assigned work items.</p>
+              <p className="text-sm font-semibold text-(--text-main)">Recent tasks</p>
+              <p className="mt-1 text-sm text-(--text-soft)">Your latest assigned work items.</p>
             </div>
             {employeeSummary.recentTasks.length ? (
               <TaskSummaryList tasks={employeeSummary.recentTasks} />
@@ -214,35 +214,35 @@ export default function DashboardPage() {
         <Surface className="overflow-hidden p-0">
           <div className="grid grid-cols-1 gap-4 px-4 py-4 sm:grid-cols-2 lg:grid-cols-[1.1fr_0.9fr]">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[var(--text-faint)]">
+              <p className="text-xs font-semibold uppercase tracking-[0.24em] text-(--text-faint)">
                 {summary.scope === "superadmin" ? "CEO command center" : summary.scope === "admin" ? "Admin command center" : "Personal command center"}
               </p>
-              <h1 className="mt-2 text-2xl font-semibold tracking-tight text-[var(--text-main)] sm:text-3xl">Welcome back, {user.name.split(" ")[0]}</h1>
-              <p className="mt-2 max-w-2xl text-sm leading-6 text-[var(--text-soft)]">{leadershipView ? "Track key team health and progress in one place." : "See your daily attendance, work hours, and progress quickly."}</p>
+              <h1 className="mt-2 text-2xl font-semibold tracking-tight text-(--text-main) sm:text-3xl">Welcome back, {user.name.split(" ")[0]}</h1>
+              <p className="mt-2 max-w-2xl text-sm leading-6 text-(--text-soft)">{leadershipView ? "Track key team health and progress in one place." : "See your daily attendance, work hours, and progress quickly."}</p>
               <div className="mt-4 grid max-w-2xl gap-2 sm:grid-cols-2">
                 <div className="rounded-xl border px-4 py-3" style={{ borderColor: "var(--border)", background: "var(--surface-soft)" }}>
-                  <p className="text-[11px] uppercase tracking-[0.18em] text-[var(--text-faint)]">Focus</p>
-                  <p className="mt-1 text-sm font-semibold text-[var(--text-main)]">My work</p>
+                  <p className="text-[11px] uppercase tracking-[0.18em] text-(--text-faint)">Focus</p>
+                  <p className="mt-1 text-sm font-semibold text-(--text-main)">My work</p>
                 </div>
                 <div className="rounded-xl border px-4 py-3" style={{ borderColor: "var(--border)", background: "var(--surface-soft)" }}>
-                  <p className="text-[11px] uppercase tracking-[0.18em] text-[var(--text-faint)]">Mode</p>
-                  <p className="mt-1 text-sm font-semibold text-[var(--text-main)]">{formatRole(user.role)}</p>
+                  <p className="text-[11px] uppercase tracking-[0.18em] text-(--text-faint)">Mode</p>
+                  <p className="mt-1 text-sm font-semibold text-(--text-main)">{formatRole(user.role)}</p>
                 </div>
               </div>
             </div>
             <div className="rounded-[20px] border p-4" style={{ borderColor: "var(--border)", background: "linear-gradient(135deg, color-mix(in srgb, var(--accent) 10%, var(--surface)) 0%, var(--surface-soft) 100%)" }}>
               <div className="grid gap-3 md:grid-cols-2">
                 <div className="rounded-2xl border p-3" style={{ borderColor: "var(--border)", background: "var(--surface)" }}>
-                  <p className="text-[11px] uppercase tracking-[0.2em] text-[var(--text-faint)]">Completion rate</p>
-                  <p className="mt-1 text-2xl font-semibold text-[var(--text-main)]">{completionRate}%</p>
+                  <p className="text-[11px] uppercase tracking-[0.2em] text-(--text-faint)">Completion rate</p>
+                  <p className="mt-1 text-2xl font-semibold text-(--text-main)">{completionRate}%</p>
                 </div>
                 <div className="rounded-2xl border p-3" style={{ borderColor: "var(--border)", background: "var(--surface)" }}>
-                  <p className="text-[11px] uppercase tracking-[0.2em] text-[var(--text-faint)]">Latest work hours</p>
-                  <p className="mt-1 text-2xl font-semibold text-[var(--text-main)]">{heroHoursValue}h</p>
+                  <p className="text-[11px] uppercase tracking-[0.2em] text-(--text-faint)">Latest work hours</p>
+                  <p className="mt-1 text-2xl font-semibold text-(--text-main)">{heroHoursValue}h</p>
                 </div>
               </div>
               <div className="mt-3 rounded-2xl border p-3" style={{ borderColor: "var(--border)", background: "var(--surface)" }}>
-                <p className="text-sm font-semibold text-[var(--text-main)]">Momentum</p>
+                <p className="text-sm font-semibold text-(--text-main)">Momentum</p>
                 <div className="mt-2 h-20 overflow-hidden rounded-xl border p-2" style={{ borderColor: "var(--border)", background: "var(--surface-soft)" }}>
                   <svg viewBox="0 0 360 80" className="h-full w-full" aria-hidden="true">
                     <path d={buildLinePath(summary.analytics.taskProgressTrend.map((x) => x.avgProgress), 360, 80)} fill="none" stroke="var(--accent-strong)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
@@ -269,8 +269,8 @@ export default function DashboardPage() {
           <>
             <section className="space-y-4" id="overview-section">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[var(--text-faint)]">Analytics snapshot</p>
-                <h2 className="mt-2 text-2xl font-semibold text-[var(--text-main)]">Core metrics</h2>
+                <p className="text-xs font-semibold uppercase tracking-[0.22em] text-(--text-faint)">Analytics snapshot</p>
+                <h2 className="mt-2 text-2xl font-semibold text-(--text-main)">Core metrics</h2>
               </div>
               <section className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
                 {overviewStats.map((stat) => <SummaryStatCard key={stat.label} label={stat.label} value={stat.value} helper={stat.helper} points={stat.points} />)}
@@ -298,8 +298,8 @@ export default function DashboardPage() {
         ) : (
           <section className="space-y-5" id="workspace-section">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[var(--text-faint)]">Connected tools</p>
-              <h2 className="mt-2 text-2xl font-semibold text-[var(--text-main)]">Google Workspace</h2>
+              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-(--text-faint)">Connected tools</p>
+              <h2 className="mt-2 text-2xl font-semibold text-(--text-main)">Google Workspace</h2>
             </div>
             {canUseGoogleWorkspace(summary.scope) ? (
               <GoogleWorkspacePanel scope={summary.scope} status={workspaceStatus} loading={workspaceLoading} message={workspaceMessage} projects={workspaceProjects} users={workspaceUsers} selectedProjectId={selectedWorkspaceProjectId} actionLoading={workspaceActionLoading} meetResult={meetResult} sheetResult={sheetResult} driveResult={driveResult} onClearMeetResult={() => setMeetResult(null)} onClearSheetResult={() => setSheetResult(null)} onClearDriveResult={() => setDriveResult(null)} onSelectProject={setSelectedWorkspaceProjectId} onConnect={() => void handleGoogleConnect()} onDisconnect={() => void handleGoogleDisconnect()} onCreateMeet={(ids) => void runWorkspaceAction("meet", ids)} onCreateSheet={() => void runWorkspaceAction("sheets")} onCreateDriveFolder={() => void runWorkspaceAction("drive")} onSetMessage={setWorkspaceMessage} />
