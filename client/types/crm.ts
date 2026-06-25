@@ -608,3 +608,83 @@ export type Credential = {
   status: CredentialStatus;
   daysLeft: number | null;
 };
+
+// ─── Checklist Module Types ──────────────────────────────────────────────────
+
+export type ChecklistItemStatus = "PENDING" | "COMPLETED";
+
+export type ChecklistCategorySummary = {
+  id: string;
+  name: string;
+  sortOrder: number;
+  totalItems: number;
+  completedItems: number;
+};
+
+export type ChecklistRecord = {
+  id: string | null;
+  employeeId: string;
+  checklistItemId: string;
+  status: ChecklistItemStatus;
+  note?: string | null;
+  completedAt?: string | null;
+  updatedAt?: string | null;
+  updatedBy?: {
+    id: string;
+    name: string;
+    role: UserRole;
+  } | null;
+  checklistItem: {
+    id: string;
+    name: string;
+    sortOrder: number;
+    categoryId: string;
+  };
+};
+
+export type ChecklistCategoryDetail = {
+  id: string;
+  name: string;
+  sortOrder: number;
+  items: ChecklistRecord[];
+  totalItems: number;
+  completedItems: number;
+};
+
+export type ChecklistAdminSummary = {
+  id: string;
+  name: string;
+  email: string;
+  avatarUrl?: string | null;
+  authProvider?: "google" | "password";
+  role: UserRole;
+  designation?: string | null;
+  department?: { id: string; name: string } | null;
+  createdAt?: string;
+  totalItems: number;
+  completedItems: number;
+  completionPercent: number;
+};
+
+export type ChecklistEmployeeDetail = {
+  employee: ChecklistAdminSummary;
+  categories: ChecklistCategoryDetail[];
+};
+
+export type ChecklistActivityItem = {
+  id: string;
+  employeeId: string;
+  checklistItemId?: string | null;
+  action: string;
+  details?: string | null;
+  actorId: string;
+  createdAt: string;
+};
+
+export type ChecklistActivityResponse = {
+  items: ChecklistActivityItem[];
+  total: number;
+  hasMore: boolean;
+  nextOffset: number;
+};
+

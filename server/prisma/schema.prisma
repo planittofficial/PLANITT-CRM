@@ -49,6 +49,8 @@ model User {
   leaveRequests             LeaveRequest[]            @relation("UserLeaveRequests")
   managedLeaveRequests      LeaveRequest[]            @relation("ManagerLeaveRequests")
   leaveComments             LeaveComment[]
+  checklistRecords          EmployeeChecklist[]       @relation("UserChecklist")
+  checklistUpdates          EmployeeChecklist[]       @relation("ChecklistUpdater")
 }
 
 model LeaveType {
@@ -487,4 +489,63 @@ model CredentialUsage {
   @@index([credentialId])
   @@index([projectId])
   @@index([projectName])
+}
+
+enum ChecklistItemStatus {
+  PENDING
+  COMPLETED
+}
+
+model ChecklistCategory {
+  id        String          @id @default(cuid())
+  name      String          @unique
+  sortOrder Int             @default(0)
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
+  items     ChecklistItem[]
+}
+
+model ChecklistItem {
+  id         String              @id @default(cuid())
+  categoryId String
+  name       String
+  sortOrder  Int                 @default(0)
+  createdAt  DateTime            @default(now())
+  updatedAt  DateTime            @updatedAt
+  category   ChecklistCategory   @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  records    EmployeeChecklist[]
+
+  @@index([categoryId])
+}
+
+model EmployeeChecklist {
+  id              String              @id @default(cuid())
+  employeeId      String
+  checklistItemId String
+  status          ChecklistItemStatus @default(PENDING)
+  note            String?
+  completedAt     DateTime?
+  updatedById     String?
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+  employee        User                @relation("UserChecklist", fields: [employeeId], references: [id], onDelete: Cascade)
+  checklistItem   ChecklistItem       @relation(fields: [checklistItemId], references: [id], onDelete: Cascade)
+  updatedBy       User?               @relation("ChecklistUpdater", fields: [updatedById], references: [id], onDelete: SetNull)
+
+  @@unique([employeeId, checklistItemId])
+  @@index([employeeId])
+  @@index([checklistItemId])
+}
+
+model ChecklistActivity {
+  id              String   @id @default(cuid())
+  employeeId      String
+  checklistItemId String?
+  action          String
+  details         String?
+  actorId         String
+  createdAt       DateTime @default(now())
+
+  @@index([employeeId, createdAt])
+  @@index([actorId])
 }

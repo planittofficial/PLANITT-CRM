@@ -13,12 +13,14 @@ import userRouter from "./user.routes.js";
 import leaveRouter from "./leave.routes.js";
 import notificationRouter from "./notification.routes.js";
 import reportsRouter from "./reports.routes.js";
+import checklistRouter from "./checklist.routes.js";
 import credentialRouter from "./credential.routes.js";
 
 const router = Router();
 
 router.use("/auth", authRouter);
 router.use("/chat", chatRouter);
+router.use("/checklist", checklistRouter);
 router.use("/dashboard", dashboardRouter);
 router.use("/departments", departmentRouter);
 router.use("/health", healthRouter);
