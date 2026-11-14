@@ -16,6 +16,7 @@ import { Button } from "@/components/ui/button";
 import { StatCard } from "@/components/ui/stat-card";
 import { Sheet } from "@/components/ui/sheet";
 import { FolderKanbanIcon, PlusIcon, UsersIcon } from "@/components/ui/icons";
+import type { TaskPriority } from "@/types/crm";
 
 const FIELD_STYLE = { borderColor: "var(--border)", background: "var(--surface-soft)", color: "var(--text-main)" } as const;
 
