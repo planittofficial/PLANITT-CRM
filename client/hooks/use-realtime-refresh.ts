@@ -14,6 +14,8 @@ export function useRealtimeRefresh(
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const inFlightRef = useRef(false);
 
+  const eventsKey = events.slice().sort().join(",");
+
   useEffect(() => {
     refreshRef.current = onRefresh;
   }, [onRefresh]);
@@ -56,5 +58,5 @@ export function useRealtimeRefresh(
         socket.off(eventName, handler);
       });
     };
-  }, [socket, user, events]);
+  }, [socket, user, eventsKey]);
 }

@@ -2,6 +2,28 @@ import prisma from "../config/db.js";
 import { emitCRMEvent } from "../socket.js";
 import { sendSafeError } from "../middleware/error.middleware.js";
 
+export async function getAttendanceStatus(req, res) {
+  try {
+    const userId = req.user?.userId;
+    if (!userId) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+
+    const activeRecord = await prisma.attendance.findFirst({
+      where: { userId, checkOut: null },
+      select: { id: true, checkIn: true },
+      orderBy: { checkIn: "desc" },
+    });
+
+    return res.json({
+      checkedIn: Boolean(activeRecord),
+      checkInTime: activeRecord?.checkIn ?? null,
+    });
+  } catch (err) {
+    return sendSafeError(res, err, "Unable to get attendance status");
+  }
+}
+
 export async function checkIn(req, res) {
   try {
     const userId = req.user.userId;
