@@ -10,7 +10,6 @@ import { ResponsiveSelect } from "@/components/shared/responsive-select";
 import { useRealtimeRefresh } from "@/hooks/use-realtime-refresh";
 import { useSession } from "@/hooks/use-session";
 import { MemberPickerToolbar, type MemberRoleFilter } from "@/components/shared/member-picker-toolbar";
-import { LoadingRows } from "@/components/shared/loading-skeleton";
 import { usePaginatedDirectoryUsers } from "@/hooks/use-paginated-directory-users";
 import { apiGet, apiPost } from "@/lib/api";
 import { Skeleton } from "@/components/shared/skeleton";
@@ -18,28 +17,14 @@ import { getTaskAssignableRoles, isAdminRole } from "@/lib/dashboard";
 import { useSearchParams } from "next/navigation";
 import { parseSmartTaskPaste } from "@/lib/smart-paste";
 import { TASK_PRIORITY_OPTIONS } from "@/lib/task-groups";
-import {
- showToast
-}
-from
-"@/hooks/use-toast";
-import type { CRMUser, Task, Project ,TaskPriority } from "@/types/crm";
-type PaginatedResponse<T> = { items: T[]; total: number; hasMore: boolean; nextOffset: number };
+import { showToast } from "@/hooks/use-toast";
+import { Button } from "@/components/ui/button";
+import { StatCard } from "@/components/ui/stat-card";
+import { Sheet } from "@/components/ui/sheet";
+import { PlusIcon, FilterIcon, CheckSquareIcon } from "@/components/ui/icons";
+import type { Task, Project, TaskPriority } from "@/types/crm";
 
-function Surface({ children, className = "" }: { children: ReactNode; className?: string }) {
-  return (
-    <section
-      className={`rounded-[20px] border p-5 ${className}`.trim()}
-      style={{
-        background: "var(--surface)",
-        borderColor: "var(--border)",
-        boxShadow: "var(--shadow-soft)",
-      }}
-    >
-      {children}
-    </section>
-  );
-}
+type PaginatedResponse<T> = { items: T[]; total: number; hasMore: boolean; nextOffset: number };
 
 function TasksPageContent() {
   const searchParams = useSearchParams();
@@ -55,8 +40,10 @@ function TasksPageContent() {
   const [hasMoreTasks, setHasMoreTasks] = useState(false);
   const [nextTaskOffset, setNextTaskOffset] = useState(0);
   const [error, setError] = useState("");
-  const [notice, setNotice] = useState("");
   const [creating, setCreating] = useState(false);
+  const [createSheetOpen, setCreateSheetOpen] = useState(false);
+  const [smartPasteExpanded, setSmartPasteExpanded] = useState(false);
+
   const [form, setForm] = useState({
     title: "",
     description: "",
@@ -66,45 +53,20 @@ function TasksPageContent() {
     priority: "MEDIUM" as TaskPriority,
     deadlineAt: "",
   });
-  const [
-  smartPasteText,
-  setSmartPasteText
-] =
-useState("");
+
+  const [smartPasteText, setSmartPasteText] = useState("");
   const [assignPickerQuery, setAssignPickerQuery] = useState("");
   const [assignPickerRole, setAssignPickerRole] = useState<MemberRoleFilter>("ALL");
-  const {
- globalSearch,
- searchSubmitted,
- resetSearch
-}
-=
-useCrmSearch();
+  const { globalSearch, searchSubmitted } = useCrmSearch();
   const taskSearch = useDeferredValue(globalSearch.trim());
-  const fieldStyle = {
-    borderColor: "var(--border)",
-    background: "var(--surface-soft)",
-    color: "var(--text-main)",
-  } as const;
 
   const initialIssueTaskId = searchParams.get("taskId");
   const initialIssueId = searchParams.get("issueId");
-  const taskAssignableRoles = useMemo(
-    () => (user ? getTaskAssignableRoles(user.role) : []),
-    [user]
-  );
-  const assignPickerRoleOptions = useMemo(
-    () => [...taskAssignableRoles].sort((a, b) => a.localeCompare(b)),
-    [taskAssignableRoles]
-  );
-  const projectFilterOptions = useMemo(
-    () => [{ value: "ALL", label: "All projects" }, ...projects.map((project) => ({ value: project.id, label: project.name }))],
-    [projects]
-  );
-  const priorityOptions = useMemo(
-    () => TASK_PRIORITY_OPTIONS.map((option) => ({ value: option.value, label: option.label })),
-    []
-  );
+
+  const taskAssignableRoles = useMemo(() => (user ? getTaskAssignableRoles(user.role) : []), [user]);
+  const assignPickerRoleOptions = useMemo(() => [...taskAssignableRoles].sort((a, b) => a.localeCompare(b)), [taskAssignableRoles]);
+  const projectFilterOptions = useMemo(() => [{ value: "ALL", label: "All projects" }, ...projects.map((p) => ({ value: p.id, label: p.name }))], [projects]);
+  const priorityOptions = useMemo(() => TASK_PRIORITY_OPTIONS.map((o) => ({ value: o.value, label: o.label })), []);
 
   const directory = usePaginatedDirectoryUsers({
     limit: 100,
@@ -112,6 +74,7 @@ useCrmSearch();
     searchQuery: assignPickerQuery,
     enabled: Boolean(user && isAdminRole(user.role)),
   });
+
   const teamForTaskList = useMemo(() => {
     const byId = new Map(directory.items.map((u) => [u.id, u]));
     for (const task of tasks) {
@@ -140,20 +103,15 @@ useCrmSearch();
     const inProgress = tasks.filter((task) => task.status === "IN_PROGRESS").length;
     const todo = tasks.filter((task) => task.status === "TODO").length;
     const completionRate = total ? Math.round((done / total) * 100) : 0;
-    const avgProgress = total
-      ? Math.round(tasks.reduce((sum, task) => sum + (task.progress || 0), 0) / total)
-      : 0;
+    const avgProgress = total ? Math.round(tasks.reduce((sum, task) => sum + (task.progress || 0), 0) / total) : 0;
     return { total, done, inProgress, todo, completionRate, avgProgress };
   }, [tasks]);
 
   const getTaskDeadline = (task: Task) => {
     const explicit =
-      (task as Task & { deadline?: string | null; dueDate?: string | null; dueAt?: string | null })
-        .deadline ??
-      (task as Task & { deadline?: string | null; dueDate?: string | null; dueAt?: string | null })
-        .dueDate ??
-      (task as Task & { deadline?: string | null; dueDate?: string | null; dueAt?: string | null })
-        .dueAt ??
+      (task as Task & { deadline?: string | null; dueDate?: string | null; dueAt?: string | null }).deadline ??
+      (task as Task & { deadline?: string | null; dueDate?: string | null; dueAt?: string | null }).dueDate ??
+      (task as Task & { deadline?: string | null; dueDate?: string | null; dueAt?: string | null }).dueAt ??
       null;
     if (explicit) {
       const parsed = new Date(explicit);
@@ -232,7 +190,8 @@ useCrmSearch();
         setError("");
         await Promise.all([loadTasks(false), loadProjects()]);
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to load tasks" ); showToast(err instanceof Error ? err.message : "Failed to load tasks" , "error" );
+        setError(err instanceof Error ? err.message : "Failed to load tasks");
+        showToast(err instanceof Error ? err.message : "Failed to load tasks", "error");
       } finally {
         setLoading(false);
       }
@@ -245,7 +204,6 @@ useCrmSearch();
 
   useRealtimeRefresh(user, ["task:updated", "issue:updated", "org:updated"], async () => {
     await loadTasks(false);
-
   });
 
   const handleAssigneeToggle = (userId: string) => {
@@ -258,102 +216,36 @@ useCrmSearch();
   };
 
   const handleSmartPaste = () => {
+    if (!smartPasteText.trim()) {
+      showToast("Paste task content first.", "error");
+      return;
+    }
+    const parsed = parseSmartTaskPaste(smartPasteText);
+    if (!parsed.title || parsed.title === "Untitled task") {
+      showToast("Could not detect task structure.", "error");
+      return;
+    }
 
-  if (
-    !smartPasteText.trim()
-  ) {
+    setForm((current) => ({
+      ...current,
+      title: parsed.title,
+      description: parsed.description,
+      priority: parsed.priority,
+      checklistText: parsed.checklistItems.join("\n"),
+    }));
 
-    showToast(
-      "Paste task content first.",
-      "error"
-    );
-
-    return;
-
-  }
-
-  const parsed =
-    parseSmartTaskPaste(
-      smartPasteText
-    );
-    
-    const hasStructure =
-  smartPasteText.includes("#") ||
-  smartPasteText.toLowerCase().includes("priority") ||
-  smartPasteText.includes("-") ||
-  /^\d+\./m.test(smartPasteText);
-
-if (
-  !hasStructure &&
-  parsed.checklistItems.length === 0
-) {
-
-  showToast(
-    "Could not detect task structure. Use the suggested format.",
-    "error"
-  );
-
-  return;
-
-}
-  if (
-  parsed.title === "Untitled task" &&
-  !parsed.description &&
-  parsed.checklistItems.length === 0
-) {
-
-  showToast(
-    "Unable to map content into task fields.",
-    "error"
-  );
-
-  return;
-
-}
-
-  setForm((current) => ({
-
-    ...current,
-
-    title:
-      parsed.title,
-
-    description:
-      parsed.description,
-
-    priority:
-      parsed.priority,
-
-    checklistText:
-      parsed.checklistItems.join("\n"),
-
-  }));
-
-  showToast(
-    "Task fields auto-filled.",
-    "success"
-  );
-
-};
+    showToast("Task fields auto-filled.", "success");
+    setSmartPasteExpanded(false);
+  };
 
   const createTask = async () => {
     try {
-      if (
-  !form.title.trim() ||
-  form.title === "Untitled task"
-) {
-
-  showToast(
-    "Task title is required.",
-    "error"
-  );
-
-  return;
-
-}
+      if (!form.title.trim() || form.title === "Untitled task") {
+        showToast("Task title is required.", "error");
+        return;
+      }
       setCreating(true);
       setError("");
-      setNotice("");
       await apiPost("/tasks", {
         title: form.title,
         description: form.description,
@@ -366,22 +258,15 @@ if (
           .map((item) => item.trim())
           .filter(Boolean),
       });
+
       setForm({ title: "", description: "", userIds: [], progress: 0, checklistText: "", priority: "MEDIUM", deadlineAt: "" });
-      showToast(
-        "Task created successfully.",
-        "success"
-      );      
-await loadTasks(false);
+      setCreateSheetOpen(false);
+      showToast("Task created successfully.", "success");
+      await loadTasks(false);
     } catch (err) {
-setError(
-  err instanceof Error
-    ? err.message
-    : "Failed to create task"
-);   showToast(
-  err instanceof Error
-    ? err.message
-    : "Failed to create task" , "error"
-); } finally {
+      setError(err instanceof Error ? err.message : "Failed to create task");
+      showToast(err instanceof Error ? err.message : "Failed to create task", "error");
+    } finally {
       setCreating(false);
     }
   };
@@ -394,470 +279,299 @@ setError(
     loadingTitle: "Loading tasks",
     loadingDescription: "Preparing the task workspace.",
   });
-  if (sessionGate) {
-    return sessionGate;
-  }
+  if (sessionGate) return sessionGate;
+  if (!user) return null;
 
-  if (!user) {
-  return null;
-}
-
-if (loading) {
   return (
     <CRMShell user={user}>
-      <div className="space-y-6 p-6 animate-pulse">
-
-        <Skeleton className="h-12 w-64" />
-
-        <div className="grid gap-4 md:grid-cols-3 xl:grid-cols-4">
-          {Array.from({ length: 6 }).map((_, i) => (
-            <Skeleton
-              key={i}
-              className="h-28 w-full rounded-2xl"
-            />
-          ))}
-        </div>
-
-        <div className="grid gap-6 xl:grid-cols-[380px_1fr]">
-          <Skeleton className="h-[700px] w-full rounded-3xl" />
-          <Skeleton className="h-[700px] w-full rounded-3xl" />
-        </div>
-
-      </div>
-    </CRMShell>
-  );
-}
-  
-return (
-  <CRMShell user={user}>
-      <div className="min-w-0 space-y-4 overflow-x-hidden pb-4">
-        <Surface>
-          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-(--text-faint)">
-            Task workspace
-          </p>
-          <h1 className="mt-2 text-3xl font-semibold tracking-tight text-(--text-main)">Tasks</h1>
-          <p className="mt-3 max-w-2xl text-sm leading-6 text-(--text-soft)">
-            {isAdminRole(user.role)
-              ? "Create and assign work in a focused workspace without oversized panels."
-              : "Review assignments, update progress, and report blockers from one clean view."}
-          </p>
-          <div className="mt-5 grid gap-3 md:grid-cols-3 xl:grid-cols-4">
-            {[
-              { label: "All tasks", value: taskAnalytics.total },
-              { label: "Done", value: taskAnalytics.done },
-              { label: "In progress", value: taskAnalytics.inProgress },
-              { label: "Todo", value: taskAnalytics.todo },
-              { label: "Completion", value: `${taskAnalytics.completionRate}%` },
-              { label: "Avg progress", value: `${taskAnalytics.avgProgress}%` },
-            ].map((item) => (
-              <div
-                key={item.label}
-                className="rounded-2xl border px-4 py-3"
-                style={{ borderColor: "var(--border)", background: "var(--surface-soft)" }}
-              >
-                <p className="text-[11px] uppercase tracking-[0.18em] text-(--text-faint)">{item.label}</p>
-                <p className="mt-2 text-xl font-semibold text-(--text-main)">{item.value}</p>
-              </div>
-            ))}
+      <div className="space-y-5 pb-6">
+        {/* Header Action Bar */}
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h1 className="text-xl font-bold tracking-tight text-[var(--text-main)] sm:text-2xl">
+              Tasks
+            </h1>
+            <p className="text-xs text-[var(--text-soft)] mt-0.5">
+              {isAdminRole(user.role)
+                ? "Assign, organize, and monitor workflows across all teams."
+                : "Manage your assigned work and keep progress up to date."}
+            </p>
           </div>
-        </Surface>
 
-        <div className="grid gap-4 lg:grid-cols-1 xl:grid-cols-[minmax(280px,380px)_1fr] xl:items-start">
-          {isAdminRole(user.role) ? (
-            <Surface className="xl:sticky xl:top-20 xl:max-h-[calc(100vh-6rem)] xl:overflow-y-auto">
-              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-(--text-faint)">
-                Create task
-              </p>
-              <h2 className="mt-2 text-xl font-semibold text-(--text-main)">Assign work clearly</h2>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              leftIcon={<FilterIcon size={14} />}
+              onClick={() => setFilterOpen((prev) => !prev)}
+            >
+              {filterOpen ? "Hide Filters" : "Filter"}
+            </Button>
 
-              <div className="mt-5 grid gap-4">
-                <div className="space-y-3">
-                  <textarea
-  readOnly
-  onClick={(e) => {
-  navigator.clipboard.writeText(
-    (e.target as HTMLTextAreaElement).value
-  );
-   showToast(
-    "Template copied to clipboard",
-    "success"
-   );
-}}
-  className="min-h-36 w-full rounded-2xl border px-3 py-3 text-sm"
-  style={fieldStyle}
-  value={`Title: Dashboard Fix
-
-Description:
-Review dashboard loading
-
-Priority: HIGH
-
-Checklist:
-- Fix UI
-- Fix backend`}
-/>
-
-  <textarea
-  className="min-h-[140px] w-full rounded-2xl border p-4 text-sm outline-none placeholder:text-[var(--text-soft)]"
-  style={fieldStyle}
-  placeholder={`Title: Dashboard Fix
-
-Description:
-Review dashboard loading and analytics
-
-Priority: HIGH
-
-Checklist:
-- Fix UI
-- Fix backend
-- Test responsiveness`}
-  value={smartPasteText}
-  onChange={(event) =>
-    setSmartPasteText(event.target.value)
-  }
-/>
-
-  <button
-    type="button"
-    onClick={handleSmartPaste}
-    className="rounded-xl px-4 py-2 text-sm font-semibold text-white"
-    style={{
-      background:
-        "var(--accent-strong)"
-    }}
-  >
-
-    Auto-fill from paste
-
-  </button>
-
-</div>
-              <div
-  className="rounded-2xl border p-4 text-sm"
-  style={fieldStyle}
->
-
-  <p className="font-semibold">
-    Paste Preview
-  </p>
-
-  <p className="mt-2 whitespace-pre-wrap text-[var(--text-soft)]">
-
-    {
-      smartPasteText ||
-      "Nothing pasted yet."
-    }
-
-  </p>
-
-</div>
-                <input
-                  className="h-12 rounded-2xl border px-4 outline-none"
-                  style={fieldStyle}
-                  placeholder="Task title"
-                  value={form.title}
-                  onChange={(event) => setForm((current) => ({ ...current, title: event.target.value }))}
-                />
-                <textarea
-                  className="min-h-28 rounded-2xl border px-4 py-3 outline-none"
-                  style={fieldStyle}
-                  placeholder="Task description"
-                  value={form.description}
-                  onChange={(event) =>
-                    setForm((current) => ({ ...current, description: event.target.value }))
-                  }
-                />
-                <label className="grid gap-2">
-                  <span className="text-sm font-medium text-[var(--text-main)]">Deadline</span>
-                  <input
-                    type="date"
-                    className="h-12 w-full min-w-0 rounded-2xl border px-4 text-sm outline-none"
-                    style={fieldStyle}
-                    value={form.deadlineAt}
-                    onChange={(event) =>
-                      setForm((current) => ({ ...current, deadlineAt: event.target.value }))
-                    }
-                  />
-                </label>
-                <label className="grid gap-2">
-                  <span className="text-sm font-medium text-(--text-main)">Priority</span>
-                  <ResponsiveSelect
-                  priorityColors
-                    value={form.priority}
-                    onChange={(value) =>
-                      setForm((current) => ({
-                        ...current,
-                        priority: value as TaskPriority,
-                      }))
-                    }
-                    options={priorityOptions}
-                    ariaLabel="Select task priority"
-                    buttonClassName="h-12 px-4"
-                  />
-                </label>
-                <textarea
-                  className="min-h-32 rounded-2xl border px-4 py-3 outline-none"
-                  style={fieldStyle}
-                  placeholder={"Checklist items, one per line\nExample:\nCreate first draft\nReview with manager\nSubmit final work"}
-                  value={form.checklistText}
-                  onChange={(event) =>
-                    setForm((current) => ({ ...current, checklistText: event.target.value }))
-                  }
-                />
-
-                <div>
-                  <div className="flex flex-wrap items-end justify-between gap-2">
-                    <p className="text-sm font-medium text-(--text-main)">Assign to team members</p>
-                    <span className="text-xs text-(--text-soft)">
-                      {directory.loading
-                        ? "Searching…"
-                        : `Showing ${directory.items.length} of ${directory.total}`}
-                    </span>
-                  </div>
-                  {form.userIds.length ? (
-                    <p className="mt-2 text-xs text-(--text-soft)">
-                      Selected:{" "}
-                      {form.userIds
-                        .map((id) => teamForTaskList.find((m) => m.id === id)?.name ?? id.slice(0, 8))
-                        .join(", ")}
-                    </p>
-                  ) : null}
-                  <div className="mt-3">
-                    <MemberPickerToolbar
-                      searchQuery={assignPickerQuery}
-                      onSearchChange={setAssignPickerQuery}
-                      roleFilter={assignPickerRole}
-                      onRoleFilterChange={setAssignPickerRole}
-                      roleOptions={assignPickerRoleOptions}
-                    />
-                  </div>
-                  <div className="mt-3 max-h-[min(280px,40vh)] overflow-y-auto rounded-2xl border p-2" style={{ borderColor: "var(--border)" }}>
-                    <div className="grid gap-2 sm:grid-cols-2">
-                      {directory.loading && !directory.items.length ? (
-                        <p className="col-span-full px-3 py-6 text-sm text-(--text-soft)">Loading directory…</p>
-                      ) : directory.items.length === 0 ? (
-                        <p className="col-span-full px-3 py-6 text-sm text-(--text-soft)">
-                          No one matches this search. Try another name or clear filters.
-                        </p>
-                      ) : (
-                        directory.items.map((member) => (
-                          <label
-                            key={member.id}
-                            className="flex cursor-pointer items-center gap-2 rounded-xl border px-3 py-2 text-sm"
-                            style={{
-                              borderColor: "var(--border)",
-                              background: "var(--surface-soft)",
-                              color: "var(--text-main)",
-                            }}
-                          >
-                            <input
-                              type="checkbox"
-                              checked={form.userIds.includes(member.id)}
-                              onChange={() => handleAssigneeToggle(member.id)}
-                            />
-                            <span className="min-w-0 truncate">
-                              {member.name} · {member.role}
-                            </span>
-                          </label>
-                        ))
-                      )}
-                    </div>
-                  </div>
-                  {directory.hasMore ? (
-                    <div className="mt-3 flex justify-center">
-                      <button
-                        type="button"
-                        disabled={directory.loadingMore}
-                        onClick={() => void directory.loadMore()}
-                        className="rounded-xl border px-4 py-2 text-xs font-semibold disabled:opacity-60"
-                        style={{ borderColor: "var(--border)", color: "var(--text-main)" }}
-                      >
-                        {directory.loadingMore ? "Loading..." : "Load more people"}
-                      </button>
-                    </div>
-                  ) : null}
-                </div>
-
-                <div>
-                  <div className="flex items-center justify-between">
-                    <p className="text-sm font-medium text-(--text-main)">Initial progress</p>
-                    <span className="text-sm font-semibold text-(--text-main)">{form.progress}%</span>
-                  </div>
-                  <input
-                    type="range"
-                    min="0"
-                    max="100"
-                    step="5"
-                    value={form.progress}
-                    onChange={(event) =>
-                      setForm((current) => ({
-                        ...current,
-                        progress: Number(event.target.value),
-                      }))
-                    }
-                    className="mt-3 w-full accent-slate-950"
-                  />
-                </div>
-
-                {error ? <p className="text-sm font-medium text-rose-600">{error}</p> : null}
-                {notice ? <p className="text-sm font-medium text-emerald-600">{notice}</p> : null}
-
-                <button
-                  type="button"
-                  disabled={creating}
-                  onClick={() => void createTask()}
-                  className="h-12 rounded-2xl text-sm font-semibold text-white transition disabled:cursor-wait disabled:opacity-70"
-                  style={{ background: "var(--accent-strong)" }}
-                >
-                  {creating ? "Creating..." : "Create task"}
-                </button>
-              </div>
-            </Surface>
-          ) : (
-            <Surface>
-              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-(--text-faint)">
-                Personal workflow
-              </p>
-              <h2 className="mt-2 text-xl font-semibold text-(--text-main)">Keep your queue updated</h2>
-              <p className="mt-3 text-sm leading-6 text-(--text-soft)">
-                Use this page to review assignments and move work from Todo to In Progress and Done.
-              </p>
-            </Surface>
-          )}
-
-          <Surface>
-            <div className="flex flex-wrap items-end justify-between gap-4">
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.22em] text-(--text-faint)">
-                  Open list
-                </p>
-                <h2 className="mt-2 text-xl font-semibold text-(--text-main)">Current tasks</h2>
-              </div>
-              <div className="flex flex-wrap items-center gap-3">
-                <button
-                  type="button"
-                  onClick={() => setFilterOpen((current) => !current)}
-                  className="h-9 rounded-xl border px-3 text-sm font-semibold"
-                  style={{ borderColor: "var(--border)", color: "var(--text-main)", background: "var(--surface-soft)" }}
-                >
-                  {filterOpen ? "Hide Filters" : "Filter"}
-                </button>
-                <span className="text-sm tabular-nums text-(--text-soft)">
-                  {tasksTotal ? `Showing ${visibleTasks.length} of ${tasksTotal}` : `${visibleTasks.length} loaded`}
-                </span>
-              </div>
-              <span className="text-sm tabular-nums text-[var(--text-soft)]">
-                {loading
-                  ? taskSearch
-                    ? "Searching..."
-                    : "Loading..."
-                  : tasks.length === 0
-                    ? taskSearch
-                      ? `No results found for "${taskSearch}"`
-                      : "No tasks available yet."
-                    : tasksTotal
-                      ? `Showing ${tasks.length} of ${tasksTotal}`
-                      : `${tasks.length} loaded`}
-              </span>
-            </div>
-            {filterOpen ? (
-              <div
-                className="mt-4 grid gap-3 rounded-2xl border p-3 md:grid-cols-[minmax(0,320px)_minmax(0,1fr)]"
-                style={{ borderColor: "var(--border)", background: "var(--surface-soft)" }}
+            {isAdminRole(user.role) && (
+              <Button
+                variant="primary"
+                size="sm"
+                leftIcon={<PlusIcon size={14} />}
+                onClick={() => setCreateSheetOpen(true)}
               >
-                <label className="grid min-w-0 gap-1">
-                  <span className="text-xs font-semibold uppercase tracking-[0.12em] text-(--text-soft)">Project</span>
-                  <ResponsiveSelect
-                    value={selectedProjectId}
-                    onChange={(value) => {
-                      setSelectedProjectId(value);
-                      setLoading(true);
-                    }}
-                    options={projectFilterOptions}
-                    ariaLabel="Filter tasks by project"
-                    buttonClassName="h-10 rounded-xl"
-                  />
-                </label>
-                <label className="grid min-w-0 gap-1">
-                  <span className="text-xs font-semibold uppercase tracking-[0.12em] text-(--text-soft)">Task Name</span>
-                  <input
-                    className="h-10 w-full min-w-0 rounded-xl border px-3 text-sm outline-none"
-                    style={fieldStyle}
-                    value={nameFilter}
-                    placeholder="Search title, description, assignee"
-                    onChange={(event) => setNameFilter(event.target.value)}
-                  />
-                </label>
-              </div>
-            ) : null}
+                New Task
+              </Button>
+            )}
+          </div>
+        </div>
 
+        {/* 6 Metrics Grid (Teams / Linear Card Style) */}
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+          <StatCard label="Total Tasks" value={taskAnalytics.total} />
+          <StatCard label="Todo" value={taskAnalytics.todo} />
+          <StatCard label="In Progress" value={taskAnalytics.inProgress} />
+          <StatCard label="Done" value={taskAnalytics.done} />
+          <StatCard label="Completion" value={`${taskAnalytics.completionRate}%`} />
+          <StatCard label="Avg Progress" value={`${taskAnalytics.avgProgress}%`} />
+        </div>
+
+        {/* Filter Bar */}
+        {filterOpen && (
+          <div className="flex flex-wrap gap-3 rounded-xl border border-[var(--border)] bg-[var(--surface-strong,#ffffff)] p-3 shadow-xs">
+            <div className="w-full sm:w-64">
+              <label className="text-[11px] font-semibold uppercase tracking-wider text-[var(--text-soft)] block mb-1">
+                Project
+              </label>
+              <ResponsiveSelect
+                value={selectedProjectId}
+                onChange={(value) => {
+                  setSelectedProjectId(value);
+                  setLoading(true);
+                }}
+                options={projectFilterOptions}
+                ariaLabel="Filter tasks by project"
+                buttonClassName="h-9 rounded-lg text-xs"
+              />
+            </div>
+            <div className="flex-1 min-w-[200px]">
+              <label className="text-[11px] font-semibold uppercase tracking-wider text-[var(--text-soft)] block mb-1">
+                Search Tasks
+              </label>
+              <input
+                className="h-9 w-full rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] px-3 text-xs outline-none focus:border-blue-500 focus:bg-[var(--surface-strong,#ffffff)]"
+                value={nameFilter}
+                placeholder="Search title, description, assignee..."
+                onChange={(e) => setNameFilter(e.target.value)}
+              />
+            </div>
+          </div>
+        )}
+
+        {/* Main Task List Table / Cards */}
+        <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-strong,#ffffff)] shadow-xs overflow-hidden">
+          <div className="flex items-center justify-between border-b border-[var(--border)] px-4 py-3">
+            <div className="flex items-center gap-2">
+              <CheckSquareIcon size={16} className="text-blue-600" />
+              <h2 className="text-sm font-semibold text-[var(--text-main)]">Task Board</h2>
+            </div>
+            <span className="text-xs text-[var(--text-soft)]">
+              {tasksTotal ? `Showing ${visibleTasks.length} of ${tasksTotal}` : `${visibleTasks.length} tasks`}
+            </span>
+          </div>
+
+          <div className="p-4">
             {loading ? (
+              <div className="space-y-3">
+                <Skeleton className="h-12 w-full rounded-lg" />
+                <Skeleton className="h-12 w-full rounded-lg" />
+                <Skeleton className="h-12 w-full rounded-lg" />
+              </div>
+            ) : visibleTasks.length ? (
+              <TaskList
+                tasks={visibleTasks}
+                user={user}
+                team={teamForTaskList}
+                onUpdated={() => void loadTasks(false)}
+                initialIssueTaskId={initialIssueTaskId}
+                initialIssueId={initialIssueId}
+              />
+            ) : (
+              <StatePanel
+                title="No tasks found"
+                description={nameFilter || taskSearch ? "No tasks match your search." : "No tasks in this view yet."}
+              />
+            )}
 
-  <div className="mt-6 space-y-6">
-
-    <Skeleton className="h-14 w-full" />
-
-    <div className="grid gap-6 lg:grid-cols-3">
-
-      <Skeleton className="h-[70vh] w-full rounded-3xl" />
-
-      <Skeleton className="h-[70vh] w-full rounded-3xl" />
-
-      <Skeleton className="h-[70vh] w-full rounded-3xl" />
-
-    </div>
-
-  </div>
-
-) : null}
-            {!loading && error ? <p className="mt-6 text-sm font-medium text-rose-600">{error}</p> : null}
-
-            
-
-            <div className="mt-6 max-h-[min(70vh,900px)] overflow-y-auto pr-1">
-              {!loading && visibleTasks.length ? (
-                <TaskList
-                  tasks={visibleTasks}
-                  user={user}
-                  team={teamForTaskList}
-                  onUpdated={() => void loadTasks(false)}
-                  initialIssueTaskId={initialIssueTaskId}
-                  initialIssueId={initialIssueId}
-                />
-              ) : !loading && !error ? (
-                <div
-                  className="rounded-3xl border border-dashed p-8 text-sm"
-                  style={{
-                    borderColor: "var(--border)",
-                    background: "var(--surface-soft)",
-                    color: "var(--text-soft)",
+            {!loading && hasMoreTasks && (
+              <div className="mt-4 flex justify-center border-t border-[var(--border)] pt-3">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  loading={loadingMore}
+                  onClick={() => {
+                    setLoadingMore(true);
+                    void loadTasks(true).finally(() => setLoadingMore(false));
                   }}
                 >
-                  {taskSearch ? `No results found for "${taskSearch}".` : "No tasks available yet."}
-                  No tasks match the current filters.
-                </div>
-              ) : null}
-              {!loading && hasMoreTasks ? (
-                <div className="sticky bottom-0 mt-4 flex justify-center border-t pt-3" style={{ borderColor: "var(--border)", background: "var(--surface)" }}>
-                  <button
-                    type="button"
-                    disabled={loadingMore}
-                    onClick={() => {
-                      setLoadingMore(true);
-                      void loadTasks(true).finally(() => setLoadingMore(false));
-                    }}
-                    className="w-full max-w-md rounded-xl px-4 py-3 text-sm font-semibold text-white shadow-sm transition disabled:opacity-60 sm:w-auto"
-                    style={{ background: "var(--accent-strong)" }}
-                  >
-                    {loadingMore
-                      ? "Loading..."
-                      : `Load more tasks (${Math.max(0, tasksTotal - tasks.length)} remaining)`}
-                  </button>
-                </div>
-              ) : null}
-            </div>
-          </Surface>
+                  Load More Tasks
+                </Button>
+              </div>
+            )}
+          </div>
         </div>
+
+        {/* Slide-over Create Task Sheet */}
+        <Sheet
+          open={createSheetOpen}
+          onClose={() => setCreateSheetOpen(false)}
+          title="Create New Task"
+          description="Fill in the details below to assign work to team members."
+          width="lg"
+          footer={
+            <div className="flex items-center justify-end gap-2">
+              <Button variant="ghost" size="sm" onClick={() => setCreateSheetOpen(false)}>
+                Cancel
+              </Button>
+              <Button
+                variant="primary"
+                size="sm"
+                loading={creating}
+                onClick={() => void createTask()}
+              >
+                Create Task
+              </Button>
+            </div>
+          }
+        >
+          <div className="space-y-4">
+            {/* Smart Paste Toggle Accordion */}
+            <div className="rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] p-3">
+              <button
+                type="button"
+                onClick={() => setSmartPasteExpanded((prev) => !prev)}
+                className="flex w-full items-center justify-between text-xs font-semibold text-blue-600 hover:text-blue-700"
+              >
+                <span>⚡ Auto-fill from text (Smart Paste)</span>
+                <span>{smartPasteExpanded ? "▲ Close" : "▼ Open"}</span>
+              </button>
+
+              {smartPasteExpanded && (
+                <div className="mt-3 space-y-2">
+                  <textarea
+                    rows={4}
+                    className="w-full rounded-md border border-[var(--border)] bg-[var(--surface-strong,#ffffff)] p-2 text-xs outline-none focus:border-blue-500"
+                    placeholder="Paste formatted task, e.g.:&#10;Title: Fix auth bug&#10;Description: Resolve JWT token expiry&#10;Priority: HIGH&#10;Checklist:&#10;- Update middleware&#10;- Test login"
+                    value={smartPasteText}
+                    onChange={(e) => setSmartPasteText(e.target.value)}
+                  />
+                  <Button variant="secondary" size="xs" onClick={handleSmartPaste}>
+                    Parse & Auto-fill
+                  </Button>
+                </div>
+              )}
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--text-soft)] mb-1">
+                Title *
+              </label>
+              <input
+                className="h-9 w-full rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] px-3 text-sm outline-none focus:border-blue-500 focus:bg-[var(--surface-strong,#ffffff)]"
+                placeholder="e.g. Redesign Dashboard UI"
+                value={form.title}
+                onChange={(e) => setForm((c) => ({ ...c, title: e.target.value }))}
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--text-soft)] mb-1">
+                Description
+              </label>
+              <textarea
+                rows={3}
+                className="w-full rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] p-3 text-sm outline-none focus:border-blue-500 focus:bg-[var(--surface-strong,#ffffff)]"
+                placeholder="Brief summary of requirements..."
+                value={form.description}
+                onChange={(e) => setForm((c) => ({ ...c, description: e.target.value }))}
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--text-soft)] mb-1">
+                  Priority
+                </label>
+                <ResponsiveSelect
+                  priorityColors
+                  value={form.priority}
+                  onChange={(v) => setForm((c) => ({ ...c, priority: v as TaskPriority }))}
+                  options={priorityOptions}
+                  ariaLabel="Select task priority"
+                  buttonClassName="h-9 rounded-lg text-xs"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--text-soft)] mb-1">
+                  Deadline
+                </label>
+                <input
+                  type="date"
+                  className="h-9 w-full rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] px-3 text-xs outline-none focus:border-blue-500 focus:bg-[var(--surface-strong,#ffffff)]"
+                  value={form.deadlineAt}
+                  onChange={(e) => setForm((c) => ({ ...c, deadlineAt: e.target.value }))}
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--text-soft)] mb-1">
+                Checklist Items (one per line)
+              </label>
+              <textarea
+                rows={3}
+                className="w-full rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] p-3 text-xs outline-none focus:border-blue-500 focus:bg-[var(--surface-strong,#ffffff)]"
+                placeholder="Draft wireframes&#10;Review with team&#10;Deploy to staging"
+                value={form.checklistText}
+                onChange={(e) => setForm((c) => ({ ...c, checklistText: e.target.value }))}
+              />
+            </div>
+
+            <div>
+              <div className="flex items-center justify-between mb-1">
+                <label className="text-xs font-semibold uppercase tracking-wider text-[var(--text-soft)]">
+                  Assignees
+                </label>
+                <span className="text-[11px] text-[var(--text-faint)]">
+                  {form.userIds.length} selected
+                </span>
+              </div>
+
+              <div className="mb-2">
+                <MemberPickerToolbar
+                  searchQuery={assignPickerQuery}
+                  onSearchChange={setAssignPickerQuery}
+                  roleFilter={assignPickerRole}
+                  onRoleFilterChange={setAssignPickerRole}
+                  roleOptions={assignPickerRoleOptions}
+                />
+              </div>
+
+              <div className="max-h-40 overflow-y-auto rounded-lg border border-[var(--border)] p-2 space-y-1">
+                {directory.items.map((m) => (
+                  <label
+                    key={m.id}
+                    className="flex cursor-pointer items-center gap-2 rounded-md p-1.5 text-xs hover:bg-[var(--surface-soft)]"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={form.userIds.includes(m.id)}
+                      onChange={() => handleAssigneeToggle(m.id)}
+                    />
+                    <span className="font-medium text-[var(--text-main)] truncate">{m.name}</span>
+                    <span className="text-[10px] text-[var(--text-soft)]">({m.role})</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+          </div>
+        </Sheet>
       </div>
     </CRMShell>
   );
@@ -868,47 +582,13 @@ export default function TasksPage() {
     <Suspense
       fallback={
         <div className="min-h-screen p-6 animate-pulse">
-          <div>
-            <div
-              className="h-4 w-28 rounded"
-              style={{ background: "var(--surface-soft)" }}
-            />
-            <div
-              className="mt-3 h-10 w-48 rounded"
-              style={{ background: "var(--surface-soft)" }}
-            />
-          </div>
-
-          <div className="mt-6 grid gap-4 lg:grid-cols-5">
-            {Array.from({ length: 5 }).map((_, i) => (
-              <div
-                key={i}
-                className="h-28 rounded-3xl border"
-                style={{
-                  borderColor: "var(--border)",
-                  background: "var(--surface-soft)",
-                }}
-              />
+          <Skeleton className="h-10 w-48 mb-4" />
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6 mb-6">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <Skeleton key={i} className="h-24 w-full rounded-xl" />
             ))}
           </div>
-
-          <div className="mt-6 grid gap-6 lg:grid-cols-[420px_1fr]">
-            <div
-              className="h-[650px] rounded-3xl border"
-              style={{
-                borderColor: "var(--border)",
-                background: "var(--surface-soft)",
-              }}
-            />
-
-            <div
-              className="h-[650px] rounded-3xl border"
-              style={{
-                borderColor: "var(--border)",
-                background: "var(--surface-soft)",
-              }}
-            />
-          </div>
+          <Skeleton className="h-96 w-full rounded-xl" />
         </div>
       }
     >
@@ -916,4 +596,3 @@ export default function TasksPage() {
     </Suspense>
   );
 }
-

@@ -78,6 +78,11 @@ model LeaveRequest {
   manager      User?        @relation("ManagerLeaveRequests", fields: [managerId], references: [id])
   leaveType    LeaveType    @relation(fields: [leaveTypeId], references: [id], onDelete: Restrict)
   comments     LeaveComment[]
+
+  @@index([userId])
+  @@index([managerId])
+  @@index([status])
+  @@index([startDate])
 }
 
 model LeaveComment {
@@ -152,6 +157,9 @@ model Task {
 
   @@index([assignedById])
   @@index([deadlineAt])
+  @@index([projectId])
+  @@index([status])
+  @@index([createdAt])
 }
 
 model TaskChecklistItem {
@@ -163,6 +171,8 @@ model TaskChecklistItem {
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
   task        Task      @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  @@index([taskId])
 }
 
 model TaskIssue {
@@ -179,6 +189,10 @@ model TaskIssue {
   reporter        User     @relation("ReportedIssues", fields: [reporterId], references: [id], onDelete: Cascade)
   resolvedBy      User?    @relation("ResolvedIssues", fields: [resolvedById], references: [id])
   task            Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  @@index([taskId])
+  @@index([reporterId])
+  @@index([status])
 }
 
 model TaskAssignment {
@@ -190,6 +204,7 @@ model TaskAssignment {
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([taskId, userId])
+  @@index([userId])
 }
 
 model Attendance {
@@ -201,6 +216,12 @@ model Attendance {
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
   user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([date])
+  @@index([checkOut])
+  @@index([userId, checkOut])
+  @@index([userId, date])
 }
 
 model GoogleWorkspaceConnection {

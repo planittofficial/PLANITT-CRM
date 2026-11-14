@@ -116,13 +116,6 @@ export function useDashboardData() {
           : page.items.filter((m) => m.role === "EMPLOYEE" || m.role === "INTERN");
         setTeamMembers(visible);
         setSelectedMemberId((c) => c || visible[0]?.id || "");
-        void Promise.all(
-          visible
-            .slice(0, TEAM_ANALYTICS_PRELOAD_LIMIT)
-            .map((m) => apiGet<UserAnalyticsSummary>(`/users/${m.id}/analytics`))
-        )
-          .then((analyticsData) => setTeamAnalyticsList(analyticsData))
-          .catch(() => {});
       } catch (err) { setError(normalizeErrorMessage(err, "Failed to load team members" )); showToast(normalizeErrorMessage(err, "Failed to load team members" ),"error"); }
       finally { setTeamLoading(false);
         resetSearch();

@@ -1,11 +1,10 @@
 "use client";
 
-import { useDeferredValue, useEffect, useMemo } from "react";
+import { useDeferredValue, useEffect, useMemo, useState } from "react";
 import { CRMShell } from "@/components/layout/crm-shell";
 import { MemberPickerToolbar } from "@/components/shared/member-picker-toolbar";
 import { ResponsiveSelect } from "@/components/shared/responsive-select";
 import { StatePanel } from "@/components/shared/state-panel";
-import { useState } from "react";
 import { showToast } from "@/hooks/use-toast";
 import { ProjectsSkeleton } from "@/components/shared/skeleton";
 import { ProjectCredentialsPanel } from "@/components/credentials/project-credentials-panel";
@@ -13,18 +12,18 @@ import { TaskKanban } from "@/components/projects/task-kanban";
 import { parseSmartTaskPaste } from "@/lib/smart-paste";
 import { useProjectsData, TASK_PRIORITY_OPTIONS } from "@/hooks/use-projects-data";
 import { useCrmSearch } from "@/components/providers/crm-search-provider";
+import { Button } from "@/components/ui/button";
+import { StatCard } from "@/components/ui/stat-card";
+import { Sheet } from "@/components/ui/sheet";
+import { FolderKanbanIcon, PlusIcon, UsersIcon } from "@/components/ui/icons";
 
 const FIELD_STYLE = { borderColor: "var(--border)", background: "var(--surface-soft)", color: "var(--text-main)" } as const;
-
-function Surface({ children }: { children: React.ReactNode }) {
-  return <section className="rounded-[20px] border p-5" style={{ background: "var(--surface)", borderColor: "var(--border)", boxShadow: "var(--shadow-soft)" }}>{children}</section>;
-}
 
 export default function ProjectsPage() {
   const { globalSearch, searchSubmitted } = useCrmSearch();
   const projectSearch = useDeferredValue(globalSearch.trim().toLowerCase());
   const {
-    user, loading, error, notice, sessionGate, projects, departments, team, selectedProjectId, setSelectedProjectId,
+    user, loading, error, sessionGate, projects, departments, team, selectedProjectId, setSelectedProjectId,
     hasMoreProjects, loadingMoreProjects, setLoadingMoreProjects, loadProjects, projectForm, setProjectForm,
     creatingProject, createProject, taskForm, setTaskForm, editTaskForm, setEditTaskForm, editingTaskId, setEditingTaskId,
     creatingTask, createTask, updateTaskStatus, updateTaskPriority, openTaskEditor, saveTaskEdits, deleteTask,
@@ -33,9 +32,13 @@ export default function ProjectsPage() {
     projectMemberDraftIds, toggleProjectMemberDraft, savingProjectMembers, saveProjectMembers,
     groupedTasks, projectAnalytics, selectedProject,
   } = useProjectsData();
-  const [projectPasteText, setProjectPasteText] = useState("");
 
+  const [createProjectOpen, setCreateProjectOpen] = useState(false);
+  const [createTaskOpen, setCreateTaskOpen] = useState(false);
+  const [manageTeamOpen, setManageTeamOpen] = useState(false);
+  const [projectPasteText, setProjectPasteText] = useState("");
   const [projectSmartPasteText, setProjectSmartPasteText] = useState("");
+
   const departmentOptions = useMemo(
     () => [{ value: "", label: "Select department" }, ...departments.map((department) => ({ value: department.id, label: department.name }))],
     [departments]
@@ -48,102 +51,46 @@ export default function ProjectsPage() {
     () => TASK_PRIORITY_OPTIONS.map((option) => ({ value: option.value, label: option.label })),
     []
   );
+
   const handleProjectSmartPaste = () => {
+    const parsed = parseSmartTaskPaste(projectSmartPasteText);
+    if (!parsed.title.trim()) {
+      showToast("Could not detect task structure.", "error");
+      return;
+    }
 
-  const parsed =
-    parseSmartTaskPaste(
-      projectSmartPasteText
-    );
+    setTaskForm((current) => ({
+      ...current,
+      title: parsed.title,
+      description: parsed.description,
+      priority: parsed.priority,
+      checklistText: parsed.checklistItems.join("\n"),
+    }));
+    showToast("Task fields auto-filled.", "success");
+  };
 
-  if (!parsed.title.trim()) {
+  const handleTaskPaste = () => {
+    const lines = projectPasteText.split("\n").map((line) => line.trim());
+    const titleLine = lines.find((line) => {
+      const lower = line.toLowerCase();
+      return lower.startsWith("title:") || lower.startsWith("project:");
+    });
+    const descriptionIndex = lines.findIndex((line) => {
+      const lower = line.toLowerCase();
+      return lower.startsWith("description:") || lower.startsWith("desc:");
+    });
 
-    showToast(
-      "Could not detect task structure.",
-      "error"
-    );
+    const title = titleLine?.replace(/^(title|project)\s*:/i, "").trim() || "";
+    const description = descriptionIndex >= 0 ? lines.slice(descriptionIndex + 1).join("\n").trim() : "";
 
-    return;
+    if (!title) {
+      showToast("Could not detect project structure.", "error");
+      return;
+    }
 
-  }
-  
-
-  setTaskForm((current) => ({
-    ...current,
-    title: parsed.title,
-    description: parsed.description,
-    priority: parsed.priority,
-    checklistText:
-      parsed.checklistItems.join("\n"),
-  }));
-
-  showToast(
-    "Task fields auto-filled.",
-    "success"
-  );
-
-};
-const handleTaskPaste = () => {
-
-  const lines =
-    projectPasteText
-      .split("\n")
-      .map((line) => line.trim());
-
-  const titleLine =
-  lines.find((line) => {
-    const lower = line.toLowerCase();
-    return (
-      lower.startsWith("title:") ||
-      lower.startsWith("project:")
-    );
-  });
-
-  const descriptionIndex =
-  lines.findIndex((line) => {
-    const lower = line.toLowerCase();
-    return (
-      lower.startsWith("description:") ||
-      lower.startsWith("desc:")
-    );
-  });
-
-  const title =
-  titleLine
-    ?.replace(/^(title|project)\s*:/i, "")
-    .trim() || "";
-
-  const description =
-    descriptionIndex >= 0
-      ? lines
-          .slice(descriptionIndex + 1)
-          .join("\n")
-          .trim()
-      : "";
-
-  if (!title) {
-
-    showToast(
-      "Could not detect project structure.",
-      "error"
-    );
-
-    return;
-
-  }
-
-  setProjectForm((current) => ({
-    ...current,
-    name: title,
-    description,
-  }));
-
-  showToast(
-    "Project fields auto-filled.",
-    "success"
-  );
-
-};
-
+    setProjectForm((current) => ({ ...current, name: title, description }));
+    showToast("Project fields auto-filled.", "success");
+  };
 
   const visibleProjects = useMemo(() => {
     if (!searchSubmitted || !projectSearch) return projects;
@@ -155,6 +102,7 @@ const handleTaskPaste = () => {
       return inName || inDesc || inDept || inOwner;
     });
   }, [projects, projectSearch, searchSubmitted]);
+
   const visibleGroupedTasks = useMemo(() => {
     if (!searchSubmitted || !projectSearch) return groupedTasks;
     const match = (task: (typeof groupedTasks)["TODO"][number]) => {
@@ -178,7 +126,8 @@ const handleTaskPaste = () => {
 
   if (sessionGate) return sessionGate;
   if (!user) return null;
-   if (loading) {
+
+  if (loading) {
     return (
       <CRMShell user={user}>
         <ProjectsSkeleton />
@@ -188,271 +137,447 @@ const handleTaskPaste = () => {
 
   return (
     <CRMShell user={user}>
-      <div className="min-w-0 space-y-4 overflow-x-hidden pb-4">
-        <Surface>
-          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[var(--text-faint)]">Projects analytics</p>
-          <h1 className="mt-2 text-3xl font-semibold tracking-tight text-[var(--text-main)]">Project command center</h1>
-          <p className="mt-3 text-sm leading-6 text-[var(--text-soft)]">A simple analytical view of project throughput, completion quality, and potential delivery risk.</p>
-          <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-            {[{ label: "Total projects", value: projectAnalytics.totalProjects }, { label: "Average progress", value: `${projectAnalytics.avgProgress}%` }, { label: "Total tasks", value: projectAnalytics.totalTasks }, { label: "Completion rate", value: `${projectAnalytics.completionRate}%` }, { label: "Risk projects", value: projectAnalytics.delayedProjects }].map((item) => (
-              <div key={item.label} className="rounded-2xl border px-4 py-3" style={{ borderColor: "var(--border)", background: "var(--surface-soft)" }}>
-                <p className="text-[11px] uppercase tracking-[0.18em] text-[var(--text-faint)]">{item.label}</p>
-                <p className="mt-2 text-xl font-semibold text-[var(--text-main)]">{item.value}</p>
-              </div>
-            ))}
+      <div className="space-y-5 pb-6">
+        {/* Header Action Bar */}
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h1 className="text-xl font-bold tracking-tight text-[var(--text-main)] sm:text-2xl">
+              Project Command Center
+            </h1>
+            <p className="text-xs text-[var(--text-soft)] mt-0.5">
+              Manage department project boards, track delivery velocity, and resolve task blockers.
+            </p>
           </div>
-        </Surface>
 
-        <div className="grid gap-4 xl:grid-cols-[300px_1fr]">
-          <aside className="space-y-4">
-            <Surface>
-              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[var(--text-faint)]">Department projects</p>
-              <h1 className="mt-2 text-2xl font-semibold tracking-tight text-[var(--text-main)]">Project boards</h1>
-              <p className="mt-3 text-sm leading-6 text-[var(--text-soft)]">Create department projects, then let managers break them into tasks and subtasks.</p>
-            </Surface>
-            <Surface>
-              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[var(--text-faint)]">All boards</p>
-              <div className="mt-4 space-y-3">
-                {visibleProjects.map((project) => {
-                  const sel = selectedProjectId === project.id;
-                  return (
-                    <button key={project.id} type="button" onClick={() => setSelectedProjectId(project.id)} className="w-full rounded-2xl border px-4 py-4 text-left transition" style={sel ? { borderColor: "#0f172a", background: "#0f172a", color: "#ffffff" } : { borderColor: "var(--border)", background: "var(--surface-soft)", color: "var(--text-main)" }}>
-                      <p className="font-semibold">{project.name}</p>
-                      <p className={`mt-1 text-xs ${sel ? "text-slate-300" : "text-[var(--text-soft)]"}`}>{project.department.name}</p>
-                      <div className="mt-3 h-2 overflow-hidden rounded-full" style={{ background: sel ? "rgba(255,255,255,0.2)" : "var(--surface)" }}>
-                        <div className="h-full rounded-full bg-gradient-to-r from-emerald-400 to-cyan-300" style={{ width: `${project.progress}%` }} />
-                      </div>
-                      <p className={`mt-2 text-xs ${sel ? "text-slate-300" : "text-[var(--text-soft)]"}`}>Progress {project.progress}% - {project.taskCounts.done}/{project.taskCounts.total} tasks complete</p>
-                    </button>
-                  );
-                })}
-                {hasMoreProjects ? (
-                  <button type="button" disabled={loadingMoreProjects} onClick={() => { setLoadingMoreProjects(true); void loadProjects(true).finally(() => setLoadingMoreProjects(false)); }} className="w-full rounded-xl border px-3 py-2 text-sm font-semibold disabled:opacity-60" style={{ borderColor: "var(--border)", color: "var(--text-main)" }}>
-                    {loadingMoreProjects ? "Loading..." : "Load more projects"}
-                  </button>
-                ) : null}
-              </div>
-            </Surface>
-            <Surface>
-              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[var(--text-faint)]">Create project</p>
-              <textarea
-  readOnly
-  onClick={(e) => {
-  navigator.clipboard.writeText(
-    (e.target as HTMLTextAreaElement).value
-  );
-   showToast(
-    "Template copied to clipboard",
-    "success"
-   );
-}}
-  className="min-h-28 w-full rounded-2xl border px-3 py-3 text-sm"
-  style={FIELD_STYLE}
-  value={`Title: CRM Dashboard
-
-Description:
-Internal analytics dashboard`}
-/>
-
-<textarea
-  className="min-h-28 w-full rounded-2xl border px-3 py-3 text-sm outline-none mt-3"
-  style={FIELD_STYLE}
-  placeholder="Paste project details here..."
-  value={projectPasteText}
-  onChange={(e) =>
-    setProjectPasteText(e.target.value)
-  }
-/>
-
-<button
-  type="button"
-  onClick={handleTaskPaste}
-  className="rounded-2xl px-4 py-2 text-sm font-semibold text-white"
-  style={{
-    background: "var(--accent-strong)",
-  }}
->
-  Auto-fill project
-</button>
-              <div className="mt-4 grid gap-3">
-                <div className="mt-4 grid gap-3">
-
-  <textarea
-    className="min-h-28 w-full min-w-0 box-border rounded-2xl border px-3 py-3 text-sm outline-none"
-    style={FIELD_STYLE}
-    placeholder={`Title: CRM Dashboard
-
-Description:
-Internal analytics dashboard`}
-  />
-</div>
-                <input className="h-11 w-full min-w-0 box-border rounded-2xl border px-3 text-sm outline-none" style={FIELD_STYLE} placeholder="Project name" value={projectForm.name} onChange={(e) => setProjectForm((c) => ({ ...c, name: e.target.value }))} />
-                <textarea className="min-h-24 w-full min-w-0 box-border rounded-2xl border px-3 py-3 text-sm outline-none" style={FIELD_STYLE} placeholder="Project description" value={projectForm.description} onChange={(e) => setProjectForm((c) => ({ ...c, description: e.target.value }))} />
-                <ResponsiveSelect value={projectForm.departmentId} onChange={(value) => setProjectForm((c) => ({ ...c, departmentId: value }))} options={departmentOptions} ariaLabel="Select project department" buttonClassName="h-11 box-border px-3" />
-                <ResponsiveSelect value={projectForm.ownerId} onChange={(value) => setProjectForm((c) => ({ ...c, ownerId: value }))} options={ownerOptions} ariaLabel="Select project owner" buttonClassName="h-11 box-border px-3" />
-                <button type="button" disabled={creatingProject} onClick={() => void createProject()} className="w-full min-w-0 box-border rounded-2xl px-4 py-3 text-sm font-semibold text-white transition disabled:cursor-wait disabled:opacity-70" style={{ background: "var(--accent-strong)" }}>{creatingProject ? "Creating..." : "Create board"}</button>
-              </div>
-            </Surface>
-          </aside>
-
-          <section className="space-y-4">
-            <Surface>
-              {selectedProject ? (
-                <>
-                  <div className="flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
-                    <div>
-                      <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[var(--text-faint)]">{selectedProject.department.name}</p>
-                      <h2 className="mt-2 text-2xl font-semibold text-[var(--text-main)]">{selectedProject.name}</h2>
-                      <p className="mt-3 max-w-3xl text-sm leading-6 text-[var(--text-soft)]">{selectedProject.description || "No project description added yet."}</p>
-                    </div>
-                    <div className="grid gap-4 sm:grid-cols-2">
-                      <div className="rounded-3xl border px-5 py-4" style={{ borderColor: "var(--border)", background: "var(--surface-soft)" }}><p className="text-xs uppercase tracking-[0.2em] text-[var(--text-faint)]">Owner</p><p className="mt-2 text-lg font-semibold text-[var(--text-main)]">{selectedProject.owner?.name || "Unassigned"}</p></div>
-                      <div className="rounded-3xl bg-slate-950 px-5 py-4 text-white"><p className="text-xs uppercase tracking-[0.2em] text-slate-400">Project progress</p><p className="mt-2 text-lg font-semibold">{selectedProject.progress}% complete</p></div>
-                    </div>
-                  </div>
-                  <div className="mt-6 h-3 overflow-hidden rounded-full" style={{ background: "var(--surface-soft)" }}>
-                    <div className="h-full rounded-full bg-gradient-to-r from-slate-950 via-blue-600 to-emerald-500" style={{ width: `${selectedProject.progress}%` }} />
-                  </div>
-                </>
-              ) : <StatePanel title="No project selected" description="Create a board or select one from the left panel." />}
-            </Surface>
-
-            {selectedProject ? (
-              <ProjectCredentialsPanel projectId={selectedProject.id} />
-            ) : null}
-
-            {selectedProject ? (
-              <Surface>
-                <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-                  <div><p className="text-xs font-semibold uppercase tracking-[0.22em] text-[var(--text-faint)]">Project team</p><h3 className="mt-2 text-xl font-semibold text-[var(--text-main)]">Task assignee pool</h3><p className="mt-2 max-w-3xl text-sm leading-6 text-[var(--text-soft)]">Pick people from this project&apos;s department. After saving, new tasks can only be assigned to those members.</p></div>
-                  <button type="button" disabled={savingProjectMembers} onClick={() => void saveProjectMembers()} className="h-11 shrink-0 rounded-2xl px-5 text-sm font-semibold text-white transition disabled:opacity-70" style={{ background: "var(--accent-strong)" }}>{savingProjectMembers ? "Saving..." : "Save project team"}</button>
-                </div>
-                <div className="mt-4"><MemberPickerToolbar searchQuery={projectTeamQuery} onSearchChange={setProjectTeamQuery} roleFilter={projectTeamRole} onRoleFilterChange={setProjectTeamRole} roleOptions={projectTeamRoleOptions} /></div>
-                <div className="mt-3 grid max-h-72 gap-3 overflow-auto sm:grid-cols-2">
-                  {filteredProjectTeamRoster.length === 0 ? <p className="col-span-full rounded-2xl border px-4 py-6 text-sm text-[var(--text-soft)]" style={{ borderColor: "var(--border)" }}>No people in this department match your filters.</p>
-                    : filteredProjectTeamRoster.map((m) => (
-                      <label key={m.id} className="flex min-w-0 items-center gap-3 rounded-2xl border px-4 py-3 text-sm" style={{ borderColor: "var(--border)", background: "var(--surface-soft)", color: "var(--text-main)" }}>
-                        <input type="checkbox" checked={projectMemberDraftIds.includes(m.id)} onChange={() => toggleProjectMemberDraft(m.id)} />
-                        <span className="min-w-0 truncate">{m.name} - {m.role}</span>
-                      </label>
-                    ))}
-                </div>
-                <p className="mt-3 text-xs text-[var(--text-faint)]">{(selectedProject.members ?? []).length > 0 ? `Task assignees use the last saved team (${(selectedProject.members ?? []).length} people), not draft checkboxes until you save.` : "No saved team yet — task assignees include everyone you can normally assign."}</p>
-              </Surface>
-            ) : null}
-
-            {selectedProject ? (
-              <Surface>
-                <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[var(--text-faint)]">Add task</p>
-                <h3 className="mt-2 text-xl font-semibold text-[var(--text-main)]">Create project task</h3>
-                <div className="mt-4 grid gap-3">
-                  <textarea
-  readOnly
-  onClick={(e) => {
-  navigator.clipboard.writeText(
-    (e.target as HTMLTextAreaElement).value
-  );
-   showToast(
-    "Template copied to clipboard",
-    "success"
-   );
-}}
-  className="min-h-36 w-full rounded-2xl border px-3 py-3 text-sm"
-  style={FIELD_STYLE}
-  value={`Title: Dashboard Fix
-
-Description:
-Review dashboard loading
-
-Priority: HIGH
-
-Checklist:
-- Fix UI
-- Fix backend`}
-/>
-  <textarea
-    className="min-h-32 rounded-2xl border px-4 py-3 outline-none"
-    style={FIELD_STYLE}
-    placeholder={`Title: Dashboard Fix
-
-Description:
-Review dashboard loading
-
-Priority: HIGH
-
-Checklist:
-- Fix UI
-- Fix backend`}
-    value={projectSmartPasteText}
-    onChange={(e) =>
-      setProjectSmartPasteText(
-        e.target.value
-      )
-    }
-  />
-
-  <button
-    type="button"
-    onClick={handleProjectSmartPaste}
-    className="rounded-2xl border px-4 py-2 text-sm font-medium"
-    style={{
-  background: "#2563eb",
-  color: "#ffffff",
-}}
-  >
-    Auto-fill from paste
-  </button>
-</div>
-                <div className="mt-6 grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
-                  <div className="grid min-w-0 gap-4">
-                    <input className="h-12 rounded-2xl border px-4 outline-none" style={FIELD_STYLE} placeholder="Task title" value={taskForm.title} onChange={(e) => setTaskForm((c) => ({ ...c, title: e.target.value }))} />
-                    <textarea className="min-h-28 rounded-2xl border px-4 py-3 outline-none" style={FIELD_STYLE} placeholder="Task description" value={taskForm.description} onChange={(e) => setTaskForm((c) => ({ ...c, description: e.target.value }))} />
-                    <label className="grid gap-2"><span className="text-sm font-medium text-[var(--text-main)]">Priority</span>
-                      <ResponsiveSelect priorityColors value={taskForm.priority} onChange={(value) => setTaskForm((c) => ({ ...c, priority: value as typeof c.priority }))} options={priorityOptions} ariaLabel="Select project task priority" buttonClassName="h-12 px-4" />
-                    </label>
-                    <label className="grid gap-2"><span className="text-sm font-medium text-[var(--text-main)]">Deadline</span>
-                      <input
-  type="date" className="h-12 w-full min-w-0 rounded-2xl border px-4 text-sm outline-none" style={FIELD_STYLE} value={taskForm.deadlineAt} onChange={(e) => setTaskForm((c) => ({ ...c, deadlineAt: e.target.value }))} />
-                    </label>
-                    <textarea className="min-h-28 rounded-2xl border px-4 py-3 outline-none" style={FIELD_STYLE} placeholder={"Subtasks checklist, one per line\nExample:\nBuild UI\nConnect API\nQA and deploy"} value={taskForm.checklistText} onChange={(e) => setTaskForm((c) => ({ ...c, checklistText: e.target.value }))} />
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-sm font-medium text-[var(--text-main)]">{(selectedProject.members ?? []).length > 0 ? "Assign to project team members" : "Assign to team members"}</p>
-                    <div className="mt-3"><MemberPickerToolbar searchQuery={projectAssignQuery} onSearchChange={setProjectAssignQuery} roleFilter={projectAssignRole} onRoleFilterChange={setProjectAssignRole} roleOptions={projectAssignRoleOptions} /></div>
-                    <div className="mt-3 grid max-h-72 gap-3 overflow-auto sm:grid-cols-2">
-                      {filteredProjectAssignees.length === 0 ? <p className="col-span-full rounded-2xl border px-4 py-6 text-sm text-[var(--text-soft)]" style={{ borderColor: "var(--border)" }}>No matches. Adjust search or role filter.</p>
-                        : filteredProjectAssignees.map((m) => (
-                          <label key={m.id} className="flex min-w-0 items-center gap-3 rounded-2xl border px-4 py-3 text-sm" style={{ borderColor: "var(--border)", background: "var(--surface-soft)", color: "var(--text-main)" }}>
-                            <input type="checkbox" checked={taskForm.userIds.includes(m.id)} onChange={() => setTaskForm((c) => ({ ...c, userIds: c.userIds.includes(m.id) ? c.userIds.filter((id) => id !== m.id) : [...c.userIds, m.id] }))} />
-                            <span className="min-w-0 truncate">{m.name} - {m.role}</span>
-                          </label>
-                        ))}
-                    </div>
-                  </div>
-                </div>
-                {error ? <p className="mt-4 text-sm font-medium text-rose-600">{error}</p> : null}
-                {notice ? <p className="mt-4 text-sm font-medium text-emerald-600">{notice}</p> : null}
-                <button type="button" disabled={creatingTask} onClick={() => void createTask()} className="mt-6 rounded-2xl px-5 py-3 text-sm font-semibold text-white transition disabled:cursor-wait disabled:opacity-70" style={{ background: "var(--accent-strong)" }}>{creatingTask ? "Creating..." : "Add new task"}</button>
-              
-              </Surface>
-            ) : null}
-
-            <TaskKanban
-              groupedTasks={visibleGroupedTasks}
-              editingTaskId={editingTaskId} editTaskForm={editTaskForm}
-              filteredAssignees={filteredProjectAssignees}
-              assignQuery={projectAssignQuery} onAssignQueryChange={setProjectAssignQuery}
-              assignRole={projectAssignRole} onAssignRoleChange={setProjectAssignRole}
-              assignRoleOptions={projectAssignRoleOptions}
-              onEditTaskFormChange={(field, value) => setEditTaskForm((c) => ({ ...c, [field]: value }))}
-              onOpenEditor={openTaskEditor} onCancelEdit={() => setEditingTaskId("")}
-              onSaveEdit={() => void saveTaskEdits()} onDelete={(id) => void deleteTask(id)}
-              onStatusChange={(id, status) => void updateTaskStatus(id, status)}
-              onPriorityChange={(id, priority) => void updateTaskPriority(id, priority)}
-              toggleEditAssignee={(id) => setEditTaskForm((c) => ({ ...c, userIds: c.userIds.includes(id) ? c.userIds.filter((x) => x !== id) : [...c.userIds, id] }))}
-            />
-          </section>
+          <div className="flex items-center gap-2">
+            {selectedProject && (
+              <>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  leftIcon={<UsersIcon size={14} />}
+                  onClick={() => setManageTeamOpen(true)}
+                >
+                  Project Team ({selectedProject.members?.length ?? 0})
+                </Button>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  leftIcon={<PlusIcon size={14} />}
+                  onClick={() => setCreateTaskOpen(true)}
+                >
+                  Add Task
+                </Button>
+              </>
+            )}
+            <Button
+              variant="primary"
+              size="sm"
+              leftIcon={<FolderKanbanIcon size={14} />}
+              onClick={() => setCreateProjectOpen(true)}
+            >
+              New Board
+            </Button>
+          </div>
         </div>
+
+        {/* 5 Project Metric Cards */}
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+          <StatCard label="Total Projects" value={projectAnalytics.totalProjects} />
+          <StatCard label="Avg Progress" value={`${projectAnalytics.avgProgress}%`} />
+          <StatCard label="Total Tasks" value={projectAnalytics.totalTasks} />
+          <StatCard label="Completion" value={`${projectAnalytics.completionRate}%`} />
+          <StatCard label="At Risk" value={projectAnalytics.delayedProjects} />
+        </div>
+
+        {/* 2-Column Layout: Project Boards (Left) & Kanban View (Right) */}
+        <div className="grid gap-5 lg:grid-cols-[280px_1fr]">
+          {/* Boards List (Teams Channel List Style) */}
+          <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-strong,#ffffff)] p-3 shadow-xs h-fit space-y-2">
+            <div className="flex items-center justify-between border-b border-[var(--border)] pb-2 px-1">
+              <span className="text-xs font-semibold uppercase tracking-wider text-[var(--text-soft)]">
+                Project Boards
+              </span>
+              <span className="text-xs text-[var(--text-faint)]">{visibleProjects.length}</span>
+            </div>
+
+            <div className="space-y-1.5 max-h-[calc(100vh-280px)] overflow-y-auto pr-1">
+              {visibleProjects.map((project) => {
+                const isSelected = selectedProjectId === project.id;
+                return (
+                  <button
+                    key={project.id}
+                    type="button"
+                    onClick={() => setSelectedProjectId(project.id)}
+                    className={`w-full rounded-lg p-2.5 text-left transition-all ${
+                      isSelected
+                        ? "bg-blue-50 text-blue-900 border border-blue-200 dark:bg-blue-950/40 dark:text-blue-200 dark:border-blue-800"
+                        : "hover:bg-[var(--surface-soft)] text-[var(--text-main)] border border-transparent"
+                    }`}
+                  >
+                    <p className="font-semibold text-xs truncate">{project.name}</p>
+                    <p className="text-[11px] text-[var(--text-soft)] truncate mt-0.5">{project.department.name}</p>
+                    <div className="mt-2 flex items-center justify-between text-[10px] text-[var(--text-faint)]">
+                      <span>{project.progress}%</span>
+                      <span>{project.taskCounts.done}/{project.taskCounts.total} done</span>
+                    </div>
+                    <div className="mt-1 h-1.5 w-full rounded-full bg-[var(--surface-soft)] overflow-hidden">
+                      <div className="h-full bg-blue-600 rounded-full transition-all" style={{ width: `${project.progress}%` }} />
+                    </div>
+                  </button>
+                );
+              })}
+
+              {hasMoreProjects && (
+                <Button
+                  variant="ghost"
+                  size="xs"
+                  className="w-full mt-2"
+                  loading={loadingMoreProjects}
+                  onClick={() => {
+                    setLoadingMoreProjects(true);
+                    void loadProjects(true).finally(() => setLoadingMoreProjects(false));
+                  }}
+                >
+                  Load More Boards
+                </Button>
+              )}
+            </div>
+          </div>
+
+          {/* Active Project Kanban & Credentials */}
+          <div className="space-y-4 min-w-0">
+            {selectedProject ? (
+              <>
+                {/* Project Overview Banner */}
+                <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-strong,#ffffff)] p-4 shadow-xs">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-[11px] font-bold uppercase tracking-wider text-blue-600">
+                          {selectedProject.department.name}
+                        </span>
+                        <span className="text-[var(--text-faint)]">•</span>
+                        <span className="text-xs text-[var(--text-soft)]">
+                          Owner: {selectedProject.owner?.name ?? "Unassigned"}
+                        </span>
+                      </div>
+                      <h2 className="text-lg font-bold text-[var(--text-main)] mt-1">{selectedProject.name}</h2>
+                      {selectedProject.description && (
+                        <p className="text-xs text-[var(--text-soft)] mt-1 max-w-2xl">{selectedProject.description}</p>
+                      )}
+                    </div>
+
+                    <div className="flex items-center gap-2 shrink-0">
+                      <div className="text-right">
+                        <p className="text-xs font-semibold text-[var(--text-main)]">{selectedProject.progress}% complete</p>
+                        <p className="text-[11px] text-[var(--text-soft)]">
+                          {selectedProject.taskCounts.done} of {selectedProject.taskCounts.total} tasks
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="mt-3 h-2 w-full rounded-full bg-[var(--surface-soft)] overflow-hidden">
+                    <div
+                      className="h-full bg-gradient-to-r from-blue-600 to-emerald-500 rounded-full transition-all"
+                      style={{ width: `${selectedProject.progress}%` }}
+                    />
+                  </div>
+                </div>
+
+                {/* Project Credentials Panel */}
+                <ProjectCredentialsPanel projectId={selectedProject.id} />
+
+                {/* Kanban Task Board */}
+                <TaskKanban
+                  groupedTasks={visibleGroupedTasks}
+                  editingTaskId={editingTaskId}
+                  editTaskForm={editTaskForm}
+                  filteredAssignees={filteredProjectAssignees}
+                  assignQuery={projectAssignQuery}
+                  onAssignQueryChange={setProjectAssignQuery}
+                  assignRole={projectAssignRole}
+                  onAssignRoleChange={setProjectAssignRole}
+                  assignRoleOptions={projectAssignRoleOptions}
+                  onEditTaskFormChange={(field, value) => setEditTaskForm((c) => ({ ...c, [field]: value }))}
+                  onOpenEditor={openTaskEditor}
+                  onCancelEdit={() => setEditingTaskId("")}
+                  onSaveEdit={() => void saveTaskEdits()}
+                  onDelete={(id) => void deleteTask(id)}
+                  onStatusChange={(id, status) => void updateTaskStatus(id, status)}
+                  onPriorityChange={(id, priority) => void updateTaskPriority(id, priority)}
+                  toggleEditAssignee={(id) =>
+                    setEditTaskForm((c) => ({
+                      ...c,
+                      userIds: c.userIds.includes(id) ? c.userIds.filter((x) => x !== id) : [...c.userIds, id],
+                    }))
+                  }
+                />
+              </>
+            ) : (
+              <StatePanel title="No board selected" description="Select a project from the left list or create a new board." />
+            )}
+          </div>
+        </div>
+
+        {/* ── CREATE PROJECT DRAWER SHEET ───────────────────────────────────── */}
+        <Sheet
+          open={createProjectOpen}
+          onClose={() => setCreateProjectOpen(false)}
+          title="Create Project Board"
+          description="Create a department project and assign an owner to oversee task delivery."
+          width="md"
+          footer={
+            <div className="flex items-center justify-end gap-2">
+              <Button variant="ghost" size="sm" onClick={() => setCreateProjectOpen(false)}>
+                Cancel
+              </Button>
+              <Button
+                variant="primary"
+                size="sm"
+                loading={creatingProject}
+                onClick={async () => {
+                  await createProject();
+                  setCreateProjectOpen(false);
+                }}
+              >
+                Create Board
+              </Button>
+            </div>
+          }
+        >
+          <div className="space-y-4">
+            <div>
+              <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--text-soft)] mb-1">
+                Project Name *
+              </label>
+              <input
+                className="h-9 w-full rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] px-3 text-sm outline-none focus:border-blue-500 focus:bg-[var(--surface-strong,#ffffff)]"
+                placeholder="e.g. Mobile App Q3 Launch"
+                value={projectForm.name}
+                onChange={(e) => setProjectForm((c) => ({ ...c, name: e.target.value }))}
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--text-soft)] mb-1">
+                Description
+              </label>
+              <textarea
+                rows={3}
+                className="w-full rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] p-3 text-sm outline-none focus:border-blue-500 focus:bg-[var(--surface-strong,#ffffff)]"
+                placeholder="Project objectives, milestones..."
+                value={projectForm.description}
+                onChange={(e) => setProjectForm((c) => ({ ...c, description: e.target.value }))}
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--text-soft)] mb-1">
+                Department *
+              </label>
+              <ResponsiveSelect
+                value={projectForm.departmentId}
+                onChange={(v) => setProjectForm((c) => ({ ...c, departmentId: v }))}
+                options={departmentOptions}
+                ariaLabel="Select department"
+                buttonClassName="h-9 rounded-lg text-xs"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--text-soft)] mb-1">
+                Project Owner *
+              </label>
+              <ResponsiveSelect
+                value={projectForm.ownerId}
+                onChange={(v) => setProjectForm((c) => ({ ...c, ownerId: v }))}
+                options={ownerOptions}
+                ariaLabel="Select owner"
+                buttonClassName="h-9 rounded-lg text-xs"
+              />
+            </div>
+          </div>
+        </Sheet>
+
+        {/* ── ADD TASK DRAWER SHEET ─────────────────────────────────────────── */}
+        <Sheet
+          open={createTaskOpen}
+          onClose={() => setCreateTaskOpen(false)}
+          title={`Add Task to ${selectedProject?.name ?? "Board"}`}
+          description="Create a task with priority, checklist, and assignees."
+          width="lg"
+          footer={
+            <div className="flex items-center justify-end gap-2">
+              <Button variant="ghost" size="sm" onClick={() => setCreateTaskOpen(false)}>
+                Cancel
+              </Button>
+              <Button
+                variant="primary"
+                size="sm"
+                loading={creatingTask}
+                onClick={async () => {
+                  await createTask();
+                  setCreateTaskOpen(false);
+                }}
+              >
+                Add Task
+              </Button>
+            </div>
+          }
+        >
+          <div className="space-y-4">
+            <div>
+              <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--text-soft)] mb-1">
+                Task Title *
+              </label>
+              <input
+                className="h-9 w-full rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] px-3 text-sm outline-none focus:border-blue-500 focus:bg-[var(--surface-strong,#ffffff)]"
+                placeholder="e.g. Implement Webhook Handler"
+                value={taskForm.title}
+                onChange={(e) => setTaskForm((c) => ({ ...c, title: e.target.value }))}
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--text-soft)] mb-1">
+                Description
+              </label>
+              <textarea
+                rows={3}
+                className="w-full rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] p-3 text-sm outline-none focus:border-blue-500 focus:bg-[var(--surface-strong,#ffffff)]"
+                placeholder="Task details and deliverables..."
+                value={taskForm.description}
+                onChange={(e) => setTaskForm((c) => ({ ...c, description: e.target.value }))}
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--text-soft)] mb-1">
+                  Priority
+                </label>
+                <ResponsiveSelect
+                  priorityColors
+                  value={taskForm.priority}
+                  onChange={(v) => setTaskForm((c) => ({ ...c, priority: v as TaskPriority }))}
+                  options={priorityOptions}
+                  ariaLabel="Select priority"
+                  buttonClassName="h-9 rounded-lg text-xs"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--text-soft)] mb-1">
+                  Deadline
+                </label>
+                <input
+                  type="date"
+                  className="h-9 w-full rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] px-3 text-xs outline-none focus:border-blue-500"
+                  value={taskForm.deadlineAt}
+                  onChange={(e) => setTaskForm((c) => ({ ...c, deadlineAt: e.target.value }))}
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--text-soft)] mb-1">
+                Checklist (one per line)
+              </label>
+              <textarea
+                rows={3}
+                className="w-full rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] p-3 text-xs outline-none focus:border-blue-500"
+                placeholder="Design layout&#10;Connect API&#10;QA test"
+                value={taskForm.checklistText}
+                onChange={(e) => setTaskForm((c) => ({ ...c, checklistText: e.target.value }))}
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--text-soft)] mb-1">
+                Assignees
+              </label>
+              <div className="mb-2">
+                <MemberPickerToolbar
+                  searchQuery={projectAssignQuery}
+                  onSearchChange={setProjectAssignQuery}
+                  roleFilter={projectAssignRole}
+                  onRoleFilterChange={setProjectAssignRole}
+                  roleOptions={projectAssignRoleOptions}
+                />
+              </div>
+              <div className="max-h-40 overflow-y-auto rounded-lg border border-[var(--border)] p-2 space-y-1">
+                {filteredProjectAssignees.map((m) => (
+                  <label key={m.id} className="flex cursor-pointer items-center gap-2 rounded-md p-1.5 text-xs hover:bg-[var(--surface-soft)]">
+                    <input
+                      type="checkbox"
+                      checked={taskForm.userIds.includes(m.id)}
+                      onChange={() =>
+                        setTaskForm((c) => ({
+                          ...c,
+                          userIds: c.userIds.includes(m.id) ? c.userIds.filter((id) => id !== m.id) : [...c.userIds, m.id],
+                        }))
+                      }
+                    />
+                    <span className="font-medium text-[var(--text-main)] truncate">{m.name}</span>
+                    <span className="text-[10px] text-[var(--text-soft)]">({m.role})</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+          </div>
+        </Sheet>
+
+        {/* ── PROJECT TEAM DRAWER SHEET ─────────────────────────────────────── */}
+        <Sheet
+          open={manageTeamOpen}
+          onClose={() => setManageTeamOpen(false)}
+          title="Project Assignee Pool"
+          description="Members selected here can be assigned to tasks on this project."
+          width="md"
+          footer={
+            <div className="flex items-center justify-end gap-2">
+              <Button variant="ghost" size="sm" onClick={() => setManageTeamOpen(false)}>
+                Cancel
+              </Button>
+              <Button
+                variant="primary"
+                size="sm"
+                loading={savingProjectMembers}
+                onClick={async () => {
+                  await saveProjectMembers();
+                  setManageTeamOpen(false);
+                }}
+              >
+                Save Team
+              </Button>
+            </div>
+          }
+        >
+          <div className="space-y-3">
+            <MemberPickerToolbar
+              searchQuery={projectTeamQuery}
+              onSearchChange={setProjectTeamQuery}
+              roleFilter={projectTeamRole}
+              onRoleFilterChange={setProjectTeamRole}
+              roleOptions={projectTeamRoleOptions}
+            />
+            <div className="max-h-80 overflow-y-auto rounded-lg border border-[var(--border)] p-2 space-y-1">
+              {filteredProjectTeamRoster.map((m) => (
+                <label key={m.id} className="flex cursor-pointer items-center gap-2 rounded-md p-2 text-xs hover:bg-[var(--surface-soft)]">
+                  <input
+                    type="checkbox"
+                    checked={projectMemberDraftIds.includes(m.id)}
+                    onChange={() => toggleProjectMemberDraft(m.id)}
+                  />
+                  <span className="font-semibold text-[var(--text-main)]">{m.name}</span>
+                  <span className="text-[10px] text-[var(--text-soft)]">({m.role})</span>
+                </label>
+              ))}
+            </div>
+          </div>
+        </Sheet>
       </div>
     </CRMShell>
   );
