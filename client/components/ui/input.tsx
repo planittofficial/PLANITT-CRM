@@ -28,7 +28,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
           <input
             ref={ref}
             id={inputId}
-            className={`h-9 w-full rounded-lg border bg-[var(--surface-soft)] px-3 text-sm text-[var(--text-main)] outline-none transition-all placeholder:text-[var(--text-faint)] focus:border-blue-500 focus:bg-[var(--surface-strong,#ffffff)] focus:ring-2 focus:ring-blue-500/20 disabled:opacity-50 ${
+            className={`h-9 w-full rounded-lg border bg-[var(--surface)] px-3 text-sm text-[var(--text-main)] outline-none transition-all placeholder:text-[var(--text-faint)] focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20 disabled:opacity-50 ${
               leftIcon ? "pl-9" : ""
             } ${rightIcon ? "pr-9" : ""} ${
               error ? "border-rose-500 focus:border-rose-500 focus:ring-rose-500/20" : "border-[var(--border)]"
@@ -69,7 +69,7 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
         <textarea
           ref={ref}
           id={inputId}
-          className={`min-h-[80px] w-full rounded-lg border bg-[var(--surface-soft)] p-3 text-sm text-[var(--text-main)] outline-none transition-all placeholder:text-[var(--text-faint)] focus:border-blue-500 focus:bg-[var(--surface-strong,#ffffff)] focus:ring-2 focus:ring-blue-500/20 disabled:opacity-50 ${
+          className={`min-h-[80px] w-full rounded-lg border bg-[var(--surface)] p-3 text-sm text-[var(--text-main)] outline-none transition-all placeholder:text-[var(--text-faint)] focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20 disabled:opacity-50 ${
             error ? "border-rose-500 focus:border-rose-500 focus:ring-rose-500/20" : "border-[var(--border)]"
           } ${className}`.trim()}
           {...props}

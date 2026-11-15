@@ -44,26 +44,29 @@ export function ProjectCredentialsPanel({ projectId }: { projectId: string }) {
   }, [projectId]);
 
   return (
-    <section
-      className="rounded-[20px] border p-5"
-      style={{ background: "var(--surface)", borderColor: "var(--border)", boxShadow: "var(--shadow-soft)" }}
-    >
-      <p className="text-xs font-semibold uppercase tracking-[0.22em] text-(--text-faint)">API credentials</p>
-      <h3 className="mt-2 text-xl font-semibold text-(--text-main)">Keys used in this project</h3>
-      <p className="mt-2 max-w-3xl text-sm leading-6 text-(--text-soft)">
-        Credential metadata for this project. Secret values are never displayed here.
-      </p>
+    <section className="rounded-xl border border-[var(--border)] bg-[var(--surface-strong,#ffffff)] p-4 shadow-xs">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 border-b border-[var(--border)] pb-3">
+        <div>
+          <span className="text-[11px] font-bold uppercase tracking-wider text-[var(--text-soft)]">
+            API Credentials
+          </span>
+          <h3 className="text-base font-bold text-[var(--text-main)]">Keys & Environment Variables</h3>
+        </div>
+        <span className="text-xs text-[var(--text-faint)]">
+          Secret values are encrypted & never exposed client-side.
+        </span>
+      </div>
 
       {loading ? (
-        <p className="mt-4 text-sm text-(--text-soft)">Loading credentials…</p>
+        <p className="mt-4 text-xs text-[var(--text-soft)]">Loading credentials…</p>
       ) : error ? (
-        <p className="mt-4 text-sm text-rose-600">{error}</p>
+        <p className="mt-4 text-xs text-rose-600">{error}</p>
       ) : credentials.length === 0 ? (
-        <p className="mt-4 rounded-2xl border px-4 py-6 text-sm text-(--text-soft)" style={{ borderColor: "var(--border)" }}>
-          No API credentials are linked to this project yet. Admins can link them from the Credentials tab.
+        <p className="mt-4 rounded-lg border border-dashed border-[var(--border)] p-4 text-center text-xs text-[var(--text-soft)]">
+          No API credentials are linked to this project yet.
         </p>
       ) : (
-        <div className="mt-4 space-y-3">
+        <div className="mt-3.5 space-y-2.5">
           {credentials.map((credential) => {
             const tone = statusTone(credential.status);
             const projectUsages = (credential.usages ?? []).filter(
@@ -72,43 +75,46 @@ export function ProjectCredentialsPanel({ projectId }: { projectId: string }) {
             return (
               <div
                 key={credential.id}
-                className="min-w-0 overflow-hidden rounded-2xl border"
-                style={{ borderColor: tone.stroke, background: "var(--surface-soft)" }}
+                className="min-w-0 overflow-hidden rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] transition-colors hover:border-[var(--accent)]/40"
               >
                 <div className="flex min-w-0">
                   <div className="w-1 shrink-0" style={{ background: tone.stroke }} aria-hidden />
-                  <div className="min-w-0 flex-1 px-4 py-4">
-                    <div className="flex min-w-0 flex-wrap items-start justify-between gap-3">
+                  <div className="min-w-0 flex-1 p-3 sm:p-3.5">
+                    <div className="flex min-w-0 flex-wrap items-start justify-between gap-2">
                       <div className="min-w-0">
-                        <p className="truncate font-semibold text-(--text-main)">{credential.name}</p>
-                        <p className="mt-1 text-xs text-(--text-soft)">{credential.provider ?? "Provider not set"}</p>
+                        <p className="truncate text-sm font-semibold text-[var(--text-main)]">{credential.name}</p>
+                        <p className="mt-0.5 text-xs text-[var(--text-soft)]">{credential.provider ?? "Provider not set"}</p>
                       </div>
                       <span
-                        className="shrink-0 rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.16em]"
+                        className="shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide"
                         style={{ background: tone.fill, color: tone.text }}
                       >
                         {statusLabel(credential.status, credential.daysLeft)}
                       </span>
                     </div>
-                    <div className="mt-3">
+
+                    <div className="mt-2.5">
                       <EnvVariableChip value={credential.envKey} credentialName={credential.name} />
                     </div>
-                    <div className="mt-3 flex flex-wrap gap-2">
-                      {projectUsages.map((usage) => (
-                        <span
-                          key={usage.id}
-                          className="inline-flex max-w-full min-w-0 items-center gap-2 rounded-full border px-3 py-1 text-xs font-semibold"
-                          style={{ borderColor: "var(--border)", color: "var(--text-main)", background: "var(--surface)" }}
-                        >
-                          <span className="shrink-0 uppercase text-[10px] text-(--text-faint)">
-                            {usage.environment ?? "ALL"}
+
+                    {projectUsages.length > 0 && (
+                      <div className="mt-2.5 flex flex-wrap gap-1.5">
+                        {projectUsages.map((usage) => (
+                          <span
+                            key={usage.id}
+                            className="inline-flex max-w-full min-w-0 items-center gap-1.5 rounded-md border border-[var(--border)] bg-[var(--surface)] px-2 py-0.5 text-xs font-medium text-[var(--text-main)]"
+                          >
+                            <span className="shrink-0 text-[10px] font-semibold uppercase text-[var(--text-faint)]">
+                              {usage.environment ?? "ALL"}
+                            </span>
+                            <EnvVariableChip value={usage.envKey ?? credential.envKey} credentialName={credential.name} />
                           </span>
-                          <EnvVariableChip value={usage.envKey ?? credential.envKey} credentialName={credential.name} />
-                        </span>
-                      ))}
-                    </div>
+                        ))}
+                      </div>
+                    )}
+
                     {credential.derivedExpiresAt ? (
-                      <p className="mt-3 text-xs text-(--text-faint)">
+                      <p className="mt-2 text-[11px] text-[var(--text-faint)]">
                         Expires {new Date(credential.derivedExpiresAt).toLocaleDateString()}
                         {credential.daysLeft !== null ? ` · ${credential.daysLeft} days left` : ""}
                       </p>

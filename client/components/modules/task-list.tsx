@@ -440,19 +440,13 @@ export function TaskList({
       {taskGroups.map((group) => (
         <section
           key={group.key}
-          className="rounded-xl border p-4"
-          style={{
-            background: "var(--surface)",
-            borderColor: "var(--border)",
-            boxShadow: "var(--shadow-soft)",
-          }}
+          className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-3.5 sm:p-4 shadow-xs"
         >
           <div
-            className="mb-3 flex flex-wrap items-center justify-between gap-2 border-b pb-3"
-            style={{ borderColor: "var(--border)" }}
+            className="mb-3 flex flex-wrap items-center justify-between gap-2 border-b border-[var(--border)] pb-2.5"
           >
-            <p className="text-sm font-semibold text-(--text-main)">{group.label}</p>
-            <p className="text-xs text-(--text-soft)">
+            <p className="text-sm font-semibold text-[var(--text-main)]">{group.label}</p>
+            <p className="text-xs text-[var(--text-soft)]">
               {group.tasks.length} task{group.tasks.length === 1 ? "" : "s"}
             </p>
           </div>
@@ -467,12 +461,7 @@ export function TaskList({
               return (
               <article
                 key={task.id}
-                className="rounded-xl border p-4"
-                style={{
-                  background: "var(--surface-soft)",
-                  borderColor: "var(--border)",
-                  boxShadow: "var(--shadow-card)",
-                }}
+                className="rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] p-3 sm:p-4 shadow-xs transition-colors hover:border-[var(--accent)]/40"
               >
                 <div className="space-y-3">
                   <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-start">
@@ -498,29 +487,16 @@ export function TaskList({
                         <h3 className="line-clamp-2 min-w-0 flex-1 text-base font-semibold leading-snug text-(--text-main)">
                           {task.title}
                         </h3>
-                        <div className="flex shrink-0 flex-wrap items-center gap-2 lg:hidden">
+                        <div className="flex shrink-0 flex-wrap items-center gap-1.5 lg:hidden">
                         {!showPrioritySelect ? (
-  <span
-  style={{
-    background:
-      task.priority === "URGENT"
-        ? "#7f1d1d"
-        : task.priority === "HIGH"
-        ? "#7c2d12"
-        : task.priority === "MEDIUM"
-        ? "#1e3a8a"
-        : "#14532d",
-
-    color: "white",
-    padding: "6px 10px",
-    borderRadius: "8px",
-  }}
->
-  {task.priority}
-</span>
+                          <span
+                            className={`rounded-md px-2 py-0.5 text-[10px] font-semibold uppercase ${priorityBadgeClass[task.priority ?? "MEDIUM"]}`}
+                          >
+                            {task.priority}
+                          </span>
                         ) : null}
                         {!showInlineStatusSelect ? (
-                          <span className={`rounded-md px-2.5 py-1 text-[11px] font-bold ${statusStyles[task.status]}`}>
+                          <span className={`rounded-md px-2 py-0.5 text-[11px] font-semibold ${statusStyles[task.status]}`}>
                             {task.status.replace("_", " ")}
                           </span>
                         ) : null}
@@ -533,12 +509,7 @@ export function TaskList({
                                 priority: event.target.value as TaskPriority,
                               })
                             }
-                            className="w-full min-w-0 rounded-md border px-2 py-1 text-xs outline-none sm:w-auto"
-                            style={{
-                              borderColor: "var(--border)",
-                              background: "var(--surface)",
-                              color: "var(--text-main)",
-                            }}
+                            className="rounded-md border border-[var(--border)] bg-[var(--surface)] px-2 py-1 text-xs outline-none"
                             title="Priority"
                           >
                             {TASK_PRIORITY_OPTIONS.map((opt) => (

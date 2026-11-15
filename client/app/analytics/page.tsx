@@ -168,59 +168,62 @@ async function downloadFile(path: string, filename: string) {
 
 function SimpleTable({ title, subtitle, columns, rows }: { title: string; subtitle: string; columns: Array<{ key: string; label: string }>; rows: Array<Record<string, unknown>> }) {
   return (
-    <Surface className="p-3 sm:p-5">
-      <p className="text-sm font-semibold text-[var(--text-main)]">{title}</p>
-      <p className="mt-1 text-sm text-[var(--text-soft)]">{subtitle}</p>
+    <Surface className="p-4 sm:p-5">
+      <h4 className="text-sm font-semibold text-[var(--text-main)]">{title}</h4>
+      <p className="mt-0.5 text-xs text-[var(--text-soft)]">{subtitle}</p>
 
-      <div className="mt-4 space-y-3 lg:hidden">
+      {/* Mobile Card Layout */}
+      <div className="mt-3.5 space-y-2.5 lg:hidden">
         {rows.length ? (
           rows.map((row, idx) => (
             <article
               key={idx}
-              className="rounded-2xl border p-3"
-              style={{ borderColor: "var(--border)", background: "var(--surface-soft)" }}
+              className="rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] p-3 shadow-xs"
             >
-              <div className="space-y-2.5">
-                {columns.map((column) => (
-                  <div key={column.key} className="flex items-start justify-between gap-3">
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--text-faint)]">
+              <div className="space-y-1.5 divide-y divide-[var(--border)]">
+                {columns.map((column, colIdx) => (
+                  <div key={column.key} className={`flex items-center justify-between gap-2 text-xs ${colIdx > 0 ? "pt-1.5" : ""}`}>
+                    <span className="text-[var(--text-soft)] font-medium">
                       {column.label}
-                    </p>
-                    <p className="max-w-[60%] text-right text-sm font-medium text-[var(--text-main)]">
+                    </span>
+                    <span className={`text-right font-semibold text-[var(--text-main)] truncate max-w-[65%]`}>
                       {String(row[column.key] ?? "—")}
-                    </p>
+                    </span>
                   </div>
                 ))}
               </div>
             </article>
           ))
         ) : (
-          <p className="rounded-2xl border px-4 py-6 text-center text-sm text-[var(--text-soft)]" style={{ borderColor: "var(--border)" }}>
+          <p className="rounded-lg border border-dashed border-[var(--border)] p-6 text-center text-xs text-[var(--text-soft)]">
             No data available for the selected filters.
           </p>
         )}
       </div>
 
-      <div className="crm-table-scroll mt-4 hidden overflow-x-auto lg:block">
-        <table className="min-w-[720px] w-full border-separate border-spacing-y-2">
-          <thead>
-            <tr className="text-left text-[11px] uppercase tracking-[0.18em] text-[var(--text-faint)]">
+      {/* Desktop & Tablet Table Layout */}
+      <div className="mt-3.5 hidden overflow-x-auto rounded-lg border border-[var(--border)] lg:block crm-table-scroll">
+        <table className="min-w-full text-left text-xs">
+          <thead className="bg-[var(--surface-soft)] border-b border-[var(--border)]">
+            <tr className="font-semibold text-[var(--text-soft)]">
               {columns.map((c) => (
-                <th key={c.key} className="whitespace-nowrap px-3 py-2">
+                <th key={c.key} className="whitespace-nowrap px-3.5 py-2.5">
                   {c.label}
                 </th>
               ))}
             </tr>
           </thead>
-          <tbody>
+          <tbody className="bg-[var(--surface)] divide-y divide-[var(--border)] text-[var(--text-main)]">
             {rows.map((r, idx) => (
-              <tr key={idx} className="rounded-2xl border" style={{ background: "var(--surface-soft)", borderColor: "var(--border)" }}>
+              <tr key={idx} className="hover:bg-[var(--surface-soft)] transition-colors">
                 {columns.map((c, colIdx) => (
                   <td
                     key={`${idx}-${c.key}`}
-                    className={`whitespace-nowrap ${colIdx === 0 ? "rounded-l-2xl" : ""} ${colIdx === columns.length - 1 ? "rounded-r-2xl" : ""} px-3 py-3 text-sm text-[var(--text-soft)]`}
+                    className="whitespace-nowrap px-3.5 py-2.5"
                   >
-                    <span className={colIdx === 0 ? "font-semibold text-[var(--text-main)]" : ""}>{String(r[c.key] ?? "—")}</span>
+                    <span className={colIdx === 0 ? "font-semibold text-[var(--text-main)]" : "text-[var(--text-soft)]"}>
+                      {String(r[c.key] ?? "—")}
+                    </span>
                   </td>
                 ))}
               </tr>
@@ -418,20 +421,26 @@ export default function AnalyticsPage() {
   return (
     <CRMShell user={user}>
       <div className="min-w-0 space-y-3 sm:space-y-4">
-        <Surface className="p-3 sm:p-5">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-            <div className="min-w-0">
-              <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-[var(--text-faint)] sm:text-xs">Management module</p>
-              <h2 className="mt-2 text-xl font-semibold text-[var(--text-main)] sm:text-2xl">Analytics & Reports</h2>
-              <p className="mt-2 max-w-2xl text-sm leading-6 text-[var(--text-soft)]">
-                Drill down by employee, department, project, and date range. Export reports in CSV or PDF.
+        <Surface className="p-4 sm:p-5">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="rounded-md bg-indigo-50 px-2 py-0.5 text-xs font-semibold text-[var(--accent)] border border-indigo-200 dark:bg-indigo-950/40 dark:text-indigo-300 dark:border-indigo-800">
+                  Reports
+                </span>
+                <span className="text-xs text-[var(--text-soft)]">System Intelligence</span>
+              </div>
+              <h2 className="mt-1 text-xl font-bold tracking-tight text-[var(--text-main)] sm:text-2xl">
+                Analytics & Reports
+              </h2>
+              <p className="mt-0.5 text-xs text-[var(--text-soft)]">
+                Filter by employee, department, project, and date range. Export reports in CSV or PDF.
               </p>
             </div>
-            <div className="grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto sm:flex-wrap sm:items-center">
+            <div className="flex items-center gap-2">
               <button
                 type="button"
-                className="crm-touch-target h-10 rounded-lg border px-3 text-xs font-bold"
-                style={{ borderColor: "var(--border)", background: exportButtonsEnabled ? "var(--surface)" : "var(--surface-soft)", color: "var(--text-main)" }}
+                className="inline-flex items-center justify-center h-8 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 text-xs font-medium text-[var(--text-main)] transition-colors hover:bg-[var(--surface-hover)] disabled:opacity-50"
                 disabled={!exportButtonsEnabled || loadingReport}
                 onClick={() => void handleExport("csv")}
               >
@@ -439,8 +448,7 @@ export default function AnalyticsPage() {
               </button>
               <button
                 type="button"
-                className="crm-touch-target h-10 rounded-lg border px-3 text-xs font-bold"
-                style={{ borderColor: "var(--border)", background: exportButtonsEnabled ? "var(--surface)" : "var(--surface-soft)", color: "var(--text-main)" }}
+                className="inline-flex items-center justify-center h-8 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 text-xs font-medium text-[var(--text-main)] transition-colors hover:bg-[var(--surface-hover)] disabled:opacity-50"
                 disabled={!exportButtonsEnabled || loadingReport}
                 onClick={() => void handleExport("pdf")}
               >
@@ -448,101 +456,103 @@ export default function AnalyticsPage() {
               </button>
             </div>
           </div>
-          <div className="mt-4 grid grid-cols-1 gap-2 sm:mt-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
-            <label className="rounded-xl border px-3 py-2" style={{ borderColor: "var(--border)", background: "var(--surface-soft)" }}>
-              <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--text-faint)]">Start date</p>
+
+          {/* Clean Teams-style Filter Toolbar */}
+          <div className="mt-4 grid grid-cols-1 gap-2.5 sm:grid-cols-2 lg:grid-cols-5 border-t border-[var(--border)] pt-4">
+            <div>
+              <label className="text-[11px] font-medium text-[var(--text-soft)] mb-1 block">Start date</label>
               <input
-                className="crm-input mt-2 h-10 w-full rounded-lg px-3 text-sm outline-none"
-                style={FILTER_FIELD_STYLE}
+                className="h-8.5 w-full rounded-md border border-[var(--border)] bg-[var(--surface)] px-2.5 text-xs text-[var(--text-main)] outline-none focus:border-[var(--accent)]"
                 type="date"
                 value={startDate}
                 onChange={(e) => setStartDate(e.target.value)}
               />
-            </label>
-            <label className="rounded-xl border px-3 py-2" style={{ borderColor: "var(--border)", background: "var(--surface-soft)" }}>
-              <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--text-faint)]">End date</p>
+            </div>
+            <div>
+              <label className="text-[11px] font-medium text-[var(--text-soft)] mb-1 block">End date</label>
               <input
-                className="crm-input mt-2 h-10 w-full rounded-lg px-3 text-sm outline-none"
-                style={FILTER_FIELD_STYLE}
+                className="h-8.5 w-full rounded-md border border-[var(--border)] bg-[var(--surface)] px-2.5 text-xs text-[var(--text-main)] outline-none focus:border-[var(--accent)]"
                 type="date"
                 value={endDate}
                 onChange={(e) => setEndDate(e.target.value)}
               />
-            </label>
-            <label className="rounded-xl border px-3 py-2" style={{ borderColor: "var(--border)", background: "var(--surface-soft)" }}>
-              <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--text-faint)]">Employee</p>
+            </div>
+            <div>
+              <label className="text-[11px] font-medium text-[var(--text-soft)] mb-1 block">Employee</label>
               <select
-                className="crm-input mt-2 h-10 w-full rounded-lg px-3 text-sm outline-none"
-                style={FILTER_FIELD_STYLE}
+                className="h-8.5 w-full rounded-md border border-[var(--border)] bg-[var(--surface)] px-2.5 text-xs text-[var(--text-main)] outline-none focus:border-[var(--accent)]"
                 value={employeeId}
                 onChange={(e) => setEmployeeId(e.target.value)}
               >
-                <option value="">All</option>
+                <option value="">All Employees</option>
                 {employees.map((u) => (
                   <option key={u.id} value={u.id}>
                     {u.name} ({u.role})
                   </option>
                 ))}
               </select>
-            </label>
-            <label className="rounded-xl border px-3 py-2" style={{ borderColor: "var(--border)", background: "var(--surface-soft)" }}>
-              <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--text-faint)]">Department</p>
+            </div>
+            <div>
+              <label className="text-[11px] font-medium text-[var(--text-soft)] mb-1 block">Department</label>
               <select
-                className="crm-input mt-2 h-10 w-full rounded-lg px-3 text-sm outline-none"
-                style={FILTER_FIELD_STYLE}
+                className="h-8.5 w-full rounded-md border border-[var(--border)] bg-[var(--surface)] px-2.5 text-xs text-[var(--text-main)] outline-none focus:border-[var(--accent)]"
                 value={departmentId}
                 onChange={(e) => setDepartmentId(e.target.value)}
               >
-                <option value="">All</option>
+                <option value="">All Departments</option>
                 {departments.map((d) => (
                   <option key={d.id} value={d.id}>
                     {d.name}
                   </option>
                 ))}
               </select>
-            </label>
-            <label className="rounded-xl border px-3 py-2" style={{ borderColor: "var(--border)", background: "var(--surface-soft)" }}>
-              <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--text-faint)]">Project</p>
+            </div>
+            <div>
+              <label className="text-[11px] font-medium text-[var(--text-soft)] mb-1 block">Project</label>
               <select
-                className="crm-input mt-2 h-10 w-full rounded-lg px-3 text-sm outline-none"
-                style={FILTER_FIELD_STYLE}
+                className="h-8.5 w-full rounded-md border border-[var(--border)] bg-[var(--surface)] px-2.5 text-xs text-[var(--text-main)] outline-none focus:border-[var(--accent)]"
                 value={projectId}
                 onChange={(e) => setProjectId(e.target.value)}
               >
-                <option value="">All</option>
+                <option value="">All Projects</option>
                 {projects.map((p) => (
                   <option key={p.id} value={p.id}>
                     {p.name}
                   </option>
                 ))}
               </select>
-            </label>
+            </div>
           </div>
         </Surface>
 
-        <Surface className="p-2">
-          <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1 [-webkit-overflow-scrolling:touch] sm:mx-0 sm:grid sm:grid-cols-3 sm:overflow-visible sm:px-0 sm:pb-0 lg:grid-cols-4 xl:grid-cols-7">
-            {([
-              ["executive", "Executive"],
-              ["employee", "Employee"],
-              ["department", "Department"],
-              ["attendance", "Attendance"],
-              ["project", "Project"],
-              ["taskSla", "Task SLA"],
-              ["leave", "Leave"],
-            ] as Array<[ReportTab, string]>).map(([key, label]) => (
+        {/* Clean Segmented Tab Strip */}
+        <div className="flex items-center gap-1 overflow-x-auto border-b border-[var(--border)] pb-1">
+          {([
+            ["executive", "Executive Overview"],
+            ["employee", "Individual Performance"],
+            ["department", "Department Metrics"],
+            ["attendance", "Attendance Logs"],
+            ["project", "Project Delivery"],
+            ["taskSla", "Task SLA & Deadlines"],
+            ["leave", "Leave Breakdown"],
+          ] as Array<[ReportTab, string]>).map(([key, label]) => {
+            const isActive = tab === key;
+            return (
               <button
                 key={key}
                 type="button"
                 onClick={() => setTab(key)}
-                className="crm-touch-target min-w-[7.25rem] shrink-0 snap-start rounded-xl px-3 py-2.5 text-xs font-semibold transition sm:min-w-0 sm:w-full sm:px-4 sm:text-sm"
-                style={{ background: tab === key ? "var(--accent)" : "var(--surface-soft)", color: tab === key ? "white" : "var(--text-main)" }}
+                className={`whitespace-nowrap px-3.5 py-2 text-xs font-semibold transition-colors ${
+                  isActive
+                    ? "text-[var(--accent)] border-b-2 border-[var(--accent)] -mb-[5px]"
+                    : "text-[var(--text-soft)] hover:text-[var(--text-main)]"
+                }`}
               >
                 {label}
               </button>
-            ))}
-          </div>
-        </Surface>
+            );
+          })}
+        </div>
 
         {reportError ? <StatePanel title="Report unavailable" description={reportError} /> : null}
 

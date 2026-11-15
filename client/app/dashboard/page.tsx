@@ -154,48 +154,47 @@ export default function DashboardPage() {
     return (
       <CRMShell user={user}>
         <div className="space-y-4">
-          <Surface className="overflow-hidden p-0">
-            <div className="grid gap-4 px-4 py-4 lg:grid-cols-[1.1fr_0.9fr]">
-              <div className="min-w-0">
-                <p className="text-xs font-semibold uppercase tracking-[0.24em] text-(--text-faint)">
-                  Personal dashboard
-                </p>
-                <h1 className="mt-2 text-3xl font-semibold tracking-tight text-(--text-main)">
+          {/* Teams Header Banner */}
+          <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4 sm:p-6 shadow-xs">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="rounded-md bg-indigo-50 px-2 py-0.5 text-xs font-semibold text-[var(--accent)] border border-indigo-200 dark:bg-indigo-950/40 dark:text-indigo-300 dark:border-indigo-800">
+                    {formatRole(user.role)}
+                  </span>
+                  <span className="text-xs text-[var(--text-soft)]">Personal Workspace</span>
+                </div>
+                <h1 className="mt-1.5 text-2xl font-bold tracking-tight text-[var(--text-main)] sm:text-3xl">
                   Welcome back, {user.name.split(" ")[0]}
                 </h1>
-                <p className="mt-2 max-w-2xl text-sm leading-6 text-(--text-soft)">
-                  Your work summary and attendance status. Company analytics are available only to managers and admins.
+                <p className="mt-1 text-xs text-[var(--text-soft)]">
+                  Your work summary and daily attendance status.
                 </p>
               </div>
-              <div className="rounded-[20px] border p-4" style={{ borderColor: "var(--border)", background: "linear-gradient(135deg, color-mix(in srgb, var(--accent) 10%, var(--surface)) 0%, var(--surface-soft) 100%)" }}>
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <div className="rounded-2xl border p-3" style={{ borderColor: "var(--border)", background: "var(--surface)" }}>
-                    <p className="text-[11px] uppercase tracking-[0.2em] text-(--text-faint)">My tasks</p>
-                    <p className="mt-1 text-2xl font-semibold text-(--text-main)">{employeeSummary.metrics.myTasks}</p>
-                  </div>
-                  <div className="rounded-2xl border p-3" style={{ borderColor: "var(--border)", background: "var(--surface)" }}>
-                    <p className="text-[11px] uppercase tracking-[0.2em] text-(--text-faint)">Completion</p>
-                    <p className="mt-1 text-2xl font-semibold text-(--text-main)">{completionRate}%</p>
-                  </div>
+
+              <div className="flex items-center gap-3">
+                <div className="rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] px-3 py-2 text-center">
+                  <p className="text-[10px] font-medium uppercase tracking-wider text-[var(--text-faint)]">
+                    My Tasks
+                  </p>
+                  <p className="text-lg font-bold text-[var(--text-main)]">{employeeSummary.metrics.myTasks}</p>
                 </div>
-                <div className="mt-3 rounded-2xl border p-3" style={{ borderColor: "var(--border)", background: "var(--surface)" }}>
-                  <p className="text-sm font-semibold text-(--text-main)">Momentum</p>
-                  <div className="mt-2 h-20 overflow-hidden rounded-xl border p-2" style={{ borderColor: "var(--border)", background: "var(--surface-soft)" }}>
-                    <svg viewBox="0 0 360 80" className="h-full w-full" aria-hidden="true">
-                      <path d={buildLinePath(employeeSummary.analytics.taskProgressTrend.map((x) => x.avgProgress), 360, 80)} fill="none" stroke="var(--accent-strong)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-                    </svg>
-                  </div>
+                <div className="rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] px-3 py-2 text-center">
+                  <p className="text-[10px] font-medium uppercase tracking-wider text-[var(--text-faint)]">
+                    Completion
+                  </p>
+                  <p className="text-lg font-bold text-emerald-600">{completionRate}%</p>
                 </div>
               </div>
             </div>
-          </Surface>
+          </div>
 
           <AttendanceCard initialCheckedIn={employeeSummary.metrics.checkedIn} />
 
-          <Surface className="p-5">
+          <Surface className="p-4 sm:p-5">
             <div className="mb-4">
-              <p className="text-sm font-semibold text-(--text-main)">Recent tasks</p>
-              <p className="mt-1 text-sm text-(--text-soft)">Your latest assigned work items.</p>
+              <h4 className="text-sm font-semibold text-[var(--text-main)]">Recent Tasks</h4>
+              <p className="mt-0.5 text-xs text-[var(--text-soft)]">Your latest assigned work items.</p>
             </div>
             {employeeSummary.recentTasks.length ? (
               <TaskSummaryList tasks={employeeSummary.recentTasks} />
@@ -211,100 +210,204 @@ export default function DashboardPage() {
   return (
     <CRMShell user={user}>
       <div className="space-y-4">
-        <Surface className="overflow-hidden p-0">
-          <div className="grid grid-cols-1 gap-4 px-4 py-4 sm:grid-cols-2 lg:grid-cols-[1.1fr_0.9fr]">
+        {/* Teams Header Banner */}
+        <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4 sm:p-6 shadow-xs">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.24em] text-(--text-faint)">
-                {summary.scope === "superadmin" ? "CEO command center" : summary.scope === "admin" ? "Admin command center" : "Personal command center"}
+              <div className="flex items-center gap-2">
+                <span className="rounded-md bg-indigo-50 px-2 py-0.5 text-xs font-semibold text-[var(--accent)] border border-indigo-200 dark:bg-indigo-950/40 dark:text-indigo-300 dark:border-indigo-800">
+                  {formatRole(user.role)}
+                </span>
+                <span className="text-xs text-[var(--text-soft)]">
+                  {summary.scope === "superadmin"
+                    ? "Executive Overview"
+                    : summary.scope === "admin"
+                    ? "Admin Dashboard"
+                    : "Team Overview"}
+                </span>
+              </div>
+              <h1 className="mt-1.5 text-2xl font-bold tracking-tight text-[var(--text-main)] sm:text-3xl">
+                Welcome back, {user.name.split(" ")[0]}
+              </h1>
+              <p className="mt-1 text-xs text-[var(--text-soft)]">
+                {leadershipView
+                  ? "Track overall team progress, task delivery, and operational health."
+                  : "Track daily attendance, assigned deliverables, and workload progress."}
               </p>
-              <h1 className="mt-2 text-2xl font-semibold tracking-tight text-(--text-main) sm:text-3xl">Welcome back, {user.name.split(" ")[0]}</h1>
-              <p className="mt-2 max-w-2xl text-sm leading-6 text-(--text-soft)">{leadershipView ? "Track key team health and progress in one place." : "See your daily attendance, work hours, and progress quickly."}</p>
-              <div className="mt-4 grid max-w-2xl gap-2 sm:grid-cols-2">
-                <div className="rounded-xl border px-4 py-3" style={{ borderColor: "var(--border)", background: "var(--surface-soft)" }}>
-                  <p className="text-[11px] uppercase tracking-[0.18em] text-(--text-faint)">Focus</p>
-                  <p className="mt-1 text-sm font-semibold text-(--text-main)">My work</p>
-                </div>
-                <div className="rounded-xl border px-4 py-3" style={{ borderColor: "var(--border)", background: "var(--surface-soft)" }}>
-                  <p className="text-[11px] uppercase tracking-[0.18em] text-(--text-faint)">Mode</p>
-                  <p className="mt-1 text-sm font-semibold text-(--text-main)">{formatRole(user.role)}</p>
-                </div>
-              </div>
             </div>
-            <div className="rounded-[20px] border p-4" style={{ borderColor: "var(--border)", background: "linear-gradient(135deg, color-mix(in srgb, var(--accent) 10%, var(--surface)) 0%, var(--surface-soft) 100%)" }}>
-              <div className="grid gap-3 md:grid-cols-2">
-                <div className="rounded-2xl border p-3" style={{ borderColor: "var(--border)", background: "var(--surface)" }}>
-                  <p className="text-[11px] uppercase tracking-[0.2em] text-(--text-faint)">Completion rate</p>
-                  <p className="mt-1 text-2xl font-semibold text-(--text-main)">{completionRate}%</p>
-                </div>
-                <div className="rounded-2xl border p-3" style={{ borderColor: "var(--border)", background: "var(--surface)" }}>
-                  <p className="text-[11px] uppercase tracking-[0.2em] text-(--text-faint)">Latest work hours</p>
-                  <p className="mt-1 text-2xl font-semibold text-(--text-main)">{heroHoursValue}h</p>
-                </div>
+
+            <div className="grid grid-cols-2 gap-2 w-full sm:w-auto">
+              <div className="rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] px-3 py-2 text-center">
+                <p className="text-[10px] font-medium uppercase tracking-wider text-[var(--text-faint)]">
+                  Completion
+                </p>
+                <p className="text-lg font-bold text-emerald-600">{completionRate}%</p>
               </div>
-              <div className="mt-3 rounded-2xl border p-3" style={{ borderColor: "var(--border)", background: "var(--surface)" }}>
-                <p className="text-sm font-semibold text-(--text-main)">Momentum</p>
-                <div className="mt-2 h-20 overflow-hidden rounded-xl border p-2" style={{ borderColor: "var(--border)", background: "var(--surface-soft)" }}>
-                  <svg viewBox="0 0 360 80" className="h-full w-full" aria-hidden="true">
-                    <path d={buildLinePath(summary.analytics.taskProgressTrend.map((x) => x.avgProgress), 360, 80)} fill="none" stroke="var(--accent-strong)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
-                </div>
+              <div className="rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] px-3 py-2 text-center">
+                <p className="text-[10px] font-medium uppercase tracking-wider text-[var(--text-faint)]">
+                  Work Hours
+                </p>
+                <p className="text-lg font-bold text-[var(--text-main)]">{heroHoursValue}h</p>
               </div>
             </div>
           </div>
-        </Surface>
+        </div>
 
         <AttendanceCard initialCheckedIn={currentUserCheckedIn} />
 
-        <Surface className="p-2">
-          <div className="grid grid-cols-2 gap-2">
-            {(["analytics", "workspace"] as const).map((tab) => (
-              <button key={tab} type="button" onClick={() => setActiveDashboardTab(tab)} className="rounded-xl px-4 py-2.5 text-sm font-semibold transition" style={{ background: activeDashboardTab === tab ? "var(--accent)" : "var(--surface-soft)", color: activeDashboardTab === tab ? "white" : "var(--text-main)" }}>
-                {tab === "analytics" ? "Analytics" : "Google Workspace"}
+        {/* Teams Navigation Tabs */}
+        <div className="flex items-center gap-1 border-b border-[var(--border)] pb-1">
+          {(["analytics", "workspace"] as const).map((tab) => {
+            const isActive = activeDashboardTab === tab;
+            return (
+              <button
+                key={tab}
+                type="button"
+                onClick={() => setActiveDashboardTab(tab)}
+                className={`relative px-4 py-2 text-xs font-semibold transition-colors ${
+                  isActive
+                    ? "text-[var(--accent)] border-b-2 border-[var(--accent)] -mb-[5px]"
+                    : "text-[var(--text-soft)] hover:text-[var(--text-main)]"
+                }`}
+              >
+                {tab === "analytics" ? "Analytics & Overview" : "Google Workspace"}
               </button>
-            ))}
-          </div>
-        </Surface>
+            );
+          })}
+        </div>
 
         {activeDashboardTab === "analytics" ? (
           <>
             <section className="space-y-4" id="overview-section">
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.22em] text-(--text-faint)">Analytics snapshot</p>
-                <h2 className="mt-2 text-2xl font-semibold text-(--text-main)">Core metrics</h2>
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-base font-semibold text-[var(--text-main)]">Core Performance Metrics</h3>
+                  <p className="text-xs text-[var(--text-soft)]">Real-time statistics across active projects and team members</p>
+                </div>
               </div>
+
               <section className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
-                {overviewStats.map((stat) => <SummaryStatCard key={stat.label} label={stat.label} value={stat.value} helper={stat.helper} points={stat.points} />)}
+                {overviewStats.map((stat) => (
+                  <SummaryStatCard
+                    key={stat.label}
+                    label={stat.label}
+                    value={stat.value}
+                    helper={stat.helper}
+                    points={stat.points}
+                  />
+                ))}
               </section>
+
               <InsightTicker items={insightItems} />
+
               <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-                <LineChartCard title="Personal work-hour trend" subtitle="Daily work-hour movement for workload tracking." values={summary.analytics.workingHoursTrend.map((x) => x.hours)} labels={summary.analytics.workingHoursTrend.map((x) => x.label)} suffix="h" stroke="var(--accent)" fill="color-mix(in srgb, var(--accent) 14%, transparent)" />
-                <LineChartCard title="Task progress trend" subtitle="Completion momentum across recent days." values={summary.analytics.taskProgressTrend.map((x) => x.avgProgress)} labels={summary.analytics.taskProgressTrend.map((x) => x.label)} suffix="%" stroke="var(--success)" fill="color-mix(in srgb, var(--success) 12%, transparent)" />
+                <LineChartCard
+                  title="Personal Work-Hour Trend"
+                  subtitle="Daily logged hours across recent dates."
+                  values={summary.analytics.workingHoursTrend.map((x) => x.hours)}
+                  labels={summary.analytics.workingHoursTrend.map((x) => x.label)}
+                  suffix="h"
+                  stroke="var(--accent)"
+                />
+                <LineChartCard
+                  title="Task Progress Momentum"
+                  subtitle="Average completion velocity across active tasks."
+                  values={summary.analytics.taskProgressTrend.map((x) => x.avgProgress)}
+                  labels={summary.analytics.taskProgressTrend.map((x) => x.label)}
+                  suffix="%"
+                  stroke="#107c41"
+                />
               </div>
+
               <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
-                <ActivityBarsCard title="Created vs completed activity" subtitle="Daily workload creation compared with daily completion." labels={recentTrend.map((x) => x.label)} createdValues={recentTrend.map((x) => x.created)} completedValues={recentTrend.map((x) => x.completed)} />
-                <PerformanceBars title="Operational quality indicators" subtitle="Modern CRM quality stack for delivery confidence." items={[{ label: "Task completion quality", value: completionRate, helper: "Share of tasks reaching done state" }, { label: "Live team availability", value: attendanceRate, helper: "Currently checked-in users" }, { label: "Momentum health", value: Math.max(0, Math.min(100, 50 + Math.round(progressDelta * 5))), helper: "Trend-adjusted execution pulse" }]} />
+                <ActivityBarsCard
+                  title="Created vs Completed Workload"
+                  subtitle="Daily task creation volume compared with completed tasks."
+                  labels={recentTrend.map((x) => x.label)}
+                  createdValues={recentTrend.map((x) => x.created)}
+                  completedValues={recentTrend.map((x) => x.completed)}
+                />
+                <PerformanceBars
+                  title="Operational Indicators"
+                  subtitle="Key delivery and team availability health markers."
+                  items={[
+                    {
+                      label: "Task completion quality",
+                      value: completionRate,
+                      helper: "Share of tasks reaching done state",
+                    },
+                    {
+                      label: "Live team availability",
+                      value: attendanceRate,
+                      helper: "Currently checked-in team members",
+                    },
+                    {
+                      label: "Momentum health",
+                      value: Math.max(0, Math.min(100, 50 + Math.round(progressDelta * 5))),
+                      helper: "Trend-adjusted execution pulse",
+                    },
+                  ]}
+                />
               </div>
             </section>
+
             <section className="space-y-4" id="analytics-section">
               {myAnalyticsLoading ? (
-                <StatePanel title="Loading your attendance heatmap" description="Preparing your recent attendance pattern." />
+                <StatePanel
+                  title="Loading attendance heatmap"
+                  description="Preparing attendance records..."
+                />
               ) : myAttendanceHeatmap.length ? (
-                <HeatmapGrid title="My attendance heatmap" subtitle="Your attendance pattern over the past few weeks." items={myAttendanceHeatmap} />
+                <HeatmapGrid
+                  title="Attendance Activity Calendar"
+                  subtitle="Daily attendance frequency over recent weeks."
+                  items={myAttendanceHeatmap}
+                />
               ) : (
-                <StatePanel title="No attendance yet" description="No attendance history found for your account in this period." />
+                <StatePanel
+                  title="No attendance yet"
+                  description="No attendance history found for your account in this period."
+                />
               )}
             </section>
           </>
         ) : (
-          <section className="space-y-5" id="workspace-section">
+          <section className="space-y-4" id="workspace-section">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-(--text-faint)">Connected tools</p>
-              <h2 className="mt-2 text-2xl font-semibold text-(--text-main)">Google Workspace</h2>
+              <h3 className="text-base font-semibold text-[var(--text-main)]">Connected Google Workspace</h3>
+              <p className="text-xs text-[var(--text-soft)]">
+                Manage integrated Google Meet sessions, Sheets, and Drive attachments.
+              </p>
             </div>
             {canUseGoogleWorkspace(summary.scope) ? (
-              <GoogleWorkspacePanel scope={summary.scope} status={workspaceStatus} loading={workspaceLoading} message={workspaceMessage} projects={workspaceProjects} users={workspaceUsers} selectedProjectId={selectedWorkspaceProjectId} actionLoading={workspaceActionLoading} meetResult={meetResult} sheetResult={sheetResult} driveResult={driveResult} onClearMeetResult={() => setMeetResult(null)} onClearSheetResult={() => setSheetResult(null)} onClearDriveResult={() => setDriveResult(null)} onSelectProject={setSelectedWorkspaceProjectId} onConnect={() => void handleGoogleConnect()} onDisconnect={() => void handleGoogleDisconnect()} onCreateMeet={(ids) => void runWorkspaceAction("meet", ids)} onCreateSheet={() => void runWorkspaceAction("sheets")} onCreateDriveFolder={() => void runWorkspaceAction("drive")} onSetMessage={setWorkspaceMessage} />
+              <GoogleWorkspacePanel
+                scope={summary.scope}
+                status={workspaceStatus}
+                loading={workspaceLoading}
+                message={workspaceMessage}
+                projects={workspaceProjects}
+                users={workspaceUsers}
+                selectedProjectId={selectedWorkspaceProjectId}
+                actionLoading={workspaceActionLoading}
+                meetResult={meetResult}
+                sheetResult={sheetResult}
+                driveResult={driveResult}
+                onClearMeetResult={() => setMeetResult(null)}
+                onClearSheetResult={() => setSheetResult(null)}
+                onClearDriveResult={() => setDriveResult(null)}
+                onSelectProject={setSelectedWorkspaceProjectId}
+                onConnect={() => void handleGoogleConnect()}
+                onDisconnect={() => void handleGoogleDisconnect()}
+                onCreateMeet={(ids) => void runWorkspaceAction("meet", ids)}
+                onCreateSheet={() => void runWorkspaceAction("sheets")}
+                onCreateDriveFolder={() => void runWorkspaceAction("drive")}
+                onSetMessage={setWorkspaceMessage}
+              />
             ) : (
-              <StatePanel title="Google Workspace unavailable" description="Only admin and superadmin accounts can use this tab." />
+              <StatePanel
+                title="Google Workspace unavailable"
+                description="Only admin and superadmin accounts can use this tab."
+              />
             )}
           </section>
         )}

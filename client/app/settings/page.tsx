@@ -113,79 +113,67 @@ export default function SettingsPage() {
   return (
     <CRMShell user={user}>
       <div className="min-w-0 space-y-4 overflow-x-hidden pb-4">
-        <div
-          className="inline-flex rounded-2xl border p-1"
-          style={{ borderColor: "var(--border)", background: "var(--surface-soft)" }}
-          role="tablist"
-          aria-label="Settings sections"
-        >
+        {/* Teams-style Segmented Tabs */}
+        <div className="flex items-center gap-1 border-b border-[var(--border)] pb-1" role="tablist">
           <button
             type="button"
             role="tab"
             aria-selected={settingsTab === "profile"}
             onClick={() => setSettingsTab("profile")}
-            className="rounded-xl px-4 py-2 text-sm font-semibold transition sm:px-5"
-            style={
+            className={`px-4 py-2 text-xs font-semibold transition-colors ${
               settingsTab === "profile"
-                ? { background: "var(--surface-strong)", color: "var(--text-main)", boxShadow: "var(--shadow-card)" }
-                : { color: "var(--text-soft)" }
-            }
+                ? "text-[var(--accent)] border-b-2 border-[var(--accent)] -mb-[5px]"
+                : "text-[var(--text-soft)] hover:text-[var(--text-main)]"
+            }`}
           >
-            Profile
+            My Profile
           </button>
           <button
             type="button"
             role="tab"
             aria-selected={settingsTab === "legal"}
             onClick={() => setSettingsTab("legal")}
-            className="rounded-xl px-4 py-2 text-sm font-semibold transition sm:px-5"
-            style={
+            className={`px-4 py-2 text-xs font-semibold transition-colors ${
               settingsTab === "legal"
-                ? { background: "var(--surface-strong)", color: "var(--text-main)", boxShadow: "var(--shadow-card)" }
-                : { color: "var(--text-soft)" }
-            }
+                ? "text-[var(--accent)] border-b-2 border-[var(--accent)] -mb-[5px]"
+                : "text-[var(--text-soft)] hover:text-[var(--text-main)]"
+            }`}
           >
-            Legal
+            Legal & Policies
           </button>
         </div>
 
         {settingsTab === "legal" ? (
           <section
-            className="rounded-[20px] border px-5 py-5"
-            style={{
-              background: "var(--surface)",
-              borderColor: "var(--border)",
-              boxShadow: "var(--shadow-soft)",
-            }}
+            className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4 sm:p-5 shadow-xs"
           >
-            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[var(--text-faint)]">
-              Legal &amp; policies
-            </p>
-            <h1 className="mt-2 text-3xl font-semibold text-[var(--text-main)]">Privacy &amp; terms</h1>
-            <p className="mt-2 max-w-2xl text-sm text-[var(--text-soft)]">
-              Review how we handle your data and the rules for using Planitt CRM. These documents open in full on separate
-              pages.
-            </p>
-            <div className="mt-6 grid gap-4 sm:grid-cols-2">
+            <div>
+              <span className="rounded-md bg-indigo-50 px-2 py-0.5 text-xs font-semibold text-[var(--accent)] border border-indigo-200 dark:bg-indigo-950/40 dark:text-indigo-300 dark:border-indigo-800">
+                Compliance
+              </span>
+              <h2 className="mt-1 text-xl font-bold tracking-tight text-[var(--text-main)] sm:text-2xl">Privacy & Terms</h2>
+              <p className="mt-0.5 text-xs text-[var(--text-soft)]">
+                Review how we handle your data and the policies for using Planitt CRM.
+              </p>
+            </div>
+            <div className="mt-5 grid gap-3 sm:grid-cols-2">
               <Link
                 href="/privacy-policy"
-                className="rounded-2xl border px-5 py-5 transition hover:border-[var(--accent)]"
-                style={{ borderColor: "var(--border)", background: "var(--surface-soft)" }}
+                className="rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] p-4 transition-colors hover:border-[var(--accent)] hover:bg-[var(--surface-hover)]"
               >
-                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--text-faint)]">Privacy</p>
-                <p className="mt-2 text-lg font-semibold text-[var(--text-main)]">Privacy Policy</p>
-                <p className="mt-2 text-sm text-[var(--text-soft)]">Data collection, use, retention, and your rights.</p>
-                <p className="mt-4 text-sm font-semibold text-[var(--accent)]">Read document →</p>
+                <p className="text-xs font-semibold text-[var(--text-soft)]">Privacy</p>
+                <p className="mt-1 text-base font-semibold text-[var(--text-main)]">Privacy Policy</p>
+                <p className="mt-1 text-xs text-[var(--text-soft)]">Data collection, use, retention, and your rights.</p>
+                <p className="mt-3 text-xs font-semibold text-[var(--accent)]">Read document →</p>
               </Link>
               <Link
                 href="/terms-of-service"
-                className="rounded-2xl border px-5 py-5 transition hover:border-[var(--accent)]"
-                style={{ borderColor: "var(--border)", background: "var(--surface-soft)" }}
+                className="rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] p-4 transition-colors hover:border-[var(--accent)] hover:bg-[var(--surface-hover)]"
               >
-                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--text-faint)]">Terms</p>
-                <p className="mt-2 text-lg font-semibold text-[var(--text-main)]">Terms of Service</p>
-                <p className="mt-2 text-sm text-[var(--text-soft)]">Acceptable use, billing, liability, and disputes.</p>
-                <p className="mt-4 text-sm font-semibold text-[var(--accent)]">Read document →</p>
+                <p className="text-xs font-semibold text-[var(--text-soft)]">Terms</p>
+                <p className="mt-1 text-base font-semibold text-[var(--text-main)]">Terms of Service</p>
+                <p className="mt-1 text-xs text-[var(--text-soft)]">Acceptable use, billing, liability, and governance.</p>
+                <p className="mt-3 text-xs font-semibold text-[var(--accent)]">Read document →</p>
               </Link>
             </div>
           </section>
@@ -194,120 +182,103 @@ export default function SettingsPage() {
         {settingsTab === "profile" ? (
           <>
         <section
-          className="rounded-[20px] border px-5 py-5"
-          style={{
-            background: "var(--surface)",
-            borderColor: "var(--border)",
-            boxShadow: "var(--shadow-soft)",
-          }}
+          className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4 sm:p-5 shadow-xs"
         >
-          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[var(--text-faint)]">
-            Account settings
-          </p>
-          <h1 className="mt-2 text-3xl font-semibold text-[var(--text-main)]">Profile</h1>
-          <p className="mt-2 text-sm text-[var(--text-soft)]">
-            You can update your name, designation, and password here.
-          </p>
-          <div className="mt-5 grid gap-3 md:grid-cols-3">
-            <div className="rounded-2xl border px-4 py-3" style={{ borderColor: "var(--border)", background: "var(--surface-soft)" }}>
-              <p className="text-[11px] uppercase tracking-[0.18em] text-[var(--text-faint)]">Role</p>
-              <p className="mt-2 text-lg font-semibold text-[var(--text-main)]">{user.role}</p>
+          <div>
+            <span className="rounded-md bg-indigo-50 px-2 py-0.5 text-xs font-semibold text-[var(--accent)] border border-indigo-200 dark:bg-indigo-950/40 dark:text-indigo-300 dark:border-indigo-800">
+              Account
+            </span>
+            <h2 className="mt-1 text-xl font-bold tracking-tight text-[var(--text-main)] sm:text-2xl">Profile Settings</h2>
+            <p className="mt-0.5 text-xs text-[var(--text-soft)]">
+              Update your account name, professional title, and access credentials.
+            </p>
+          </div>
+          <div className="mt-4 grid gap-2.5 sm:grid-cols-3">
+            <div className="rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] p-3">
+              <p className="text-[10px] text-[var(--text-faint)]">Role</p>
+              <p className="mt-0.5 text-sm font-bold text-[var(--text-main)]">{user.role}</p>
             </div>
-            <div className="rounded-2xl border px-4 py-3" style={{ borderColor: "var(--border)", background: "var(--surface-soft)" }}>
-              <p className="text-[11px] uppercase tracking-[0.18em] text-[var(--text-faint)]">Profile completeness</p>
-              <p className="mt-2 text-lg font-semibold text-[var(--text-main)]">{profileCompleteness}%</p>
+            <div className="rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] p-3">
+              <p className="text-[10px] text-[var(--text-faint)]">Profile Completeness</p>
+              <p className="mt-0.5 text-sm font-bold text-emerald-600">{profileCompleteness}%</p>
             </div>
-            <div className="rounded-2xl border px-4 py-3" style={{ borderColor: "var(--border)", background: "var(--surface-soft)" }}>
-              <p className="text-[11px] uppercase tracking-[0.18em] text-[var(--text-faint)]">Session model</p>
-              <p className="mt-2 text-lg font-semibold text-[var(--text-main)]">HttpOnly Cookie</p>
+            <div className="rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] p-3">
+              <p className="text-[10px] text-[var(--text-faint)]">Session Security</p>
+              <p className="mt-0.5 text-sm font-bold text-[var(--text-main)]">HttpOnly Cookie</p>
             </div>
           </div>
         </section>
 
         <section
-          className="rounded-[20px] border px-5 py-5"
-          style={{
-            background: "var(--surface)",
-            borderColor: "var(--border)",
-            boxShadow: "var(--shadow-soft)",
-          }}
+          className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4 sm:p-5 shadow-xs"
         >
           <div className="grid gap-4 md:grid-cols-2">
-            <div className="grid gap-4">
-              <label className="text-sm font-medium text-[var(--text-main)]">
-                Full name
+            <div className="space-y-3">
+              <div>
+                <label className="text-xs font-medium text-[var(--text-soft)] mb-1 block">Full name</label>
                 <input
-                  className="mt-2 h-12 w-full rounded-2xl border px-4 outline-none"
-                  style={{ borderColor: "var(--border)", background: "var(--surface-soft)", color: "var(--text-main)" }}
+                  className="h-8.5 w-full rounded-md border border-[var(--border)] bg-[var(--surface)] px-3 text-xs text-[var(--text-main)] outline-none focus:border-[var(--accent)]"
                   value={form.name}
                   onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))}
                 />
-              </label>
+              </div>
 
-              <label className="text-sm font-medium text-[var(--text-main)]">
-                Designation
+              <div>
+                <label className="text-xs font-medium text-[var(--text-soft)] mb-1 block">Designation</label>
                 <input
-                  className="mt-2 h-12 w-full rounded-2xl border px-4 outline-none"
-                  style={{ borderColor: "var(--border)", background: "var(--surface-soft)", color: "var(--text-main)" }}
+                  className="h-8.5 w-full rounded-md border border-[var(--border)] bg-[var(--surface)] px-3 text-xs text-[var(--text-main)] outline-none focus:border-[var(--accent)]"
                   value={form.designation}
                   onChange={(event) =>
                     setForm((current) => ({ ...current, designation: event.target.value }))
                   }
                 />
-              </label>
+              </div>
 
-              <label className="text-sm font-medium text-[var(--text-main)]">
-                New password (optional)
+              <div>
+                <label className="text-xs font-medium text-[var(--text-soft)] mb-1 block">New password (optional)</label>
                 <input
                   type="password"
-                  className="mt-2 h-12 w-full rounded-2xl border px-4 outline-none"
-                  style={{ borderColor: "var(--border)", background: "var(--surface-soft)", color: "var(--text-main)" }}
+                  className="h-8.5 w-full rounded-md border border-[var(--border)] bg-[var(--surface)] px-3 text-xs text-[var(--text-main)] outline-none focus:border-[var(--accent)]"
+                  placeholder="Leave empty to keep current password"
                   value={form.password}
                   onChange={(event) => setForm((current) => ({ ...current, password: event.target.value }))}
                 />
-              </label>
+              </div>
             </div>
 
             <div className="space-y-3">
               <div
-                className="rounded-2xl border px-4 py-4"
-                style={{ borderColor: "var(--border)", background: "var(--surface-soft)" }}
+                className="rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] p-3"
               >
-                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--text-faint)]">
-                  Email policy
-                </p>
-                <p className="mt-2 text-sm text-[var(--text-soft)]">
+                <p className="text-xs font-semibold text-[var(--text-main)]">Email policy</p>
+                <p className="mt-1 text-xs text-[var(--text-soft)]">
                   Your email cannot be changed from this page.
                 </p>
-                <p className="mt-2 text-sm text-[var(--text-soft)]">
-                  {emailPolicyMessage}
-                </p>
+                <p className="mt-1 text-xs text-[var(--text-soft)]">{emailPolicyMessage}</p>
               </div>
 
               <div
-                className="rounded-2xl border px-4 py-4"
-                style={{ borderColor: "var(--border)", background: "var(--surface-soft)" }}
+                className="rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] p-3"
               >
-                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--text-faint)]">
-                  Current email
-                </p>
-                <p className="mt-2 text-sm font-medium text-[var(--text-main)]">{profile.email}</p>
+                <p className="text-xs font-semibold text-[var(--text-main)]">Current email</p>
+                <p className="mt-1 text-xs font-medium text-[var(--text-main)]">{profile.email}</p>
               </div>
             </div>
           </div>
 
-          {error ? <p className="mt-4 text-sm font-medium text-rose-600">{error}</p> : null}
-          {notice ? <p className="mt-4 text-sm font-medium text-emerald-600">{notice}</p> : null}
+          {error ? <p className="mt-3 text-xs font-medium text-rose-600">{error}</p> : null}
+          {notice ? <p className="mt-3 text-xs font-medium text-emerald-600">{notice}</p> : null}
 
-          <button
-            type="button"
-            disabled={saving}
-            onClick={() => void saveProfile()}
-            className="mt-6 rounded-2xl px-5 py-3 text-sm font-semibold text-white disabled:cursor-wait disabled:opacity-70"
-            style={{ background: "var(--accent-strong)" }}
-          >
-            {saving ? "Saving..." : "Save profile"}
-          </button>
+          <div className="mt-5 border-t border-[var(--border)] pt-4">
+            <button
+              type="button"
+              disabled={saving}
+              onClick={() => void saveProfile()}
+              className="inline-flex items-center justify-center rounded-lg bg-[var(--accent)] hover:bg-[var(--accent-strong)] px-4 py-2 text-xs font-semibold text-white shadow-xs transition-colors disabled:opacity-50"
+            >
+              {saving ? "Saving..." : "Save Changes"}
+            </button>
+          </div>
         </section>
           </>
         ) : null}

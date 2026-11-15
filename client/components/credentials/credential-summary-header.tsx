@@ -20,12 +20,12 @@ function MetaItem({
   mono?: boolean;
 }) {
   return (
-    <div className="min-w-0 rounded-xl border px-3 py-2.5" style={{ borderColor: "var(--border)", background: "var(--surface)" }}>
-      <dt className="text-[10px] font-semibold uppercase tracking-[0.14em] text-(--text-faint)">{label}</dt>
-      <dd className={`mt-1 truncate text-sm font-medium text-(--text-main) ${mono ? "font-mono text-xs" : ""}`}>
+    <div className="min-w-0 rounded-lg border px-3 py-2" style={{ borderColor: "var(--border)", background: "var(--surface-soft)" }}>
+      <dt className="text-[10px] font-medium text-[var(--text-faint)]">{label}</dt>
+      <dd className={`mt-0.5 truncate text-xs font-semibold text-[var(--text-main)] ${mono ? "font-mono text-xs" : ""}`}>
         {value}
       </dd>
-      {hint ? <p className="mt-1 text-[11px] text-(--text-soft)">{hint}</p> : null}
+      {hint ? <p className="mt-0.5 text-[10px] text-[var(--text-soft)]">{hint}</p> : null}
     </div>
   );
 }
@@ -43,7 +43,7 @@ export function CredentialSummaryHeader({ credential, children }: CredentialSumm
     : "Not set";
 
   return (
-    <div className="min-w-0 overflow-hidden rounded-2xl border" style={{ borderColor: tone.stroke, background: "var(--surface)" }}>
+    <div className="min-w-0 overflow-hidden rounded-xl border" style={{ borderColor: tone.stroke, background: "var(--surface)" }}>
       <div className="flex min-w-0">
         <div className="w-1 shrink-0" style={{ background: tone.stroke }} aria-hidden />
         <div className="min-w-0 flex-1 p-4 sm:p-5">

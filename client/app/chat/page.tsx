@@ -167,68 +167,67 @@ export default function ChatPage() {
       >
         {showRoomsPane ? (
           <section
-            className="flex min-h-0 flex-col overflow-hidden rounded-2xl border p-3 sm:rounded-[22px] sm:p-4"
-            style={{ background: "var(--surface)", borderColor: "var(--border)", boxShadow: "var(--shadow-soft)" }}
+            className="flex min-h-0 flex-col overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--surface)] p-3 sm:p-4 shadow-xs"
           >
             <div className="shrink-0">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
-                  <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[var(--text-faint)]">Community</p>
-                  <h1 className="mt-1 text-xl font-semibold text-[var(--text-main)] sm:mt-2 sm:text-2xl">Team chat</h1>
+                  <span className="rounded-md bg-indigo-50 px-2 py-0.5 text-xs font-semibold text-[var(--accent)] border border-indigo-200 dark:bg-indigo-950/40 dark:text-indigo-300 dark:border-indigo-800">
+                    Communication
+                  </span>
+                  <h1 className="mt-1 text-lg font-bold text-[var(--text-main)] sm:text-xl">Team Chat</h1>
                 </div>
                 <span
-                  className="shrink-0 rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em]"
-                  style={{
-                    background: connected ? "color-mix(in srgb, var(--success) 14%, var(--surface))" : "var(--surface-soft)",
-                    color: connected ? "var(--success)" : "var(--text-soft)",
-                  }}
+                  className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium border ${
+                    connected
+                      ? "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800"
+                      : "bg-slate-100 text-slate-600 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700"
+                  }`}
                 >
+                  <span className={`h-1.5 w-1.5 rounded-full ${connected ? "bg-emerald-500 animate-pulse" : "bg-slate-400"}`} />
                   {connected ? "Live" : "Offline"}
                 </span>
               </div>
 
               {canManageGroups ? (
-                <div className="mt-3 grid grid-cols-1 gap-2 sm:mt-4 sm:grid-cols-2">
+                <div className="mt-3 grid grid-cols-2 gap-2">
                   <button
                     type="button"
                     onClick={() => {
                       setDirectTargetUserId("");
                       setShowStartDirectModal(true);
                     }}
-                    className="crm-touch-target rounded-xl border px-4 py-2.5 text-sm font-semibold"
-                    style={{ borderColor: "var(--border)", color: "var(--text-main)" }}
+                    className="h-8.5 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-2.5 text-xs font-medium text-[var(--text-main)] hover:bg-[var(--surface-hover)] transition-colors"
                   >
-                    + One-to-one
+                    + Direct Chat
                   </button>
                   <button
                     type="button"
                     onClick={() => groups_.setShowCreateGroup(true)}
-                    className="crm-touch-target rounded-xl border px-4 py-2.5 text-sm font-semibold"
-                    style={{ borderColor: "var(--border)", color: "var(--text-main)" }}
+                    className="h-8.5 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-2.5 text-xs font-medium text-[var(--text-main)] hover:bg-[var(--surface-hover)] transition-colors"
                   >
-                    + Create group
+                    + New Channel
                   </button>
                 </div>
               ) : null}
 
-              <div className="mt-3 grid grid-cols-2 gap-2 sm:mt-4">
+              <div className="mt-3 grid grid-cols-2 gap-2">
                 {[
-                  { label: "Rooms", value: chatAnalytics.totalRooms },
+                  { label: "Active Channels", value: chatAnalytics.totalRooms },
                   { label: "Unread", value: chatAnalytics.unreadTotal },
                 ].map((item) => (
                   <div
                     key={item.label}
-                    className="rounded-xl border px-3 py-2"
-                    style={{ borderColor: "var(--border)", background: "var(--surface-soft)" }}
+                    className="rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] px-3 py-1.5"
                   >
-                    <p className="text-[10px] uppercase tracking-[0.16em] text-[var(--text-faint)]">{item.label}</p>
-                    <p className="mt-1 text-sm font-semibold text-[var(--text-main)]">{item.value}</p>
+                    <p className="text-[10px] text-[var(--text-faint)]">{item.label}</p>
+                    <p className="mt-0.5 text-xs font-bold text-[var(--text-main)]">{item.value}</p>
                   </div>
                 ))}
               </div>
 
               {error ? (
-                <p className="mt-3 rounded-2xl bg-red-500/10 px-4 py-3 text-sm text-red-600">{error}</p>
+                <p className="mt-3 rounded-lg bg-red-500/10 px-3 py-2 text-xs text-red-600">{error}</p>
               ) : null}
             </div>
 
@@ -245,8 +244,7 @@ export default function ChatPage() {
 
         {showConversationPane ? (
           <section
-            className="flex min-h-0 flex-col overflow-hidden rounded-2xl border sm:rounded-[22px]"
-            style={{ background: "var(--surface)", borderColor: "var(--border)", boxShadow: "var(--shadow-soft)" }}
+            className="flex min-h-0 flex-col overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--surface)] shadow-xs"
           >
             {selectedRoom ? (
               <>

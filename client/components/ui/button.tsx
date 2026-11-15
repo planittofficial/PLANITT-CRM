@@ -13,17 +13,17 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 
 const variantStyles: Record<ButtonVariant, string> = {
   primary:
-    "bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white shadow-sm border border-blue-600 focus-visible:ring-blue-500",
+    "bg-[var(--accent)] hover:bg-[var(--accent-strong)] active:opacity-90 text-white shadow-xs border border-[var(--accent)] focus-visible:ring-[var(--accent)]",
   secondary:
-    "bg-[var(--surface-soft)] hover:bg-[var(--surface-hover,#e2e8f0)] text-[var(--text-main)] border border-[var(--border)] focus-visible:ring-slate-400",
+    "bg-[var(--surface)] hover:bg-[var(--surface-hover)] text-[var(--text-main)] border border-[var(--border)] focus-visible:ring-slate-400",
   outline:
     "bg-transparent hover:bg-[var(--surface-soft)] text-[var(--text-main)] border border-[var(--border)] focus-visible:ring-slate-400",
   ghost:
     "bg-transparent hover:bg-[var(--surface-soft)] text-[var(--text-main)] border border-transparent focus-visible:ring-slate-400",
   danger:
-    "bg-rose-600 hover:bg-rose-700 active:bg-rose-800 text-white shadow-sm border border-rose-600 focus-visible:ring-rose-500",
+    "bg-rose-600 hover:bg-rose-700 active:bg-rose-800 text-white shadow-xs border border-rose-600 focus-visible:ring-rose-500",
   subtle:
-    "bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-100 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-800/40",
+    "bg-indigo-50 hover:bg-indigo-100 text-[var(--accent-strong)] border border-indigo-100 dark:bg-indigo-950/40 dark:text-indigo-300 dark:border-indigo-800/40",
 };
 
 const sizeStyles: Record<ButtonSize, string> = {

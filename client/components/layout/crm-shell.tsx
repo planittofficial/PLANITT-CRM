@@ -70,6 +70,7 @@ export function CRMShell({ children, user, compactMobileChrome = false }: CRMShe
   const { theme, setTheme } = useTheme();
   const { globalSearch, setGlobalSearch, submitSearch, searchNoResult, setSearchNoResult } = useCrmSearch();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const [checkedIn, setCheckedIn] = useState(false);
@@ -183,7 +184,7 @@ export function CRMShell({ children, user, compactMobileChrome = false }: CRMShe
         <div className="flex flex-col items-center gap-4">
           <Link
             href="/dashboard"
-            className="group flex h-10 w-10 items-center justify-center rounded-xl bg-blue-600 text-white font-black text-sm shadow-sm transition-transform hover:scale-105"
+            className="group flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--accent)] text-white font-black text-sm shadow-xs transition-transform hover:scale-105"
             title="Planitt CRM"
           >
             P
@@ -201,7 +202,7 @@ export function CRMShell({ children, user, compactMobileChrome = false }: CRMShe
                   href={item.href}
                   className={`group relative flex h-10 w-10 items-center justify-center rounded-xl transition-all ${
                     isActive
-                      ? "bg-blue-600 text-white shadow-xs"
+                      ? "bg-[var(--accent)] text-white shadow-xs"
                       : "text-[var(--text-soft)] hover:bg-[var(--surface-soft)] hover:text-[var(--text-main)]"
                   }`}
                   title={item.label}
@@ -305,7 +306,7 @@ export function CRMShell({ children, user, compactMobileChrome = false }: CRMShe
 
             {/* Breadcrumb */}
             <div className="flex items-center gap-1.5 text-xs">
-              <span className="font-semibold text-blue-600 hidden sm:inline">Planitt CRM</span>
+              <span className="font-semibold text-[var(--accent)] hidden sm:inline">Planitt CRM</span>
               <span className="text-[var(--text-faint)] hidden sm:inline">/</span>
               <span className="text-[var(--text-soft)] font-medium hidden md:inline">{currentPage.category}</span>
               <span className="text-[var(--text-faint)] hidden md:inline">/</span>
@@ -342,7 +343,7 @@ export function CRMShell({ children, user, compactMobileChrome = false }: CRMShe
                   }
                 }}
                 placeholder="Search tasks, projects, employees... (Press Enter)"
-                className="h-8 w-full rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] pl-8 pr-16 text-xs text-[var(--text-main)] outline-none placeholder:text-[var(--text-faint)] focus:border-blue-500 focus:bg-[var(--surface-strong,#ffffff)] focus:ring-1 focus:ring-blue-500/30 transition-all"
+                className="h-8 w-full rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] pl-8 pr-16 text-xs text-[var(--text-main)] outline-none placeholder:text-[var(--text-faint)] focus:border-[var(--accent)] focus:bg-[var(--surface-strong,#ffffff)] focus:ring-1 focus:ring-[var(--accent)]/30 transition-all"
               />
               <span className="absolute right-2.5 rounded border border-[var(--border)] bg-[var(--surface-strong,#ffffff)] px-1.5 py-0.5 text-[10px] font-semibold text-[var(--text-faint)]">
                 ⌘K
@@ -351,14 +352,24 @@ export function CRMShell({ children, user, compactMobileChrome = false }: CRMShe
           </div>
 
           {/* Right: Actions (Attendance, Notifications, Avatar) */}
-          <div className="flex items-center gap-2 shrink-0">
+          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+            {/* Mobile Search Button */}
+            <button
+              type="button"
+              onClick={() => setMobileSearchOpen((o) => !o)}
+              className="sm:hidden flex h-8 w-8 items-center justify-center rounded-lg border border-[var(--border)] text-[var(--text-soft)] hover:bg-[var(--surface-soft)]"
+              aria-label="Toggle search"
+            >
+              <SearchIcon size={15} />
+            </button>
+
             {/* Quick Attendance Action */}
             {canUseAttendance && (
               <button
                 type="button"
                 onClick={handleAttendanceToggle}
                 disabled={attendanceLoading}
-                className={`inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-semibold transition-all shadow-2xs ${
+                className={`inline-flex items-center gap-1 sm:gap-1.5 rounded-lg px-2 sm:px-2.5 py-1 text-xs font-semibold transition-all shadow-2xs ${
                   checkedIn
                     ? "bg-rose-50 text-rose-700 border border-rose-200 hover:bg-rose-100 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-800"
                     : "bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800"
@@ -396,7 +407,7 @@ export function CRMShell({ children, user, compactMobileChrome = false }: CRMShe
                     <div className="flex items-center gap-2">
                       <span className="text-sm font-semibold text-[var(--text-main)]">Notifications</span>
                       {unreadCount > 0 && (
-                        <span className="rounded-full bg-blue-100 dark:bg-blue-950 px-2 py-0.5 text-[10px] font-bold text-blue-700 dark:text-blue-300">
+                        <span className="rounded-full bg-[var(--accent)]/10 px-2 py-0.5 text-[10px] font-bold text-[var(--accent)]">
                           {unreadCount} new
                         </span>
                       )}
@@ -405,7 +416,7 @@ export function CRMShell({ children, user, compactMobileChrome = false }: CRMShe
                       <button
                         type="button"
                         onClick={markAllRead}
-                        className="text-blue-600 hover:text-blue-700 font-medium"
+                        className="text-[var(--accent)] hover:underline font-medium"
                       >
                         Read all
                       </button>
@@ -435,7 +446,7 @@ export function CRMShell({ children, user, compactMobileChrome = false }: CRMShe
                           className={`w-full rounded-lg border p-2.5 text-left text-xs transition-colors ${
                             item.read
                               ? "border-transparent hover:bg-[var(--surface-soft)] text-[var(--text-soft)]"
-                              : "border-[var(--border)] bg-blue-50/50 dark:bg-blue-950/20 text-[var(--text-main)]"
+                              : "border-[var(--border)] bg-[var(--accent)]/5 text-[var(--text-main)]"
                           }`}
                         >
                           <p className="font-semibold">{item.title}</p>
@@ -451,17 +462,108 @@ export function CRMShell({ children, user, compactMobileChrome = false }: CRMShe
               )}
             </div>
 
-            {/* Mobile Avatar */}
-            <div className="md:hidden">
-              <Avatar
-                name={user.name}
-                avatarUrl={user.avatarUrl}
-                authProvider={user.authProvider}
-                size="sm"
-              />
+            {/* Mobile Avatar Menu */}
+            <div className="md:hidden relative">
+              <button
+                type="button"
+                onClick={() => setProfileMenuOpen((prev) => !prev)}
+                className="flex rounded-full ring-2 ring-transparent transition hover:ring-[var(--accent)]"
+                aria-label="User profile"
+              >
+                <Avatar
+                  name={user.name}
+                  avatarUrl={user.avatarUrl}
+                  authProvider={user.authProvider}
+                  size="sm"
+                  status={checkedIn ? "online" : "offline"}
+                />
+              </button>
+
+              {profileMenuOpen && (
+                <div
+                  className="absolute right-0 top-full mt-2 w-56 rounded-xl border border-[var(--border)] bg-[var(--surface-strong,#ffffff)] p-2 shadow-xl z-50 animate-in fade-in zoom-in-95 duration-100"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <div className="border-b border-[var(--border)] px-3 py-2">
+                    <p className="truncate text-sm font-semibold text-[var(--text-main)]">{user.name}</p>
+                    <p className="text-xs text-[var(--text-soft)] truncate">{roleLabels[user.role]} · {user.email}</p>
+                  </div>
+                  <div className="py-1">
+                    <button
+                      type="button"
+                      onClick={toggleTheme}
+                      className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium text-[var(--text-main)] hover:bg-[var(--surface-soft)] transition-colors"
+                    >
+                      {theme === "light" ? <MoonIcon size={14} /> : <SunIcon size={14} />}
+                      <span>{theme === "light" ? "Dark Mode" : "Light Mode"}</span>
+                    </button>
+                    <Link
+                      href="/settings"
+                      onClick={() => setProfileMenuOpen(false)}
+                      className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium text-[var(--text-main)] hover:bg-[var(--surface-soft)] transition-colors"
+                    >
+                      <SettingsIcon size={14} />
+                      <span>Settings</span>
+                    </Link>
+                    <button
+                      type="button"
+                      onClick={handleLogout}
+                      className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors"
+                    >
+                      <LogOutIcon size={14} />
+                      <span>Sign Out</span>
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </header>
+
+        {/* ── EXPANDABLE MOBILE SEARCH BAR ────────────────────────────────────── */}
+        {mobileSearchOpen && (
+          <div className="flex sm:hidden items-center px-3 py-2 bg-[var(--surface-strong,#ffffff)] border-b border-[var(--border)] gap-2 animate-in fade-in duration-100 z-20">
+            <div className="relative flex-1">
+              <SearchIcon size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[var(--text-soft)]" />
+              <input
+                type="search"
+                autoFocus
+                value={globalSearch}
+                onChange={(e) => {
+                  setGlobalSearch(e.target.value);
+                  if (searchNoResult) setSearchNoResult(false);
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    submitSearch();
+                    const q = globalSearch.trim().toLowerCase();
+                    if (!q) return;
+                    const matched = Object.entries(pageMetadata).find(
+                      ([href, meta]) =>
+                        meta.title.toLowerCase() === q || href.slice(1) === q
+                    );
+                    if (matched) {
+                      setMobileSearchOpen(false);
+                      router.push(matched[0]);
+                    } else {
+                      setSearchNoResult(true);
+                    }
+                  }
+                }}
+                placeholder="Search CRM pages, tasks... (Enter)"
+                className="h-8 w-full rounded-md border border-[var(--border)] bg-[var(--surface-soft)] pl-8 pr-3 text-xs text-[var(--text-main)] outline-none focus:border-[var(--accent)]"
+              />
+            </div>
+            <button
+              type="button"
+              onClick={() => setMobileSearchOpen(false)}
+              className="text-xs font-semibold text-[var(--text-soft)] px-1"
+            >
+              Cancel
+            </button>
+          </div>
+        )}
 
         {/* ── MOBILE DRAWER NAVIGATION ────────────────────────────────────────── */}
         {mobileMenuOpen && (
@@ -472,7 +574,7 @@ export function CRMShell({ children, user, compactMobileChrome = false }: CRMShe
             />
             <div className="relative flex w-64 max-w-[80vw] flex-col bg-[var(--surface-strong,#ffffff)] p-4 shadow-xl z-10 border-r border-[var(--border)]">
               <div className="flex items-center gap-2 border-b border-[var(--border)] pb-3">
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-600 text-white font-bold text-xs">
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[var(--accent)] text-white font-bold text-xs">
                   P
                 </div>
                 <div>
@@ -492,7 +594,7 @@ export function CRMShell({ children, user, compactMobileChrome = false }: CRMShe
                       onClick={() => setMobileMenuOpen(false)}
                       className={`flex items-center gap-3 rounded-lg px-3 py-2 text-xs font-semibold ${
                         isActive
-                          ? "bg-blue-600 text-white"
+                          ? "bg-[var(--accent)] text-white"
                           : "text-[var(--text-main)] hover:bg-[var(--surface-soft)]"
                       }`}
                     >
@@ -537,7 +639,7 @@ export function CRMShell({ children, user, compactMobileChrome = false }: CRMShe
                 key={item.href}
                 href={item.href}
                 className={`flex flex-col items-center justify-center gap-0.5 px-3 py-1 text-[10px] font-medium transition-colors ${
-                  isActive ? "text-blue-600 font-bold" : "text-[var(--text-soft)] hover:text-[var(--text-main)]"
+                  isActive ? "text-[var(--accent)] font-bold" : "text-[var(--text-soft)] hover:text-[var(--text-main)]"
                 }`}
               >
                 <Icon size={18} />
