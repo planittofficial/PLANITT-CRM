@@ -113,23 +113,20 @@ export default function ChecklistPage() {
       <div className="min-w-0 space-y-4 overflow-x-hidden pb-4">
         {/* Header */}
         <section
-          className="rounded-[20px] border p-5"
-          style={{
-            background: "var(--surface)",
-            borderColor: "var(--border)",
-            boxShadow: "var(--shadow-soft)",
-          }}
+          className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4 sm:p-5 shadow-xs"
         >
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[var(--text-faint)]">
-              Admin onboarding
-            </p>
-            <h1 className="mt-2 text-3xl font-semibold tracking-tight text-[var(--text-main)]">
+            <div className="flex items-center gap-2">
+              <span className="rounded-md bg-indigo-50 px-2 py-0.5 text-xs font-semibold text-[var(--accent)] border border-indigo-200 dark:bg-indigo-950/40 dark:text-indigo-300 dark:border-indigo-800">
+                Onboarding
+              </span>
+              <span className="text-xs text-[var(--text-soft)]">Administrative Readiness</span>
+            </div>
+            <h1 className="mt-1 text-xl font-bold tracking-tight text-[var(--text-main)] sm:text-2xl">
               Document Checklist
             </h1>
-            <p className="mt-3 max-w-2xl text-sm leading-6 text-[var(--text-soft)]">
-              Track onboarding documents, credentials, company assets, and training completion for
-              every Admin.
+            <p className="mt-0.5 text-xs text-[var(--text-soft)]">
+              Track onboarding documents, credentials, assets, and training completion for administrators.
             </p>
           </div>
         </section>
@@ -160,17 +157,12 @@ export default function ChecklistPage() {
           ].map((stat) => (
             <div
               key={stat.label}
-              className="rounded-2xl border p-4"
-              style={{
-                background: "var(--surface)",
-                borderColor: "var(--border)",
-                boxShadow: "var(--shadow-card)",
-              }}
+              className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-3.5 shadow-xs"
             >
-              <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[var(--text-faint)]">
+              <p className="text-xs font-medium text-[var(--text-soft)]">
                 {stat.label}
               </p>
-              <p className="mt-2 text-2xl font-bold" style={{ color: stat.color }}>
+              <p className="mt-1 text-2xl font-bold" style={{ color: stat.color }}>
                 {stat.value}
               </p>
             </div>

@@ -97,8 +97,7 @@ export default function CredentialsPage() {
       <div className="min-h-0 min-w-0 overflow-x-hidden lg:flex lg:h-full lg:flex-col">
         {/* Unified workspace shell */}
         <div
-          className="flex h-[min(78dvh,900px)] min-w-0 flex-1 flex-col overflow-hidden rounded-[22px] border lg:h-full lg:min-h-0"
-          style={{ background: "var(--surface)", borderColor: "var(--border)", boxShadow: "var(--shadow-soft)" }}
+          className="flex h-[min(78dvh,900px)] min-w-0 flex-1 flex-col overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--surface)] shadow-xs lg:h-full lg:min-h-0"
         >
           {/* Top bar */}
           <header className="shrink-0 border-b px-4 py-4 sm:px-5" style={{ borderColor: "var(--border)" }}>

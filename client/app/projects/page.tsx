@@ -202,7 +202,7 @@ export default function ProjectsPage() {
               <span className="text-xs text-[var(--text-faint)]">{visibleProjects.length}</span>
             </div>
 
-            <div className="space-y-1.5 max-h-[calc(100vh-280px)] overflow-y-auto pr-1">
+            <div className="space-y-1.5 max-h-52 sm:max-h-64 lg:max-h-[calc(100vh-280px)] overflow-y-auto pr-1">
               {visibleProjects.map((project) => {
                 const isSelected = selectedProjectId === project.id;
                 return (
@@ -212,7 +212,7 @@ export default function ProjectsPage() {
                     onClick={() => setSelectedProjectId(project.id)}
                     className={`w-full rounded-lg p-2.5 text-left transition-all ${
                       isSelected
-                        ? "bg-blue-50 text-blue-900 border border-blue-200 dark:bg-blue-950/40 dark:text-blue-200 dark:border-blue-800"
+                        ? "bg-[var(--accent)]/10 text-[var(--accent)] border border-[var(--accent)]/30 font-medium"
                         : "hover:bg-[var(--surface-soft)] text-[var(--text-main)] border border-transparent"
                     }`}
                   >
@@ -223,7 +223,7 @@ export default function ProjectsPage() {
                       <span>{project.taskCounts.done}/{project.taskCounts.total} done</span>
                     </div>
                     <div className="mt-1 h-1.5 w-full rounded-full bg-[var(--surface-soft)] overflow-hidden">
-                      <div className="h-full bg-blue-600 rounded-full transition-all" style={{ width: `${project.progress}%` }} />
+                      <div className="h-full bg-[var(--accent)] rounded-full transition-all" style={{ width: `${project.progress}%` }} />
                     </div>
                   </button>
                 );
@@ -255,7 +255,7 @@ export default function ProjectsPage() {
                   <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                     <div>
                       <div className="flex items-center gap-2">
-                        <span className="text-[11px] font-bold uppercase tracking-wider text-blue-600">
+                        <span className="text-[11px] font-bold uppercase tracking-wider text-[var(--accent)]">
                           {selectedProject.department.name}
                         </span>
                         <span className="text-[var(--text-faint)]">•</span>
@@ -281,7 +281,7 @@ export default function ProjectsPage() {
 
                   <div className="mt-3 h-2 w-full rounded-full bg-[var(--surface-soft)] overflow-hidden">
                     <div
-                      className="h-full bg-gradient-to-r from-blue-600 to-emerald-500 rounded-full transition-all"
+                      className="h-full bg-[var(--accent)] rounded-full transition-all"
                       style={{ width: `${selectedProject.progress}%` }}
                     />
                   </div>
@@ -354,7 +354,7 @@ export default function ProjectsPage() {
                 Project Name *
               </label>
               <input
-                className="h-9 w-full rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] px-3 text-sm outline-none focus:border-blue-500 focus:bg-[var(--surface-strong,#ffffff)]"
+                className="h-9 w-full rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] px-3 text-sm outline-none focus:border-[var(--accent)] focus:bg-[var(--surface-strong,#ffffff)] transition-all"
                 placeholder="e.g. Mobile App Q3 Launch"
                 value={projectForm.name}
                 onChange={(e) => setProjectForm((c) => ({ ...c, name: e.target.value }))}
@@ -367,7 +367,7 @@ export default function ProjectsPage() {
               </label>
               <textarea
                 rows={3}
-                className="w-full rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] p-3 text-sm outline-none focus:border-blue-500 focus:bg-[var(--surface-strong,#ffffff)]"
+                className="w-full rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] p-3 text-sm outline-none focus:border-[var(--accent)] focus:bg-[var(--surface-strong,#ffffff)] transition-all"
                 placeholder="Project objectives, milestones..."
                 value={projectForm.description}
                 onChange={(e) => setProjectForm((c) => ({ ...c, description: e.target.value }))}
@@ -434,7 +434,7 @@ export default function ProjectsPage() {
                 Task Title *
               </label>
               <input
-                className="h-9 w-full rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] px-3 text-sm outline-none focus:border-blue-500 focus:bg-[var(--surface-strong,#ffffff)]"
+                className="h-9 w-full rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] px-3 text-sm outline-none focus:border-[var(--accent)] focus:bg-[var(--surface-strong,#ffffff)] transition-all"
                 placeholder="e.g. Implement Webhook Handler"
                 value={taskForm.title}
                 onChange={(e) => setTaskForm((c) => ({ ...c, title: e.target.value }))}
@@ -447,7 +447,7 @@ export default function ProjectsPage() {
               </label>
               <textarea
                 rows={3}
-                className="w-full rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] p-3 text-sm outline-none focus:border-blue-500 focus:bg-[var(--surface-strong,#ffffff)]"
+                className="w-full rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] p-3 text-sm outline-none focus:border-[var(--accent)] focus:bg-[var(--surface-strong,#ffffff)] transition-all"
                 placeholder="Task details and deliverables..."
                 value={taskForm.description}
                 onChange={(e) => setTaskForm((c) => ({ ...c, description: e.target.value }))}

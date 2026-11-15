@@ -1,59 +1,59 @@
 @import "tailwindcss";
 
 @theme {
-  --font-sans: var(--font-manrope), ui-sans-serif, system-ui, sans-serif;
+  --font-sans: var(--font-manrope), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
 }
 
 :root {
-  --app-bg: #f8fafc;
-  --app-bg-accent: #f1f5f9;
+  --app-bg: #f5f6f9;
+  --app-bg-accent: #eef0f5;
   --surface: #ffffff;
   --surface-strong: #ffffff;
-  --surface-soft: #f8fafc;
-  --surface-hover: #f1f5f9;
-  --border: #e2e8f0;
-  --border-strong: #cbd5e1;
-  --text-main: #0f172a;
-  --text-soft: #64748b;
-  --text-faint: #94a3b8;
-  --sidebar-rail: #0f172a;
-  --sidebar-rail-active: #2563eb;
-  --accent: #2563eb;
-  --accent-strong: #1d4ed8;
-  --accent-alt: #6366f1;
-  --success: #10b981;
-  --danger: #ef4444;
-  --warning: #f59e0b;
+  --surface-soft: #f8f9fa;
+  --surface-hover: #f1f3f7;
+  --border: #e2e5eb;
+  --border-strong: #cbd2dc;
+  --text-main: #1f2328;
+  --text-soft: #57606a;
+  --text-faint: #8c959f;
+  --sidebar-rail: #201f38;
+  --sidebar-rail-active: #5b5fc7;
+  --accent: #5b5fc7;
+  --accent-strong: #4f52b2;
+  --accent-alt: #7b83eb;
+  --success: #107c41;
+  --danger: #c42b1c;
+  --warning: #b86200;
   --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.04);
-  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.07), 0 1px 2px rgba(0, 0, 0, 0.04);
-  --shadow-soft: 0 4px 14px rgba(15, 23, 42, 0.05);
-  --shadow-card: 0 2px 8px rgba(15, 23, 42, 0.04);
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow-soft: 0 2px 8px rgba(0, 0, 0, 0.04);
+  --shadow-card: 0 1px 4px rgba(0, 0, 0, 0.04);
 }
 
 :root[data-theme="dark"] {
-  --app-bg: #0b1120;
-  --app-bg-accent: #0f172a;
-  --surface: #131d33;
-  --surface-strong: #18233c;
-  --surface-soft: #0f172a;
-  --surface-hover: #1e293b;
-  --border: #23304a;
-  --border-strong: #334155;
-  --text-main: #f8fafc;
-  --text-soft: #94a3b8;
-  --text-faint: #64748b;
-  --sidebar-rail: #070d19;
-  --sidebar-rail-active: #3b82f6;
-  --accent: #3b82f6;
-  --accent-strong: #2563eb;
-  --accent-alt: #818cf8;
-  --success: #34d399;
-  --danger: #f87171;
-  --warning: #fbbf24;
+  --app-bg: #141416;
+  --app-bg-accent: #1e1e24;
+  --surface: #1f1f23;
+  --surface-strong: #25252a;
+  --surface-soft: #19191d;
+  --surface-hover: #2b2b32;
+  --border: #2e2e36;
+  --border-strong: #40404a;
+  --text-main: #f0f2f5;
+  --text-soft: #9da3ae;
+  --text-faint: #6e7683;
+  --sidebar-rail: #121214;
+  --sidebar-rail-active: #7b83eb;
+  --accent: #7b83eb;
+  --accent-strong: #5b5fc7;
+  --accent-alt: #9499f7;
+  --success: #23a55a;
+  --danger: #e24b4b;
+  --warning: #f59e0b;
   --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.3);
   --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.4);
-  --shadow-soft: 0 8px 24px rgba(0, 0, 0, 0.35);
-  --shadow-card: 0 4px 14px rgba(0, 0, 0, 0.3);
+  --shadow-soft: 0 4px 12px rgba(0, 0, 0, 0.35);
+  --shadow-card: 0 2px 6px rgba(0, 0, 0, 0.25);
 }
 
 :root {
@@ -172,9 +172,16 @@ select option {
 
 .crm-input {
   border: 1px solid var(--border);
-  background: var(--surface-soft);
+  background: var(--surface);
   color: var(--text-main);
+  border-radius: 0.5rem;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
   outline: none;
+}
+
+.crm-input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 15%, transparent);
 }
 
 .crm-input::placeholder {
@@ -182,16 +189,22 @@ select option {
 }
 
 .crm-avatar {
-  background:
-    linear-gradient(135deg, color-mix(in srgb, var(--accent) 95%, white), var(--accent-alt)),
-    var(--accent);
+  background: var(--accent);
   color: white;
+  font-weight: 600;
 }
 
 .crm-gradient-button {
-  background: linear-gradient(135deg, var(--accent-strong), var(--accent-alt));
+  background: var(--accent);
   color: white;
-  box-shadow: 0 12px 24px color-mix(in srgb, var(--accent) 24%, transparent);
+  border-radius: 0.5rem;
+  font-weight: 500;
+  transition: background-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.crm-gradient-button:hover {
+  background: var(--accent-strong);
+  box-shadow: 0 2px 6px color-mix(in srgb, var(--accent) 25%, transparent);
 }
 
 /* Public marketing landing (app/page) — motion + spotlight */

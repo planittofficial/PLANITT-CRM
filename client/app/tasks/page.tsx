@@ -354,7 +354,7 @@ function TasksPageContent() {
                 Search Tasks
               </label>
               <input
-                className="h-9 w-full rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] px-3 text-xs outline-none focus:border-blue-500 focus:bg-[var(--surface-strong,#ffffff)]"
+                className="h-9 w-full rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] px-3 text-xs outline-none focus:border-[var(--accent)] focus:bg-[var(--surface-strong,#ffffff)] transition-all"
                 value={nameFilter}
                 placeholder="Search title, description, assignee..."
                 onChange={(e) => setNameFilter(e.target.value)}
@@ -472,7 +472,7 @@ function TasksPageContent() {
                 Title *
               </label>
               <input
-                className="h-9 w-full rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] px-3 text-sm outline-none focus:border-blue-500 focus:bg-[var(--surface-strong,#ffffff)]"
+                className="h-9 w-full rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] px-3 text-sm outline-none focus:border-[var(--accent)] focus:bg-[var(--surface-strong,#ffffff)] transition-all"
                 placeholder="e.g. Redesign Dashboard UI"
                 value={form.title}
                 onChange={(e) => setForm((c) => ({ ...c, title: e.target.value }))}
@@ -485,7 +485,7 @@ function TasksPageContent() {
               </label>
               <textarea
                 rows={3}
-                className="w-full rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] p-3 text-sm outline-none focus:border-blue-500 focus:bg-[var(--surface-strong,#ffffff)]"
+                className="w-full rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] p-3 text-sm outline-none focus:border-[var(--accent)] focus:bg-[var(--surface-strong,#ffffff)] transition-all"
                 placeholder="Brief summary of requirements..."
                 value={form.description}
                 onChange={(e) => setForm((c) => ({ ...c, description: e.target.value }))}

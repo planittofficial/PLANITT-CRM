@@ -1,19 +1,30 @@
 "use client";
 
-import type { CSSProperties } from "react";
+import { useEffect, useId, useState, type CSSProperties, type ReactNode } from "react";
 import type { CRMUser } from "@/types/crm";
+import {
+  ResponsiveContainer,
+  AreaChart,
+  Area,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+} from "recharts";
 
 export function Surface({
   children,
   className = "",
 }: {
-  children: React.ReactNode;
+  children: ReactNode;
   className?: string;
 }) {
   return (
     <section
-      className={`rounded-[24px] border ${className}`}
-      style={{ background: "var(--surface)", borderColor: "var(--border)", boxShadow: "var(--shadow-soft)" }}
+      className={`rounded-xl border border-[var(--border)] bg-[var(--surface)] shadow-xs transition-shadow duration-150 hover:shadow-sm ${className}`}
     >
       {children}
     </section>
@@ -29,29 +40,38 @@ export function rosterRolePillStyle(role: CRMUser["role"]): CSSProperties {
     case "SUPERADMIN":
     case "ADMIN":
       return {
-        background: "color-mix(in srgb, var(--accent) 20%, var(--surface))",
+        background: "color-mix(in srgb, var(--accent) 15%, var(--surface))",
         color: "var(--accent-strong)",
-        borderColor: "color-mix(in srgb, var(--accent) 40%, var(--border))",
+        borderColor: "color-mix(in srgb, var(--accent) 30%, var(--border))",
       };
     case "MANAGER":
       return {
-        background: "color-mix(in srgb, var(--success) 18%, var(--surface))",
-        color: "color-mix(in srgb, var(--success) 85%, var(--text-main))",
-        borderColor: "color-mix(in srgb, var(--success) 35%, var(--border))",
+        background: "color-mix(in srgb, var(--success) 14%, var(--surface))",
+        color: "var(--success)",
+        borderColor: "color-mix(in srgb, var(--success) 30%, var(--border))",
       };
     case "EMPLOYEE":
       return {
-        background: "color-mix(in srgb, var(--accent) 8%, var(--surface-soft))",
+        background: "var(--surface-soft)",
         color: "var(--text-main)",
         borderColor: "var(--border)",
       };
     default:
-      return { background: "var(--surface-soft)", color: "var(--text-soft)", borderColor: "var(--border)" };
+      return {
+        background: "var(--surface-soft)",
+        color: "var(--text-soft)",
+        borderColor: "var(--border)",
+      };
   }
 }
 
 export function getInitials(name: string) {
-  return name.split(" ").filter(Boolean).slice(0, 2).map((p) => p[0]?.toUpperCase() ?? "").join("");
+  return name
+    .split(" ")
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((p) => p[0]?.toUpperCase() ?? "")
+    .join("");
 }
 
 export function buildLinePath(points: number[], width: number, height: number) {
@@ -66,131 +86,342 @@ export function buildLinePath(points: number[], width: number, height: number) {
     .join(" ");
 }
 
-export function SummaryStatCard({ label, value, helper, points }: { label: string; value: string | number; helper: string; points: number[] }) {
-  const path = buildLinePath(points, 140, 44);
-  return (
-    <Surface className="overflow-hidden p-3 sm:p-5">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
-        <div className="min-w-0">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-[var(--text-faint)]">{label}</p>
-          <h3 className="mt-2 text-xl font-semibold tracking-tight text-[var(--text-main)] sm:text-2xl lg:text-3xl">{value}</h3>
-          <p className="mt-1 text-sm text-[var(--text-soft)] sm:mt-2">{helper}</p>
-        </div>
-        <div className="hidden shrink-0 rounded-2xl border px-3 py-2 sm:block" style={{ borderColor: "var(--border)", background: "var(--surface-soft)" }}>
-          <svg width="140" height="44" viewBox="0 0 140 44" fill="none" aria-hidden="true">
-            <path d={path} stroke="var(--accent)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-        </div>
-      </div>
-    </Surface>
-  );
-}
-
-export function LineChartCard({ title, subtitle, values, labels, suffix = "", stroke = "var(--accent)", fill = "color-mix(in srgb, var(--accent) 14%, transparent)" }: {
-  title: string; subtitle: string; values: number[]; labels: string[]; suffix?: string; stroke?: string; fill?: string;
+// Custom tooltip for real recharts
+function CustomChartTooltip({
+  active,
+  payload,
+  label,
+  suffix = "",
+}: {
+  active?: boolean;
+  payload?: Array<{ value: number; name?: string; color?: string }>;
+  label?: string;
+  suffix?: string;
 }) {
-  const width = 320; const height = 180;
-  const max = Math.max(...values, 1);
-  const path = buildLinePath(values, width, height - 24);
-  const areaPath = values.length ? `${path} L ${width} ${height} L 0 ${height} Z` : "";
+  if (!active || !payload || !payload.length) return null;
+
   return (
-    <Surface className="p-4 sm:p-5">
-      <div className="mb-5">
-        <p className="text-sm font-semibold text-[var(--text-main)]">{title}</p>
-        <p className="mt-1 text-sm text-[var(--text-soft)]">{subtitle}</p>
-      </div>
-      <div className="overflow-hidden rounded-[20px] border p-4" style={{ borderColor: "var(--border)", background: "var(--surface-soft)" }}>
-        <svg viewBox={`0 0 ${width} ${height}`} className="h-32 sm:h-40 md:h-48 w-full" aria-hidden="true">
-          {[0,1,2,3].map((s) => { const y = 12+(s/3)*(height-36); return <line key={s} x1="0" y1={y} x2={width} y2={y} stroke="color-mix(in srgb, var(--border) 80%, transparent)" strokeDasharray="4 6" />; })}
-          {areaPath ? <path d={areaPath} fill={fill} /> : null}
-          {path ? <path d={path} fill="none" stroke={stroke} strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round" /> : null}
-          {values.map((v, i) => { const x=(i/Math.max(values.length-1,1))*width; const y=height-24-(v/max)*(height-24); return <circle key={`${labels[i]}-${v}`} cx={x} cy={y} r="4" fill={stroke} />; })}
-        </svg>
-<div className="mt-4 flex justify-between gap-1 overflow-x-auto pb-1">  {labels.filter((_, i) => i % 2 === 0).map((l, i) => (
-    <div
-      key={`${l}-${i}`}
-className="min-w-[28px] flex-shrink-0 text-center"    >
-      <p className="text-[10px] text-[var(--text-faint)]">
-        {l.split(" ")[1] ?? l}
-      </p>
-      <p className="mt-1 text-xs font-semibold text-[var(--text-main)]">
-        {values[i]}{suffix}
-      </p>
+    <div className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-2.5 shadow-md">
+      {label && <p className="text-xs font-semibold text-[var(--text-main)] mb-1">{label}</p>}
+      {payload.map((entry, idx) => (
+        <div key={idx} className="flex items-center gap-2 text-xs">
+          <span
+            className="h-2 w-2 rounded-full"
+            style={{ backgroundColor: entry.color ?? "var(--accent)" }}
+          />
+          <span className="text-[var(--text-soft)]">{entry.name ?? "Value"}:</span>
+          <span className="font-semibold text-[var(--text-main)]">
+            {entry.value}
+            {suffix}
+          </span>
+        </div>
+      ))}
     </div>
-  ))}
-</div>
-      </div>
-    </Surface>
   );
 }
 
-export function ActivityBarsCard({ title, subtitle, labels, createdValues, completedValues }: {
-  title: string; subtitle: string; labels: string[]; createdValues: number[]; completedValues: number[];
+export function SummaryStatCard({
+  label,
+  value,
+  helper,
+  points,
+}: {
+  label: string;
+  value: string | number;
+  helper: string;
+  points: number[];
 }) {
-  const maxValue = Math.max(1, ...createdValues, ...completedValues);
-  return (
-    <Surface className="p-4">
-      <div className="mb-5"><p className="text-sm font-semibold text-[var(--text-main)]">{title}</p><p className="mt-1 text-sm text-[var(--text-soft)]">{subtitle}</p></div>
-      <div className="rounded-[20px] border p-4" style={{ borderColor: "var(--border)", background: "var(--surface-soft)" }}>
-        <div className="space-y-3.5">
-{labels.slice(-5).map((label, idx) => {
-  const i = labels.length - 5 + idx;
-  const c = createdValues[i] ?? 0;
-  const d = completedValues[i] ?? 0;
-            return (
-              <div key={`${label}-${i}`}>
-                <div className="mb-1.5 flex items-center justify-between gap-3">
-                  <p className="text-xs font-medium text-[var(--text-main)]">{label}</p>
-                  <p className="text-xs text-[var(--text-soft)]">C:{c} / D:{d}</p>
-                </div>
-                <div className="h-2 overflow-hidden rounded-full" style={{ background: "color-mix(in srgb, var(--border) 60%, transparent)" }}>
-                  <div className="h-full rounded-full bg-[var(--accent)]" style={{ width: `${(c/maxValue)*100}%` }} />
-                </div>
-                <div className="mt-1.5 h-2 overflow-hidden rounded-full" style={{ background: "color-mix(in srgb, var(--border) 60%, transparent)" }}>
-                  <div className="h-full rounded-full bg-[var(--success)]" style={{ width: `${(d/maxValue)*100}%` }} />
-                </div>
-              </div>
-            );
-          })}
-        </div>
-        <div className="mt-4 flex items-center gap-4 text-xs text-[var(--text-soft)]">
-          <span className="inline-flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-[var(--accent)]" />Created</span>
-          <span className="inline-flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-[var(--success)]" />Completed</span>
-        </div>
-      </div>
-    </Surface>
-  );
-}
+  const [mounted, setMounted] = useState(false);
+  const chartId = useId();
 
-export function InsightTicker({ items }: { items: Array<{ label: string; value: string; tone: "neutral" | "positive" | "warning" }> }) {
-  return (
-    <Surface className="p-4">
-      <div className="grid gap-3 md:grid-cols-3">
-        {items.map((item) => (
-          <div key={item.label} className="rounded-2xl border px-4 py-3" style={{ borderColor: "var(--border)", background: item.tone === "positive" ? "color-mix(in srgb, var(--success) 12%, var(--surface))" : item.tone === "warning" ? "color-mix(in srgb, var(--warning) 12%, var(--surface))" : "var(--surface-soft)" }}>
-            <p className="text-[11px] uppercase tracking-[0.18em] text-[var(--text-faint)]">{item.label}</p>
-            <p className="mt-2 text-lg font-semibold text-[var(--text-main)]">{item.value}</p>
-          </div>
-        ))}
-      </div>
-    </Surface>
-  );
-}
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
-export function PerformanceBars({ title, subtitle, items }: { title: string; subtitle: string; items: Array<{ label: string; value: number; helper: string }> }) {
+  const chartData = points.map((val, idx) => ({ idx, val }));
+
   return (
     <Surface className="p-4 sm:p-5">
-      <div className="mb-5"><p className="text-sm font-semibold text-[var(--text-main)]">{title}</p><p className="mt-1 text-sm text-[var(--text-soft)]">{subtitle}</p></div>
+      <div className="flex items-start justify-between gap-2.5">
+        <div className="min-w-0 flex-1">
+          <p className="text-xs font-medium text-[var(--text-soft)]">{label}</p>
+          <h3 className="mt-1 text-xl font-bold tracking-tight text-[var(--text-main)] sm:text-2xl lg:text-3xl">
+            {value}
+          </h3>
+          <p className="mt-0.5 text-xs text-[var(--text-faint)] truncate">{helper}</p>
+        </div>
+
+        {points && points.length > 1 && (
+          <div className="h-10 w-24 shrink-0 sm:w-28">
+            {mounted ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={chartData} margin={{ top: 2, right: 2, bottom: 0, left: 2 }}>
+                  <defs>
+                    <linearGradient id={`grad-${chartId}`} x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="var(--accent)" stopOpacity={0.3} />
+                      <stop offset="100%" stopColor="var(--accent)" stopOpacity={0.0} />
+                    </linearGradient>
+                  </defs>
+                  <Area
+                    type="monotone"
+                    dataKey="val"
+                    stroke="var(--accent)"
+                    strokeWidth={2}
+                    fill={`url(#grad-${chartId})`}
+                    isAnimationActive={false}
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="h-full w-full rounded bg-[var(--surface-soft)]" />
+            )}
+          </div>
+        )}
+      </div>
+    </Surface>
+  );
+}
+
+export function LineChartCard({
+  title,
+  subtitle,
+  values,
+  labels,
+  suffix = "",
+  stroke = "var(--accent)",
+  fill = "color-mix(in srgb, var(--accent) 15%, transparent)",
+}: {
+  title: string;
+  subtitle: string;
+  values: number[];
+  labels: string[];
+  suffix?: string;
+  stroke?: string;
+  fill?: string;
+}) {
+  const [mounted, setMounted] = useState(false);
+  const chartId = useId();
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const chartData = labels.map((label, idx) => ({
+    label,
+    value: values[idx] ?? 0,
+  }));
+
+  return (
+    <Surface className="p-4 sm:p-5">
+      <div className="mb-4">
+        <h4 className="text-sm font-semibold text-[var(--text-main)]">{title}</h4>
+        <p className="mt-0.5 text-xs text-[var(--text-soft)]">{subtitle}</p>
+      </div>
+
+      <div className="h-52 w-full pt-2">
+        {mounted ? (
+          <ResponsiveContainer width="100%" height="100%">
+            <AreaChart data={chartData} margin={{ top: 10, right: 12, left: -20, bottom: 0 }}>
+              <defs>
+                <linearGradient id={`areaGrad-${chartId}`} x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor={stroke} stopOpacity={0.25} />
+                  <stop offset="95%" stopColor={stroke} stopOpacity={0.02} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid
+                strokeDasharray="3 3"
+                vertical={false}
+                stroke="var(--border)"
+                opacity={0.7}
+              />
+              <XAxis
+                dataKey="label"
+                tick={{ fill: "var(--text-soft)", fontSize: 10 }}
+                tickLine={false}
+                axisLine={{ stroke: "var(--border)" }}
+                minTickGap={16}
+                interval="preserveStartEnd"
+              />
+              <YAxis
+                tick={{ fill: "var(--text-soft)", fontSize: 11 }}
+                tickLine={false}
+                axisLine={false}
+                unit={suffix}
+              />
+              <Tooltip content={<CustomChartTooltip suffix={suffix} />} />
+              <Area
+                type="monotone"
+                dataKey="value"
+                name={title}
+                stroke={stroke}
+                strokeWidth={2.5}
+                fill={`url(#areaGrad-${chartId})`}
+                activeDot={{ r: 5, stroke: stroke, fill: "var(--surface)", strokeWidth: 2 }}
+              />
+            </AreaChart>
+          </ResponsiveContainer>
+        ) : (
+          <div className="h-full w-full animate-pulse rounded-lg bg-[var(--surface-soft)]" />
+        )}
+      </div>
+    </Surface>
+  );
+}
+
+export function ActivityBarsCard({
+  title,
+  subtitle,
+  labels,
+  createdValues,
+  completedValues,
+}: {
+  title: string;
+  subtitle: string;
+  labels: string[];
+  createdValues: number[];
+  completedValues: number[];
+}) {
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const chartData = labels.slice(-7).map((label, idx) => {
+    const origIndex = labels.length - 7 + idx;
+    return {
+      label: label.split(" ")[1] ?? label,
+      created: createdValues[origIndex] ?? 0,
+      completed: completedValues[origIndex] ?? 0,
+    };
+  });
+
+  return (
+    <Surface className="p-4 sm:p-5">
+      <div className="mb-4 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h4 className="text-sm font-semibold text-[var(--text-main)]">{title}</h4>
+          <p className="mt-0.5 text-xs text-[var(--text-soft)]">{subtitle}</p>
+        </div>
+        <div className="flex items-center gap-3 text-xs text-[var(--text-soft)]">
+          <span className="inline-flex items-center gap-1.5">
+            <span className="h-2.5 w-2.5 rounded-sm bg-[var(--accent)]" />
+            Created
+          </span>
+          <span className="inline-flex items-center gap-1.5">
+            <span className="h-2.5 w-2.5 rounded-sm bg-emerald-600" />
+            Completed
+          </span>
+        </div>
+      </div>
+
+      <div className="h-56 w-full pt-2">
+        {mounted ? (
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={chartData} barGap={4} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+              <CartesianGrid
+                strokeDasharray="3 3"
+                vertical={false}
+                stroke="var(--border)"
+                opacity={0.7}
+              />
+              <XAxis
+                dataKey="label"
+                tick={{ fill: "var(--text-soft)", fontSize: 10 }}
+                tickLine={false}
+                axisLine={{ stroke: "var(--border)" }}
+                minTickGap={16}
+                interval="preserveStartEnd"
+              />
+              <YAxis
+                tick={{ fill: "var(--text-soft)", fontSize: 11 }}
+                tickLine={false}
+                axisLine={false}
+              />
+              <Tooltip content={<CustomChartTooltip />} />
+              <Bar dataKey="created" name="Created" fill="var(--accent)" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="completed" name="Completed" fill="#107c41" radius={[4, 4, 0, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        ) : (
+          <div className="h-full w-full animate-pulse rounded-lg bg-[var(--surface-soft)]" />
+        )}
+      </div>
+    </Surface>
+  );
+}
+
+export function InsightTicker({
+  items,
+}: {
+  items: Array<{ label: string; value: string; tone: "neutral" | "positive" | "warning" }>;
+}) {
+  return (
+    <div className="grid gap-3 sm:grid-cols-3">
+      {items.map((item) => {
+        const isPos = item.tone === "positive";
+        const isWarn = item.tone === "warning";
+        return (
+          <div
+            key={item.label}
+            className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-3.5 shadow-xs"
+          >
+            <div className="flex items-center justify-between">
+              <p className="text-xs font-medium text-[var(--text-soft)]">{item.label}</p>
+              <span
+                className={`h-2 w-2 rounded-full ${
+                  isPos ? "bg-emerald-500" : isWarn ? "bg-amber-500" : "bg-slate-400"
+                }`}
+              />
+            </div>
+            <p className="mt-1.5 text-sm font-semibold text-[var(--text-main)] truncate">
+              {item.value}
+            </p>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+export function PerformanceBars({
+  title,
+  subtitle,
+  items,
+}: {
+  title: string;
+  subtitle: string;
+  items: Array<{ label: string; value: number; helper: string }>;
+}) {
+  return (
+    <Surface className="p-4 sm:p-5">
+      <div className="mb-4">
+        <h4 className="text-sm font-semibold text-[var(--text-main)]">{title}</h4>
+        <p className="mt-0.5 text-xs text-[var(--text-soft)]">{subtitle}</p>
+      </div>
+
       <div className="space-y-4">
         {items.map((item) => (
           <div key={item.label}>
-            <div className="flex items-center justify-between gap-3">
-              <div><p className="text-sm font-medium text-[var(--text-main)]">{item.label}</p><p className="text-xs text-[var(--text-soft)]">{item.helper}</p></div>
-              <span className="text-sm font-semibold text-[var(--text-main)]">{item.value}%</span>
+            <div className="flex items-center justify-between text-xs">
+              <span className="font-medium text-[var(--text-main)]">{item.label}</span>
+              <span className="font-semibold text-[var(--text-main)]">{item.value}%</span>
             </div>
-            <div className="mt-2 h-2.5 overflow-hidden rounded-full" style={{ background: "var(--surface-soft)" }}>
-              <div className="h-full rounded-full" style={{ width: `${item.value}%`, background: "linear-gradient(90deg, var(--accent-strong) 0%, var(--accent) 55%, var(--success) 100%)" }} />
+            <div className="mt-1.5 h-2 w-full overflow-hidden rounded-full bg-[var(--surface-soft)] border border-[var(--border)]">
+              <div
+                className="h-full rounded-full transition-all duration-300"
+                style={{
+                  width: `${Math.min(100, Math.max(0, item.value))}%`,
+                  backgroundColor:
+                    item.value >= 70
+                      ? "var(--success)"
+                      : item.value >= 40
+                      ? "var(--accent)"
+                      : "var(--warning)",
+                }}
+              />
             </div>
+            <p className="mt-1 text-[11px] text-[var(--text-faint)]">{item.helper}</p>
           </div>
         ))}
       </div>
@@ -198,55 +429,60 @@ export function PerformanceBars({ title, subtitle, items }: { title: string; sub
   );
 }
 
-export function HeatmapGrid({ title, subtitle, items }: { title: string; subtitle: string; items: Array<{ date: string; label: string; value: number; intensity: number }> }) {
+export function HeatmapGrid({
+  title,
+  subtitle,
+  items,
+}: {
+  title: string;
+  subtitle: string;
+  items: Array<{ date: string; label: string; value: number; intensity: number }>;
+}) {
   const today = new Date();
   const todayKey = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
 
-  function getHeatmapStyles(intensity: number, isToday: boolean) {
-    if (intensity <= 0) {
-      return {
-        background: "var(--surface-soft)",
-        borderColor: isToday ? "var(--accent)" : "var(--border)",
-        boxShadow: isToday ? "0 0 0 1px color-mix(in srgb, var(--accent) 40%, transparent) inset" : "none",
-      };
-    }
-
-    if (intensity < 30) {
-      return {
-        background: "color-mix(in srgb, var(--accent) 20%, var(--surface-soft))",
-        borderColor: isToday ? "var(--accent-strong)" : "color-mix(in srgb, var(--accent) 35%, var(--border))",
-        boxShadow: isToday ? "0 0 0 1px color-mix(in srgb, var(--accent-strong) 40%, transparent) inset" : "none",
-      };
-    }
-
-    if (intensity < 65) {
-      return {
-        background: "color-mix(in srgb, var(--accent) 42%, var(--surface-soft))",
-        borderColor: isToday ? "var(--accent-strong)" : "color-mix(in srgb, var(--accent) 50%, var(--border))",
-        boxShadow: isToday ? "0 0 0 1px color-mix(in srgb, var(--accent-strong) 45%, transparent) inset" : "none",
-      };
-    }
-
-    return {
-      background: "linear-gradient(180deg, color-mix(in srgb, var(--accent-strong) 82%, var(--surface-soft)), color-mix(in srgb, var(--accent) 66%, var(--surface-soft)))",
-      borderColor: isToday ? "var(--accent-strong)" : "color-mix(in srgb, var(--accent-strong) 55%, var(--border))",
-      boxShadow: isToday ? "0 0 0 1px color-mix(in srgb, var(--accent-strong) 55%, transparent) inset" : "none",
-    };
-  }
-
   return (
     <Surface className="p-4 sm:p-5">
-      <p className="text-sm font-semibold text-[var(--text-main)]">{title}</p>
-      <p className="mt-1 text-sm text-[var(--text-soft)]">{subtitle}</p>
-<div className="mt-5 grid grid-cols-4 sm:grid-cols-5 gap-2">        {items.map((item) => (
-          <div key={item.date} className="space-y-1 text-center">
+      <div className="mb-4">
+        <h4 className="text-sm font-semibold text-[var(--text-main)]">{title}</h4>
+        <p className="mt-0.5 text-xs text-[var(--text-soft)]">{subtitle}</p>
+      </div>
+
+      <div className="grid grid-cols-5 gap-2 sm:grid-cols-7 md:grid-cols-10">
+        {items.map((item) => {
+          const isToday = item.date === todayKey;
+          const bg =
+            item.intensity <= 0
+              ? "bg-[var(--surface-soft)]"
+              : item.intensity < 30
+              ? "bg-indigo-100 dark:bg-indigo-950/60"
+              : item.intensity < 70
+              ? "bg-indigo-300 dark:bg-indigo-800/80"
+              : "bg-[var(--accent)] text-white";
+
+          return (
             <div
-className="h-7 sm:h-9 rounded-xl border transition-all"              title={`${item.label}: ${item.value}`}
-              style={getHeatmapStyles(item.intensity, item.date === todayKey)}
-            />
-            <p className="text-[10px] text-[var(--text-faint)]">{item.label.split(" ")[1] ?? item.label}</p>
-          </div>
-        ))}
+              key={item.date}
+              title={`${item.label} (${item.date}): ${item.value} entries`}
+              className={`group relative flex flex-col items-center justify-center rounded-lg border p-2 text-center transition-transform hover:scale-105 ${bg} ${
+                isToday ? "ring-2 ring-[var(--accent)] ring-offset-1" : "border-[var(--border)]"
+              }`}
+            >
+              <span className="text-[10px] font-medium opacity-80">
+                {item.label.split(" ")[0]}
+              </span>
+              <span className="text-xs font-bold">{item.value}</span>
+            </div>
+          );
+        })}
+      </div>
+      <div className="mt-3 flex items-center justify-end gap-2 text-[11px] text-[var(--text-soft)]">
+        <span>Less</span>
+        <span className="h-2.5 w-2.5 rounded bg-[var(--surface-soft)] border border-[var(--border)]" />
+        <span className="h-2.5 w-2.5 rounded bg-indigo-100 dark:bg-indigo-950/60" />
+        <span className="h-2.5 w-2.5 rounded bg-indigo-300 dark:bg-indigo-800/80" />
+        <span className="h-2.5 w-2.5 rounded bg-[var(--accent)]" />
+        <span>More</span>
       </div>
     </Surface>
   );

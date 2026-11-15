@@ -15,15 +15,10 @@ import type { CRMUser, Department } from "@/types/crm";
 import { showToast } from "@/hooks/use-toast";
 type PaginatedResponse<T> = { items: T[]; total: number; hasMore: boolean; nextOffset: number };
 
-function Surface({ children }: { children: ReactNode }) {
+function Surface({ children, className = "" }: { children: ReactNode; className?: string }) {
   return (
     <section
-      className="rounded-[20px] border p-5"
-      style={{
-        background: "var(--surface)",
-        borderColor: "var(--border)",
-        boxShadow: "var(--shadow-soft)",
-      }}
+      className={`rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4 sm:p-5 shadow-xs ${className}`}
     >
       {children}
     </section>

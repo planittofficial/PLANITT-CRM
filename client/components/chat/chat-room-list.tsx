@@ -24,36 +24,52 @@ function RoomButton({
     <button
       type="button"
       onClick={onSelect}
-      className="crm-touch-target w-full rounded-2xl border px-4 py-3 text-left transition"
-      style={{
-        borderColor: active ? "var(--accent)" : "var(--border)",
-        background: active
-          ? "color-mix(in srgb, var(--accent) 10%, var(--surface))"
-          : "var(--surface-soft)",
-      }}
+      className={`group relative flex w-full items-center gap-2.5 rounded-lg border px-3 py-2 text-left transition-colors ${
+        active
+          ? "border-[var(--accent)]/30 bg-[var(--surface-soft)] shadow-2xs"
+          : "border-transparent hover:bg-[var(--surface-soft)]"
+      }`}
     >
-      <div className="flex items-center gap-3">
-        {room.isDirect && room.directPeer ? (
-          <UserAvatar
-            name={room.directPeer.name}
-            avatarUrl={room.directPeer.avatarUrl}
-            authProvider={room.directPeer.authProvider}
-            className="h-9 w-9 shrink-0 rounded-full text-[10px]"
-          />
-        ) : null}
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center justify-between gap-2">
-            <p className="truncate text-sm font-semibold text-[var(--text-main)]">{room.name}</p>
-            {!!room.unreadCount && (
-              <span className="rounded-full bg-[var(--accent)] px-2 py-0.5 text-[10px] font-semibold text-white">
-                {room.unreadCount}
-              </span>
-            )}
-          </div>
-          <p className="mt-1 truncate text-xs text-[var(--text-soft)]">
-            {room.lastMessagePreview || room.subtitle}
-          </p>
+      {active && (
+        <span
+          className="absolute left-0 top-1/2 -translate-y-1/2 h-5 w-1 rounded-r bg-[var(--accent)]"
+          aria-hidden
+        />
+      )}
+
+      {room.isDirect && room.directPeer ? (
+        <UserAvatar
+          name={room.directPeer.name}
+          avatarUrl={room.directPeer.avatarUrl}
+          authProvider={room.directPeer.authProvider}
+          className="h-8 w-8 shrink-0 rounded-full text-[10px]"
+        />
+      ) : (
+        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[var(--surface)] border border-[var(--border)] text-xs font-bold text-[var(--accent)]">
+          #
         </div>
+      )}
+
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center justify-between gap-1.5">
+          <p
+            className={`truncate text-xs ${
+              active
+                ? "font-semibold text-[var(--text-main)]"
+                : "font-medium text-[var(--text-main)]"
+            }`}
+          >
+            {room.name}
+          </p>
+          {!!room.unreadCount && (
+            <span className="rounded-full bg-[var(--accent)] px-1.5 py-0.2 text-[10px] font-bold text-white">
+              {room.unreadCount}
+            </span>
+          )}
+        </div>
+        <p className="mt-0.5 truncate text-[11px] text-[var(--text-soft)]">
+          {room.lastMessagePreview || room.subtitle || "No messages yet"}
+        </p>
       </div>
     </button>
   );
@@ -61,10 +77,7 @@ function RoomButton({
 
 function EmptyRoom({ label }: { label: string }) {
   return (
-    <p
-      className="rounded-2xl border px-4 py-3 text-sm text-[var(--text-soft)]"
-      style={{ borderColor: "var(--border)" }}
-    >
+    <p className="rounded-lg border border-dashed border-[var(--border)] px-3 py-2 text-center text-xs text-[var(--text-soft)]">
       {label}
     </p>
   );
@@ -75,12 +88,12 @@ export function ChatRoomList({ rooms, selectedKey, loading, onSelect }: Props) {
   const groupRooms = rooms.groups.filter((room) => !room.isDirect);
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-4">
       <div>
-        <p className="mb-2 text-xs font-semibold uppercase tracking-[0.2em] text-[var(--text-faint)]">
+        <p className="mb-1.5 px-1 text-[11px] font-bold uppercase tracking-wider text-[var(--text-soft)]">
           Departments
         </p>
-        <div className="space-y-2">
+        <div className="space-y-1">
           {rooms.departments.map((room) => (
             <RoomButton
               key={roomKey(room)}
@@ -96,10 +109,10 @@ export function ChatRoomList({ rooms, selectedKey, loading, onSelect }: Props) {
       </div>
 
       <div>
-        <p className="mb-2 text-xs font-semibold uppercase tracking-[0.2em] text-[var(--text-faint)]">
-          One-to-one
+        <p className="mb-1.5 px-1 text-[11px] font-bold uppercase tracking-wider text-[var(--text-soft)]">
+          Direct Messages
         </p>
-        <div className="space-y-2">
+        <div className="space-y-1">
           {directRooms.map((room) => (
             <RoomButton
               key={roomKey(room)}
@@ -109,16 +122,16 @@ export function ChatRoomList({ rooms, selectedKey, loading, onSelect }: Props) {
             />
           ))}
           {!loading && !directRooms.length && (
-            <EmptyRoom label="No one-to-one room available." />
+            <EmptyRoom label="No direct chats yet." />
           )}
         </div>
       </div>
 
       <div>
-        <p className="mb-2 text-xs font-semibold uppercase tracking-[0.2em] text-[var(--text-faint)]">
-          Groups
+        <p className="mb-1.5 px-1 text-[11px] font-bold uppercase tracking-wider text-[var(--text-soft)]">
+          Channels & Groups
         </p>
-        <div className="space-y-2">
+        <div className="space-y-1">
           {groupRooms.map((room) => (
             <RoomButton
               key={roomKey(room)}
@@ -134,10 +147,10 @@ export function ChatRoomList({ rooms, selectedKey, loading, onSelect }: Props) {
       </div>
 
       <div>
-        <p className="mb-2 text-xs font-semibold uppercase tracking-[0.2em] text-[var(--text-faint)]">
+        <p className="mb-1.5 px-1 text-[11px] font-bold uppercase tracking-wider text-[var(--text-soft)]">
           Projects
         </p>
-        <div className="space-y-2">
+        <div className="space-y-1">
           {rooms.projects.map((room) => (
             <RoomButton
               key={roomKey(room)}

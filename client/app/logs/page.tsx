@@ -112,33 +112,41 @@ export default function LogsPage() {
     <CRMShell user={user}>
       <div className="space-y-4">
         <section
-          className="rounded-2xl border p-5"
-          style={{ borderColor: "var(--border)", background: "var(--surface)", boxShadow: "var(--shadow-soft)" }}
+          className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4 sm:p-5 shadow-xs"
         >
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--text-faint)]">Audit center</p>
-          <h1 className="mt-2 text-2xl font-semibold text-[var(--text-main)]">Activity logs</h1>
-          <p className="mt-2 text-sm text-[var(--text-soft)]">
-            Track who did what across the CRM. Use filters to narrow down actions quickly.
-          </p>
-          <div className="mt-4 grid grid-cols-3 gap-2 md:max-w-xl">
-            <div className="rounded-xl border px-3 py-2" style={{ borderColor: "var(--border)", background: "var(--surface-soft)" }}>
-              <p className="text-[10px] uppercase tracking-[0.16em] text-[var(--text-faint)]">Success</p>
-              <p className="mt-1 text-sm font-semibold text-[var(--text-main)]">{statusSummary.ok}</p>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="rounded-md bg-indigo-50 px-2 py-0.5 text-xs font-semibold text-[var(--accent)] border border-indigo-200 dark:bg-indigo-950/40 dark:text-indigo-300 dark:border-indigo-800">
+                  Security
+                </span>
+                <span className="text-xs text-[var(--text-soft)]">System Logs</span>
+              </div>
+              <h1 className="mt-1 text-xl font-bold tracking-tight text-[var(--text-main)] sm:text-2xl">Activity & Audit Trail</h1>
+              <p className="mt-0.5 text-xs text-[var(--text-soft)]">
+                Track who did what across the CRM. Filter by status, user, role, and date.
+              </p>
             </div>
-            <div className="rounded-xl border px-3 py-2" style={{ borderColor: "var(--border)", background: "var(--surface-soft)" }}>
-              <p className="text-[10px] uppercase tracking-[0.16em] text-[var(--text-faint)]">Client errors</p>
-              <p className="mt-1 text-sm font-semibold text-[var(--text-main)]">{statusSummary.warnings}</p>
-            </div>
-            <div className="rounded-xl border px-3 py-2" style={{ borderColor: "var(--border)", background: "var(--surface-soft)" }}>
-              <p className="text-[10px] uppercase tracking-[0.16em] text-[var(--text-faint)]">Server errors</p>
-              <p className="mt-1 text-sm font-semibold text-[var(--text-main)]">{statusSummary.failures}</p>
+
+            <div className="flex items-center gap-2">
+              <div className="rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] px-3 py-1.5 text-center">
+                <p className="text-[10px] text-[var(--text-faint)]">2xx Success</p>
+                <p className="text-xs font-bold text-emerald-600">{statusSummary.ok}</p>
+              </div>
+              <div className="rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] px-3 py-1.5 text-center">
+                <p className="text-[10px] text-[var(--text-faint)]">4xx Client</p>
+                <p className="text-xs font-bold text-amber-600">{statusSummary.warnings}</p>
+              </div>
+              <div className="rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] px-3 py-1.5 text-center">
+                <p className="text-[10px] text-[var(--text-faint)]">5xx Errors</p>
+                <p className="text-xs font-bold text-rose-600">{statusSummary.failures}</p>
+              </div>
             </div>
           </div>
         </section>
 
         <section
-          className="rounded-2xl border p-4"
-          style={{ borderColor: "var(--border)", background: "var(--surface)", boxShadow: "var(--shadow-soft)" }}
+          className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4 shadow-xs"
         >
           <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-4">
             <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search action/path/method" className="rounded-xl border px-3 py-2 text-sm outline-none" style={{ borderColor: "var(--border)", background: "var(--surface-soft)", color: "var(--text-main)" }} />
