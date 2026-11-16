@@ -174,60 +174,106 @@ export default function LeavesPage() {
               No leave requests match your search or filter.
             </div>
           ) : (
-            <div className="overflow-x-auto rounded-lg border border-[var(--border)] crm-table-scroll">
-              <table className="min-w-full text-left text-xs">
-                <thead className="bg-[var(--surface-soft)] border-b border-[var(--border)]">
-                  <tr className="font-semibold text-[var(--text-soft)]">
-                    <th className="px-3.5 py-2.5">Type</th>
-                    <th className="px-3.5 py-2.5">Requester</th>
-                    <th className="px-3.5 py-2.5">Manager</th>
-                    <th className="px-3.5 py-2.5">Period</th>
-                    <th className="px-3.5 py-2.5">Status</th>
-                    <th className="px-3.5 py-2.5">Updated</th>
-                  </tr>
-                </thead>
-                <tbody className="bg-[var(--surface)] divide-y divide-[var(--border)] text-[var(--text-main)]">
-                  {filteredLeaves.map((leave) => {
-                    const isPending = leave.status === "PENDING";
-                    const isApproved = leave.status === "APPROVED";
-                    const isRejected = leave.status === "REJECTED";
+            <>
+              {/* Mobile Card List View */}
+              <div className="sm:hidden space-y-2.5">
+                {filteredLeaves.map((leave) => {
+                  const isPending = leave.status === "PENDING";
+                  const isApproved = leave.status === "APPROVED";
+                  const isRejected = leave.status === "REJECTED";
 
-                    return (
-                      <tr key={leave.id} className="hover:bg-[var(--surface-soft)] transition-colors">
-                        <td className="px-3.5 py-2.5 align-middle">
-                          <Link href={`/leaves/${leave.id}`} className="font-semibold text-[var(--accent)] hover:underline">
-                            {leave.leaveType?.name ?? "General Leave"}
-                          </Link>
-                        </td>
-                        <td className="px-3.5 py-2.5 align-middle font-medium">{leave.user.name}</td>
-                        <td className="px-3.5 py-2.5 align-middle text-[var(--text-soft)]">{leave.manager?.name ?? "Unassigned"}</td>
-                        <td className="px-3.5 py-2.5 align-middle text-[var(--text-soft)]">
-                          {new Date(leave.startDate).toLocaleDateString()} – {new Date(leave.endDate).toLocaleDateString()}
-                        </td>
-                        <td className="px-3.5 py-2.5 align-middle">
-                          <span
-                            className={`inline-flex rounded-md px-2 py-0.5 text-[11px] font-semibold border ${
-                              isApproved
-                                ? "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800"
-                                : isRejected
-                                ? "bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-800"
-                                : isPending
-                                ? "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800"
-                                : "bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700"
-                            }`}
-                          >
-                            {statusLabel(leave.status)}
-                          </span>
-                        </td>
-                        <td className="px-3.5 py-2.5 align-middle text-[var(--text-faint)]">
-                          {new Date(leave.updatedAt).toLocaleDateString()}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
+                  return (
+                    <div
+                      key={leave.id}
+                      className="rounded-xl border border-[var(--border)] bg-[var(--surface-soft)] p-3 space-y-2"
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <Link href={`/leaves/${leave.id}`} className="font-bold text-xs text-[var(--accent)] hover:underline">
+                          {leave.leaveType?.name ?? "General Leave"}
+                        </Link>
+                        <span
+                          className={`inline-flex rounded-md px-2 py-0.5 text-[10px] font-semibold border ${
+                            isApproved
+                              ? "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800"
+                              : isRejected
+                              ? "bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-800"
+                              : isPending
+                              ? "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800"
+                              : "bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700"
+                          }`}
+                        >
+                          {statusLabel(leave.status)}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between text-[11px] text-[var(--text-soft)]">
+                        <span>Requester: <strong className="text-[var(--text-main)]">{leave.user.name}</strong></span>
+                        <span>Manager: {leave.manager?.name ?? "—"}</span>
+                      </div>
+                      <div className="flex items-center justify-between text-[10px] text-[var(--text-faint)] pt-1 border-t border-[var(--border)]">
+                        <span>{new Date(leave.startDate).toLocaleDateString()} – {new Date(leave.endDate).toLocaleDateString()}</span>
+                        <span>Updated: {new Date(leave.updatedAt).toLocaleDateString()}</span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Desktop Table View */}
+              <div className="hidden sm:block overflow-x-auto rounded-lg border border-[var(--border)] crm-table-scroll">
+                <table className="min-w-full text-left text-xs">
+                  <thead className="bg-[var(--surface-soft)] border-b border-[var(--border)]">
+                    <tr className="font-semibold text-[var(--text-soft)]">
+                      <th className="px-3.5 py-2.5">Type</th>
+                      <th className="px-3.5 py-2.5">Requester</th>
+                      <th className="px-3.5 py-2.5">Manager</th>
+                      <th className="px-3.5 py-2.5">Period</th>
+                      <th className="px-3.5 py-2.5">Status</th>
+                      <th className="px-3.5 py-2.5">Updated</th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-[var(--surface)] divide-y divide-[var(--border)] text-[var(--text-main)]">
+                    {filteredLeaves.map((leave) => {
+                      const isPending = leave.status === "PENDING";
+                      const isApproved = leave.status === "APPROVED";
+                      const isRejected = leave.status === "REJECTED";
+
+                      return (
+                        <tr key={leave.id} className="hover:bg-[var(--surface-soft)] transition-colors">
+                          <td className="px-3.5 py-2.5 align-middle">
+                            <Link href={`/leaves/${leave.id}`} className="font-semibold text-[var(--accent)] hover:underline">
+                              {leave.leaveType?.name ?? "General Leave"}
+                            </Link>
+                          </td>
+                          <td className="px-3.5 py-2.5 align-middle font-medium">{leave.user.name}</td>
+                          <td className="px-3.5 py-2.5 align-middle text-[var(--text-soft)]">{leave.manager?.name ?? "Unassigned"}</td>
+                          <td className="px-3.5 py-2.5 align-middle text-[var(--text-soft)]">
+                            {new Date(leave.startDate).toLocaleDateString()} – {new Date(leave.endDate).toLocaleDateString()}
+                          </td>
+                          <td className="px-3.5 py-2.5 align-middle">
+                            <span
+                              className={`inline-flex rounded-md px-2 py-0.5 text-[11px] font-semibold border ${
+                                isApproved
+                                  ? "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800"
+                                  : isRejected
+                                  ? "bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-800"
+                                  : isPending
+                                  ? "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800"
+                                  : "bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700"
+                              }`}
+                            >
+                              {statusLabel(leave.status)}
+                            </span>
+                          </td>
+                          <td className="px-3.5 py-2.5 align-middle text-[var(--text-faint)]">
+                            {new Date(leave.updatedAt).toLocaleDateString()}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </>
           )}
         </section>
       </div>

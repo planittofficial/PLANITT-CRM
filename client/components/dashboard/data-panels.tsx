@@ -189,7 +189,7 @@ export function DonutChartCard({
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Tooltip
-                  content={({ active, payload }) => {
+                  content={({ active, payload }: any) => {
                     if (!active || !payload?.length) return null;
                     const p = payload[0];
                     return (

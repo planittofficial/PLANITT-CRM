@@ -32,6 +32,7 @@ function TasksPageContent() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
   const [selectedProjectId, setSelectedProjectId] = useState("ALL");
+  const [statusFilter, setStatusFilter] = useState<"ALL" | Task["status"]>("ALL");
   const [filterOpen, setFilterOpen] = useState(false);
   const [nameFilter, setNameFilter] = useState("");
   const [tasksTotal, setTasksTotal] = useState(0);
@@ -146,15 +147,19 @@ function TasksPageContent() {
   }, [tasks]);
 
   const visibleTasks = useMemo(() => {
+    let result = sortedTasks;
+    if (statusFilter !== "ALL") {
+      result = result.filter((task) => task.status === statusFilter);
+    }
     const query = nameFilter.trim().toLowerCase();
-    if (!query) return sortedTasks;
-    return sortedTasks.filter((task) => {
+    if (!query) return result;
+    return result.filter((task) => {
       const inTitle = task.title.toLowerCase().includes(query);
       const inDescription = (task.description ?? "").toLowerCase().includes(query);
       const inAssignee = task.assignments.some((a) => a.user.name.toLowerCase().includes(query));
       return inTitle || inDescription || inAssignee;
     });
-  }, [sortedTasks, nameFilter]);
+  }, [sortedTasks, statusFilter, nameFilter]);
 
   const loadTasks = async (append = false) => {
     const offset = append ? nextTaskOffset : 0;
@@ -286,24 +291,25 @@ function TasksPageContent() {
     <CRMShell user={user}>
       <div className="space-y-5 pb-6">
         {/* Header Action Bar */}
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h1 className="text-xl font-bold tracking-tight text-[var(--text-main)] sm:text-2xl">
+            <h1 className="text-lg font-bold tracking-tight text-[var(--text-main)] sm:text-xl">
               Tasks
             </h1>
-            <p className="text-xs text-[var(--text-soft)] mt-0.5">
+            <p className="text-xs text-[var(--text-soft)]">
               {isAdminRole(user.role)
                 ? "Assign, organize, and monitor workflows across all teams."
                 : "Manage your assigned work and keep progress up to date."}
             </p>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 sm:gap-2">
             <Button
               variant="outline"
               size="sm"
               leftIcon={<FilterIcon size={14} />}
               onClick={() => setFilterOpen((prev) => !prev)}
+              className="text-xs"
             >
               {filterOpen ? "Hide Filters" : "Filter"}
             </Button>
@@ -314,6 +320,7 @@ function TasksPageContent() {
                 size="sm"
                 leftIcon={<PlusIcon size={14} />}
                 onClick={() => setCreateSheetOpen(true)}
+                className="text-xs"
               >
                 New Task
               </Button>
@@ -321,14 +328,48 @@ function TasksPageContent() {
           </div>
         </div>
 
-        {/* 6 Metrics Grid (Teams / Linear Card Style) */}
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
-          <StatCard label="Total Tasks" value={taskAnalytics.total} />
-          <StatCard label="Todo" value={taskAnalytics.todo} />
-          <StatCard label="In Progress" value={taskAnalytics.inProgress} />
-          <StatCard label="Done" value={taskAnalytics.done} />
-          <StatCard label="Completion" value={`${taskAnalytics.completionRate}%`} />
-          <StatCard label="Avg Progress" value={`${taskAnalytics.avgProgress}%`} />
+        {/* Teams Compact Status Tabs & Metric Summary */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[var(--border)] pb-2.5">
+          {/* Status Filter Chips */}
+          <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar">
+            {[
+              { key: "ALL", label: "All", count: taskAnalytics.total },
+              { key: "TODO", label: "Pending", count: taskAnalytics.todo },
+              { key: "IN_PROGRESS", label: "In Progress", count: taskAnalytics.inProgress },
+              { key: "DONE", label: "Completed", count: taskAnalytics.done },
+            ].map((tab) => {
+              const isActive = statusFilter === tab.key;
+              return (
+                <button
+                  key={tab.key}
+                  type="button"
+                  onClick={() => setStatusFilter(tab.key as any)}
+                  className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-semibold transition-all shrink-0 ${
+                    isActive
+                      ? "bg-[var(--accent)] text-white shadow-2xs"
+                      : "border border-[var(--border)] bg-[var(--surface-strong,#ffffff)] text-[var(--text-soft)] hover:bg-[var(--surface-soft)]"
+                  }`}
+                >
+                  <span>{tab.label}</span>
+                  <span className={`rounded-full px-1.5 py-0.2 text-[10px] font-bold ${isActive ? "bg-white/20 text-white" : "bg-[var(--surface-soft)] text-[var(--text-main)]"}`}>
+                    {tab.count}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Metric Summary Pill */}
+          <div className="flex items-center gap-2 text-xs shrink-0 self-end sm:self-center">
+            <div className="flex items-center gap-1.5 rounded-lg border border-[var(--border)] bg-[var(--surface-strong,#ffffff)] px-2.5 py-1 text-xs">
+              <span className="font-semibold text-[var(--text-soft)]">Done:</span>
+              <span className="font-bold text-emerald-600">{taskAnalytics.completionRate}%</span>
+            </div>
+            <div className="flex items-center gap-1.5 rounded-lg border border-[var(--border)] bg-[var(--surface-strong,#ffffff)] px-2.5 py-1 text-xs">
+              <span className="font-semibold text-[var(--text-soft)]">Avg:</span>
+              <span className="font-bold text-[var(--accent)]">{taskAnalytics.avgProgress}%</span>
+            </div>
+          </div>
         </div>
 
         {/* Filter Bar */}

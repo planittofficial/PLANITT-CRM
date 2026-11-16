@@ -13,12 +13,18 @@ import { parseSmartTaskPaste } from "@/lib/smart-paste";
 import { useProjectsData, TASK_PRIORITY_OPTIONS } from "@/hooks/use-projects-data";
 import { useCrmSearch } from "@/components/providers/crm-search-provider";
 import { Button } from "@/components/ui/button";
-import { StatCard } from "@/components/ui/stat-card";
 import { Sheet } from "@/components/ui/sheet";
-import { FolderKanbanIcon, PlusIcon, UsersIcon } from "@/components/ui/icons";
-import type { TaskPriority } from "@/types/crm";
+import {
+  FolderKanbanIcon,
+  PlusIcon,
+  UsersIcon,
+  SearchIcon,
+  CheckSquareIcon,
+  KeyIcon,
+} from "@/components/ui/icons";
+import type { TaskPriority, Task } from "@/types/crm";
 
-const FIELD_STYLE = { borderColor: "var(--border)", background: "var(--surface-soft)", color: "var(--text-main)" } as const;
+type ActiveTab = "board" | "list" | "credentials" | "team";
 
 export default function ProjectsPage() {
   const { globalSearch, searchSubmitted } = useCrmSearch();
@@ -34,10 +40,12 @@ export default function ProjectsPage() {
     groupedTasks, projectAnalytics, selectedProject,
   } = useProjectsData();
 
+  const [activeTab, setActiveTab] = useState<ActiveTab>("board");
   const [createProjectOpen, setCreateProjectOpen] = useState(false);
   const [createTaskOpen, setCreateTaskOpen] = useState(false);
   const [manageTeamOpen, setManageTeamOpen] = useState(false);
-  const [projectPasteText, setProjectPasteText] = useState("");
+  const [mobileProjectPickerOpen, setMobileProjectPickerOpen] = useState(false);
+  const [localProjectFilter, setLocalProjectFilter] = useState("");
   const [projectSmartPasteText, setProjectSmartPasteText] = useState("");
 
   const departmentOptions = useMemo(
@@ -70,39 +78,17 @@ export default function ProjectsPage() {
     showToast("Task fields auto-filled.", "success");
   };
 
-  const handleTaskPaste = () => {
-    const lines = projectPasteText.split("\n").map((line) => line.trim());
-    const titleLine = lines.find((line) => {
-      const lower = line.toLowerCase();
-      return lower.startsWith("title:") || lower.startsWith("project:");
-    });
-    const descriptionIndex = lines.findIndex((line) => {
-      const lower = line.toLowerCase();
-      return lower.startsWith("description:") || lower.startsWith("desc:");
-    });
-
-    const title = titleLine?.replace(/^(title|project)\s*:/i, "").trim() || "";
-    const description = descriptionIndex >= 0 ? lines.slice(descriptionIndex + 1).join("\n").trim() : "";
-
-    if (!title) {
-      showToast("Could not detect project structure.", "error");
-      return;
-    }
-
-    setProjectForm((current) => ({ ...current, name: title, description }));
-    showToast("Project fields auto-filled.", "success");
-  };
-
   const visibleProjects = useMemo(() => {
-    if (!searchSubmitted || !projectSearch) return projects;
+    const query = (localProjectFilter || (searchSubmitted ? projectSearch : "")).toLowerCase().trim();
+    if (!query) return projects;
     return projects.filter((project) => {
-      const inName = project.name.toLowerCase().includes(projectSearch);
-      const inDesc = (project.description ?? "").toLowerCase().includes(projectSearch);
-      const inDept = (project.department?.name ?? "").toLowerCase().includes(projectSearch);
-      const inOwner = (project.owner?.name ?? "").toLowerCase().includes(projectSearch);
+      const inName = project.name.toLowerCase().includes(query);
+      const inDesc = (project.description ?? "").toLowerCase().includes(query);
+      const inDept = (project.department?.name ?? "").toLowerCase().includes(query);
+      const inOwner = (project.owner?.name ?? "").toLowerCase().includes(query);
       return inName || inDesc || inDept || inOwner;
     });
-  }, [projects, projectSearch, searchSubmitted]);
+  }, [projects, localProjectFilter, projectSearch, searchSubmitted]);
 
   const visibleGroupedTasks = useMemo(() => {
     if (!searchSubmitted || !projectSearch) return groupedTasks;
@@ -118,6 +104,14 @@ export default function ProjectsPage() {
       DONE: groupedTasks.DONE.filter(match),
     };
   }, [groupedTasks, projectSearch, searchSubmitted]);
+
+  const allVisibleTasksList = useMemo(() => {
+    return [
+      ...visibleGroupedTasks.TODO,
+      ...visibleGroupedTasks.IN_PROGRESS,
+      ...visibleGroupedTasks.DONE,
+    ];
+  }, [visibleGroupedTasks]);
 
   useEffect(() => {
     if (!visibleProjects.length) return;
@@ -138,37 +132,40 @@ export default function ProjectsPage() {
 
   return (
     <CRMShell user={user}>
-      <div className="space-y-5 pb-6">
-        {/* Header Action Bar */}
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <div className="space-y-3.5 pb-6">
+        {/* ── TEAMS COMPACT HEADER & ACTIONS ──────────────────────────────── */}
+        <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h1 className="text-xl font-bold tracking-tight text-[var(--text-main)] sm:text-2xl">
-              Project Command Center
+            <h1 className="text-lg font-bold tracking-tight text-[var(--text-main)] sm:text-xl">
+              Projects
             </h1>
-            <p className="text-xs text-[var(--text-soft)] mt-0.5">
-              Manage department project boards, track delivery velocity, and resolve task blockers.
+            <p className="text-xs text-[var(--text-soft)]">
+              Organize team boards, sprint tasks, and credentials.
             </p>
           </div>
 
-          <div className="flex items-center gap-2">
+          {/* Action Buttons: Responsive, shrink-proof & no overlapping on mobile */}
+          <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap sm:flex-nowrap">
             {selectedProject && (
               <>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  leftIcon={<UsersIcon size={14} />}
+                <button
+                  type="button"
                   onClick={() => setManageTeamOpen(true)}
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--border)] bg-[var(--surface-strong,#ffffff)] px-2.5 py-1.5 text-xs font-semibold text-[var(--text-main)] hover:bg-[var(--surface-soft)] transition-colors shadow-2xs"
+                  title="Manage project members"
                 >
-                  Project Team ({selectedProject.members?.length ?? 0})
-                </Button>
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  leftIcon={<PlusIcon size={14} />}
+                  <UsersIcon size={14} className="text-[var(--text-soft)]" />
+                  <span>Team ({selectedProject.members?.length ?? 0})</span>
+                </button>
+                <button
+                  type="button"
                   onClick={() => setCreateTaskOpen(true)}
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--border)] bg-[var(--surface-strong,#ffffff)] px-2.5 py-1.5 text-xs font-semibold text-[var(--text-main)] hover:bg-[var(--surface-soft)] transition-colors shadow-2xs"
+                  title="Add new task"
                 >
-                  Add Task
-                </Button>
+                  <PlusIcon size={14} className="text-[var(--accent)]" />
+                  <span>Add Task</span>
+                </button>
               </>
             )}
             <Button
@@ -176,33 +173,93 @@ export default function ProjectsPage() {
               size="sm"
               leftIcon={<FolderKanbanIcon size={14} />}
               onClick={() => setCreateProjectOpen(true)}
+              className="text-xs"
             >
               New Board
             </Button>
           </div>
         </div>
 
-        {/* 5 Project Metric Cards */}
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
-          <StatCard label="Total Projects" value={projectAnalytics.totalProjects} />
-          <StatCard label="Avg Progress" value={`${projectAnalytics.avgProgress}%`} />
-          <StatCard label="Total Tasks" value={projectAnalytics.totalTasks} />
-          <StatCard label="Completion" value={`${projectAnalytics.completionRate}%`} />
-          <StatCard label="At Risk" value={projectAnalytics.delayedProjects} />
+        {/* ── STREAMLINED METRICS PILL STRIP (Replaces 5 giant bulky cards) ── */}
+        <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar">
+          <div className="flex items-center gap-1.5 rounded-lg border border-[var(--border)] bg-[var(--surface-strong,#ffffff)] px-3 py-1.5 text-xs shadow-2xs shrink-0">
+            <span className="font-semibold text-[var(--text-soft)]">Boards:</span>
+            <span className="font-bold text-[var(--text-main)]">{projectAnalytics.totalProjects}</span>
+          </div>
+          <div className="flex items-center gap-1.5 rounded-lg border border-[var(--border)] bg-[var(--surface-strong,#ffffff)] px-3 py-1.5 text-xs shadow-2xs shrink-0">
+            <span className="font-semibold text-[var(--text-soft)]">Tasks:</span>
+            <span className="font-bold text-[var(--text-main)]">{projectAnalytics.totalTasks}</span>
+          </div>
+          <div className="flex items-center gap-1.5 rounded-lg border border-[var(--border)] bg-[var(--surface-strong,#ffffff)] px-3 py-1.5 text-xs shadow-2xs shrink-0">
+            <span className="font-semibold text-[var(--text-soft)]">Completion:</span>
+            <span className="font-bold text-emerald-600">{projectAnalytics.completionRate}%</span>
+          </div>
+          <div className="flex items-center gap-1.5 rounded-lg border border-[var(--border)] bg-[var(--surface-strong,#ffffff)] px-3 py-1.5 text-xs shadow-2xs shrink-0">
+            <span className="font-semibold text-[var(--text-soft)]">Avg Progress:</span>
+            <span className="font-bold text-[var(--accent)]">{projectAnalytics.avgProgress}%</span>
+          </div>
+          {projectAnalytics.delayedProjects > 0 && (
+            <div className="flex items-center gap-1.5 rounded-lg border border-amber-200 bg-amber-50 dark:border-amber-900/40 dark:bg-amber-950/30 px-3 py-1.5 text-xs shadow-2xs shrink-0 text-amber-700 dark:text-amber-300">
+              <span className="font-semibold">At Risk:</span>
+              <span className="font-bold">{projectAnalytics.delayedProjects}</span>
+            </div>
+          )}
         </div>
 
-        {/* 2-Column Layout: Project Boards (Left) & Kanban View (Right) */}
-        <div className="grid gap-5 lg:grid-cols-[280px_1fr]">
-          {/* Boards List (Teams Channel List Style) */}
-          <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-strong,#ffffff)] p-3 shadow-xs h-fit space-y-2">
-            <div className="flex items-center justify-between border-b border-[var(--border)] pb-2 px-1">
-              <span className="text-xs font-semibold uppercase tracking-wider text-[var(--text-soft)]">
-                Project Boards
+        {/* ── MOBILE PROJECT SELECTOR BAR (1-Tap Switcher) ────────────────── */}
+        <div className="lg:hidden">
+          <button
+            type="button"
+            onClick={() => setMobileProjectPickerOpen(true)}
+            className="flex w-full items-center justify-between rounded-xl border border-[var(--border)] bg-[var(--surface-strong,#ffffff)] px-3.5 py-2.5 text-left shadow-xs transition-colors hover:bg-[var(--surface-soft)]"
+          >
+            <div className="flex items-center gap-2.5 min-w-0">
+              <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-[var(--accent)]/10 text-[var(--accent)] font-bold text-xs shrink-0">
+                📁
               </span>
-              <span className="text-xs text-[var(--text-faint)]">{visibleProjects.length}</span>
+              <div className="min-w-0">
+                <p className="text-xs font-bold text-[var(--text-main)] truncate">
+                  {selectedProject ? selectedProject.name : "Select a project board"}
+                </p>
+                {selectedProject && (
+                  <p className="text-[10px] text-[var(--text-soft)] truncate">
+                    {selectedProject.department.name} • {selectedProject.progress}% done
+                  </p>
+                )}
+              </div>
+            </div>
+            <span className="text-xs font-semibold text-[var(--accent)] ml-2 shrink-0">
+              Switch ▾
+            </span>
+          </button>
+        </div>
+
+        {/* ── 2-COLUMN TEAMS WORKSPACE (Channels sidebar on left, Tabbed workspace on right) ── */}
+        <div className="grid gap-4 lg:grid-cols-[260px_1fr] items-start">
+          {/* DESKTOP BOARDS LIST (Teams Channel Style) */}
+          <div className="hidden lg:flex flex-col rounded-xl border border-[var(--border)] bg-[var(--surface-strong,#ffffff)] p-3 shadow-xs space-y-2.5">
+            {/* Search Input for Project Boards */}
+            <div className="relative">
+              <SearchIcon size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[var(--text-soft)]" />
+              <input
+                type="text"
+                value={localProjectFilter}
+                onChange={(e) => setLocalProjectFilter(e.target.value)}
+                placeholder="Find board..."
+                className="h-8 w-full rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] pl-7 pr-2.5 text-xs text-[var(--text-main)] outline-none focus:border-[var(--accent)] transition-all placeholder:text-[var(--text-faint)]"
+              />
             </div>
 
-            <div className="space-y-1.5 max-h-52 sm:max-h-64 lg:max-h-[calc(100vh-280px)] overflow-y-auto pr-1">
+            <div className="flex items-center justify-between border-b border-[var(--border)] pb-1.5 px-1">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-soft)]">
+                Project Boards
+              </span>
+              <span className="text-[10px] font-semibold text-[var(--text-faint)]">
+                {visibleProjects.length}
+              </span>
+            </div>
+
+            <div className="space-y-1 max-h-[calc(100vh-280px)] overflow-y-auto pr-0.5">
               {visibleProjects.map((project) => {
                 const isSelected = selectedProjectId === project.id;
                 return (
@@ -210,24 +267,34 @@ export default function ProjectsPage() {
                     key={project.id}
                     type="button"
                     onClick={() => setSelectedProjectId(project.id)}
-                    className={`w-full rounded-lg p-2.5 text-left transition-all ${
+                    className={`w-full rounded-lg p-2 text-left transition-all ${
                       isSelected
                         ? "bg-[var(--accent)]/10 text-[var(--accent)] border border-[var(--accent)]/30 font-medium"
                         : "hover:bg-[var(--surface-soft)] text-[var(--text-main)] border border-transparent"
                     }`}
                   >
-                    <p className="font-semibold text-xs truncate">{project.name}</p>
-                    <p className="text-[11px] text-[var(--text-soft)] truncate mt-0.5">{project.department.name}</p>
-                    <div className="mt-2 flex items-center justify-between text-[10px] text-[var(--text-faint)]">
-                      <span>{project.progress}%</span>
-                      <span>{project.taskCounts.done}/{project.taskCounts.total} done</span>
+                    <div className="flex items-center justify-between gap-1">
+                      <p className="font-bold text-xs truncate">{project.name}</p>
+                      <span className="text-[10px] font-semibold text-[var(--text-soft)] shrink-0">
+                        {project.progress}%
+                      </span>
                     </div>
-                    <div className="mt-1 h-1.5 w-full rounded-full bg-[var(--surface-soft)] overflow-hidden">
-                      <div className="h-full bg-[var(--accent)] rounded-full transition-all" style={{ width: `${project.progress}%` }} />
+                    <p className="text-[10px] text-[var(--text-soft)] truncate mt-0.5">
+                      {project.department.name}
+                    </p>
+                    <div className="mt-1.5 h-1 w-full rounded-full bg-[var(--border)] overflow-hidden">
+                      <div
+                        className="h-full bg-[var(--accent)] rounded-full transition-all"
+                        style={{ width: `${project.progress}%` }}
+                      />
                     </div>
                   </button>
                 );
               })}
+
+              {visibleProjects.length === 0 && (
+                <p className="text-center text-xs text-[var(--text-soft)] py-4">No boards match.</p>
+              )}
 
               {hasMoreProjects && (
                 <Button
@@ -246,40 +313,39 @@ export default function ProjectsPage() {
             </div>
           </div>
 
-          {/* Active Project Kanban & Credentials */}
-          <div className="space-y-4 min-w-0">
+          {/* ACTIVE PROJECT AREA (Teams Tabs & Clean Views) */}
+          <div className="space-y-3 min-w-0">
             {selectedProject ? (
               <>
-                {/* Project Overview Banner */}
-                <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-strong,#ffffff)] p-4 shadow-xs">
-                  <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-[11px] font-bold uppercase tracking-wider text-[var(--accent)]">
+                {/* Clean Project Header Bar */}
+                <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-strong,#ffffff)] p-3.5 shadow-xs">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2 text-[11px] text-[var(--text-soft)]">
+                        <span className="font-bold uppercase tracking-wider text-[var(--accent)]">
                           {selectedProject.department.name}
                         </span>
-                        <span className="text-[var(--text-faint)]">•</span>
-                        <span className="text-xs text-[var(--text-soft)]">
-                          Owner: {selectedProject.owner?.name ?? "Unassigned"}
-                        </span>
+                        <span>•</span>
+                        <span>Owner: {selectedProject.owner?.name ?? "Unassigned"}</span>
                       </div>
-                      <h2 className="text-lg font-bold text-[var(--text-main)] mt-1">{selectedProject.name}</h2>
-                      {selectedProject.description && (
-                        <p className="text-xs text-[var(--text-soft)] mt-1 max-w-2xl">{selectedProject.description}</p>
-                      )}
+                      <h2 className="text-base font-bold text-[var(--text-main)] truncate mt-0.5">
+                        {selectedProject.name}
+                      </h2>
                     </div>
 
-                    <div className="flex items-center gap-2 shrink-0">
-                      <div className="text-right">
-                        <p className="text-xs font-semibold text-[var(--text-main)]">{selectedProject.progress}% complete</p>
-                        <p className="text-[11px] text-[var(--text-soft)]">
-                          {selectedProject.taskCounts.done} of {selectedProject.taskCounts.total} tasks
+                    <div className="flex items-center gap-3 shrink-0">
+                      <div className="text-left sm:text-right">
+                        <span className="text-xs font-bold text-[var(--text-main)]">
+                          {selectedProject.progress}% complete
+                        </span>
+                        <p className="text-[10px] text-[var(--text-soft)]">
+                          {selectedProject.taskCounts.done}/{selectedProject.taskCounts.total} tasks
                         </p>
                       </div>
                     </div>
                   </div>
 
-                  <div className="mt-3 h-2 w-full rounded-full bg-[var(--surface-soft)] overflow-hidden">
+                  <div className="mt-2.5 h-1.5 w-full rounded-full bg-[var(--surface-soft)] overflow-hidden border border-[var(--border)]/50">
                     <div
                       className="h-full bg-[var(--accent)] rounded-full transition-all"
                       style={{ width: `${selectedProject.progress}%` }}
@@ -287,34 +353,187 @@ export default function ProjectsPage() {
                   </div>
                 </div>
 
-                {/* Project Credentials Panel */}
-                <ProjectCredentialsPanel projectId={selectedProject.id} />
+                {/* Teams Channel Tabs (Board / List / Credentials / Team) */}
+                <div className="flex items-center gap-1 border-b border-[var(--border)] pb-0.5 overflow-x-auto no-scrollbar">
+                  {[
+                    { id: "board", label: "Board", icon: FolderKanbanIcon },
+                    { id: "list", label: "List", icon: CheckSquareIcon },
+                    { id: "credentials", label: "Credentials", icon: KeyIcon },
+                    { id: "team", label: "Team", icon: UsersIcon },
+                  ].map((tab) => {
+                    const isActive = activeTab === tab.id;
+                    const Icon = tab.icon;
+                    return (
+                      <button
+                        key={tab.id}
+                        type="button"
+                        onClick={() => setActiveTab(tab.id as ActiveTab)}
+                        className={`flex items-center gap-1.5 px-3 py-2 text-xs font-semibold transition-all border-b-2 -mb-[2px] ${
+                          isActive
+                            ? "border-[var(--accent)] text-[var(--accent)] font-bold"
+                            : "border-transparent text-[var(--text-soft)] hover:text-[var(--text-main)]"
+                        }`}
+                      >
+                        <Icon size={14} />
+                        <span>{tab.label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
 
-                {/* Kanban Task Board */}
-                <TaskKanban
-                  groupedTasks={visibleGroupedTasks}
-                  editingTaskId={editingTaskId}
-                  editTaskForm={editTaskForm}
-                  filteredAssignees={filteredProjectAssignees}
-                  assignQuery={projectAssignQuery}
-                  onAssignQueryChange={setProjectAssignQuery}
-                  assignRole={projectAssignRole}
-                  onAssignRoleChange={setProjectAssignRole}
-                  assignRoleOptions={projectAssignRoleOptions}
-                  onEditTaskFormChange={(field, value) => setEditTaskForm((c) => ({ ...c, [field]: value }))}
-                  onOpenEditor={openTaskEditor}
-                  onCancelEdit={() => setEditingTaskId("")}
-                  onSaveEdit={() => void saveTaskEdits()}
-                  onDelete={(id) => void deleteTask(id)}
-                  onStatusChange={(id, status) => void updateTaskStatus(id, status)}
-                  onPriorityChange={(id, priority) => void updateTaskPriority(id, priority)}
-                  toggleEditAssignee={(id) =>
-                    setEditTaskForm((c) => ({
-                      ...c,
-                      userIds: c.userIds.includes(id) ? c.userIds.filter((x) => x !== id) : [...c.userIds, id],
-                    }))
-                  }
-                />
+                {/* ── TAB 1: KANBAN BOARD ── */}
+                {activeTab === "board" && (
+                  <TaskKanban
+                    groupedTasks={visibleGroupedTasks}
+                    editingTaskId={editingTaskId}
+                    editTaskForm={editTaskForm}
+                    filteredAssignees={filteredProjectAssignees}
+                    assignQuery={projectAssignQuery}
+                    onAssignQueryChange={setProjectAssignQuery}
+                    assignRole={projectAssignRole}
+                    onAssignRoleChange={setProjectAssignRole}
+                    assignRoleOptions={projectAssignRoleOptions}
+                    onEditTaskFormChange={(field, value) => setEditTaskForm((c) => ({ ...c, [field]: value }))}
+                    onOpenEditor={openTaskEditor}
+                    onCancelEdit={() => setEditingTaskId("")}
+                    onSaveEdit={() => void saveTaskEdits()}
+                    onDelete={(id) => void deleteTask(id)}
+                    onStatusChange={(id, status) => void updateTaskStatus(id, status)}
+                    onPriorityChange={(id, priority) => void updateTaskPriority(id, priority)}
+                    toggleEditAssignee={(id) =>
+                      setEditTaskForm((c) => ({
+                        ...c,
+                        userIds: c.userIds.includes(id) ? c.userIds.filter((x) => x !== id) : [...c.userIds, id],
+                      }))
+                    }
+                  />
+                )}
+
+                {/* ── TAB 2: CLEAN LIST VIEW (Perfect for mobile!) ── */}
+                {activeTab === "list" && (
+                  <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-strong,#ffffff)] p-3 shadow-xs space-y-2">
+                    <div className="flex items-center justify-between border-b border-[var(--border)] pb-2 px-1">
+                      <span className="text-xs font-bold text-[var(--text-main)]">
+                        Tasks ({allVisibleTasksList.length})
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setCreateTaskOpen(true)}
+                        className="text-xs font-semibold text-[var(--accent)] hover:underline"
+                      >
+                        + Add Task
+                      </button>
+                    </div>
+
+                    {allVisibleTasksList.length === 0 ? (
+                      <div className="p-8 text-center text-xs text-[var(--text-soft)]">
+                        No tasks found in this project.
+                      </div>
+                    ) : (
+                      <div className="space-y-1.5">
+                        {allVisibleTasksList.map((task) => (
+                          <div
+                            key={task.id}
+                            className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] p-2.5 transition-colors hover:border-[var(--accent)]/40"
+                          >
+                            <div className="min-w-0 flex-1">
+                              <div className="flex items-center gap-2">
+                                <span
+                                  className={`h-2 w-2 rounded-full shrink-0 ${
+                                    task.status === "DONE"
+                                      ? "bg-emerald-500"
+                                      : task.status === "IN_PROGRESS"
+                                      ? "bg-blue-500"
+                                      : "bg-amber-500"
+                                  }`}
+                                />
+                                <h4 className="text-xs font-bold text-[var(--text-main)] truncate">
+                                  {task.title}
+                                </h4>
+                              </div>
+                              {task.description && (
+                                <p className="text-[11px] text-[var(--text-soft)] line-clamp-1 mt-0.5">
+                                  {task.description}
+                                </p>
+                              )}
+                            </div>
+
+                            <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
+                              <select
+                                value={task.status}
+                                onChange={(e) => updateTaskStatus(task.id, e.target.value as Task["status"])}
+                                className="h-7 rounded border border-[var(--border)] bg-[var(--surface-strong,#ffffff)] px-1.5 text-[10px] font-medium outline-none"
+                              >
+                                <option value="TODO">Pending</option>
+                                <option value="IN_PROGRESS">In Progress</option>
+                                <option value="DONE">Completed</option>
+                              </select>
+                              <button
+                                type="button"
+                                onClick={() => openTaskEditor(task)}
+                                className="h-7 rounded border border-[var(--border)] bg-[var(--surface-strong,#ffffff)] px-2 text-[10px] font-semibold text-[var(--text-soft)]"
+                              >
+                                Edit
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => deleteTask(task.id)}
+                                className="h-7 rounded border border-rose-200 dark:border-rose-900/40 bg-[var(--surface-strong,#ffffff)] px-1.5 text-[10px] text-rose-600"
+                              >
+                                ✕
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* ── TAB 3: CREDENTIALS (Moved to clean tab instead of polluting main page) ── */}
+                {activeTab === "credentials" && (
+                  <ProjectCredentialsPanel projectId={selectedProject.id} />
+                )}
+
+                {/* ── TAB 4: TEAM ROSTER ── */}
+                {activeTab === "team" && (
+                  <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-strong,#ffffff)] p-4 shadow-xs space-y-3">
+                    <div className="flex items-center justify-between border-b border-[var(--border)] pb-2.5">
+                      <div>
+                        <h3 className="text-sm font-bold text-[var(--text-main)]">Project Team Members</h3>
+                        <p className="text-xs text-[var(--text-soft)]">
+                          People permitted to be assigned tasks on this board.
+                        </p>
+                      </div>
+                      <Button variant="outline" size="xs" onClick={() => setManageTeamOpen(true)}>
+                        Manage Roster
+                      </Button>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                      {(selectedProject.members ?? []).map((m) => (
+                        <div
+                          key={m.user.id}
+                          className="flex items-center gap-2.5 rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] p-2.5"
+                        >
+                          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[var(--accent)] text-white text-xs font-bold">
+                            {m.user.name.charAt(0)}
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-xs font-bold text-[var(--text-main)] truncate">{m.user.name}</p>
+                            <p className="text-[10px] text-[var(--text-soft)] truncate">{m.user.role}</p>
+                          </div>
+                        </div>
+                      ))}
+
+                      {(!selectedProject.members || selectedProject.members.length === 0) && (
+                        <p className="col-span-full py-6 text-center text-xs text-[var(--text-soft)]">
+                          No specific team members selected yet.
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                )}
               </>
             ) : (
               <StatePanel title="No board selected" description="Select a project from the left list or create a new board." />
@@ -322,12 +541,71 @@ export default function ProjectsPage() {
           </div>
         </div>
 
+        {/* ── MOBILE PROJECT PICKER SHEET ───────────────────────────────────── */}
+        <Sheet
+          open={mobileProjectPickerOpen}
+          onClose={() => setMobileProjectPickerOpen(false)}
+          title="Select Project Board"
+          description="Switch to another department board or project."
+          width="md"
+        >
+          <div className="space-y-3">
+            <div className="relative">
+              <SearchIcon size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-soft)]" />
+              <input
+                type="text"
+                value={localProjectFilter}
+                onChange={(e) => setLocalProjectFilter(e.target.value)}
+                placeholder="Search boards..."
+                className="h-9 w-full rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] pl-8 pr-3 text-xs outline-none focus:border-[var(--accent)]"
+              />
+            </div>
+
+            <div className="space-y-1.5 max-h-96 overflow-y-auto">
+              {visibleProjects.map((project) => (
+                <button
+                  key={project.id}
+                  type="button"
+                  onClick={() => {
+                    setSelectedProjectId(project.id);
+                    setMobileProjectPickerOpen(false);
+                  }}
+                  className={`w-full rounded-xl p-3 text-left transition-all ${
+                    selectedProjectId === project.id
+                      ? "bg-[var(--accent)]/10 text-[var(--accent)] border border-[var(--accent)]/30 font-bold"
+                      : "border border-[var(--border)] bg-[var(--surface-soft)] text-[var(--text-main)] hover:bg-[var(--surface-hover)]"
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <p className="text-xs font-bold truncate">{project.name}</p>
+                    <span className="text-[11px] font-semibold text-[var(--text-soft)]">{project.progress}%</span>
+                  </div>
+                  <p className="text-[11px] text-[var(--text-soft)] mt-0.5">{project.department.name}</p>
+                </button>
+              ))}
+            </div>
+
+            <Button
+              variant="outline"
+              size="sm"
+              className="w-full mt-2"
+              leftIcon={<PlusIcon size={14} />}
+              onClick={() => {
+                setMobileProjectPickerOpen(false);
+                setCreateProjectOpen(true);
+              }}
+            >
+              Create New Board
+            </Button>
+          </div>
+        </Sheet>
+
         {/* ── CREATE PROJECT DRAWER SHEET ───────────────────────────────────── */}
         <Sheet
           open={createProjectOpen}
           onClose={() => setCreateProjectOpen(false)}
           title="Create Project Board"
-          description="Create a department project and assign an owner to oversee task delivery."
+          description="Create a department project and assign an owner."
           width="md"
           footer={
             <div className="flex items-center justify-end gap-2">
