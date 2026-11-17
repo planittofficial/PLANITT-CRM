@@ -98,9 +98,9 @@ function getTimeLeftLabel(deadline: Date) {
 
 function getDeadlineBadge(deadline: Date) {
   const diffMs = deadline.getTime() - Date.now();
-  if (diffMs <= 0) return { label: "Overdue", className: "bg-rose-100 text-rose-700" };
-  if (diffMs <= 24 * 60 * 60 * 1000) return { label: "Due Soon", className: "bg-amber-100 text-amber-800" };
-  return { label: "Upcoming", className: "bg-emerald-100 text-emerald-700" };
+  if (diffMs <= 0) return { label: "Overdue", className: "bg-rose-100 text-rose-700 dark:bg-rose-950/40 dark:text-rose-300" };
+  if (diffMs <= 24 * 60 * 60 * 1000) return { label: "Due Soon", className: "bg-amber-100 text-amber-800 dark:bg-amber-950/40 dark:text-amber-300" };
+  return { label: "Upcoming", className: "bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300" };
 }
 
 export function TaskList({
@@ -480,7 +480,7 @@ export function TaskList({
                         </div>
                       ) : (
                         <div className="mb-2">
-                          <span className="rounded-md bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-700">No Deadline</span>
+                          <span className="rounded-md bg-slate-100 dark:bg-slate-800 px-2 py-0.5 text-[10px] font-semibold text-slate-700 dark:text-slate-300">No Deadline</span>
                         </div>
                       )}
                       <div className="flex flex-wrap items-start gap-x-2 gap-y-2">

@@ -152,6 +152,23 @@ export function useProjectsData() {
     finally { setCreatingTask(false); }
   };
 
+  const quickCreateTask = async (title: string, status: Task["status"] = "TODO") => {
+    if (!selectedProjectId || !title.trim()) return;
+    try {
+      await apiPost("/tasks", {
+        title: title.trim(),
+        projectId: selectedProjectId,
+        status,
+        priority: "MEDIUM",
+      });
+      showToast("Task created.", "success");
+      await loadProjectTasks(selectedProjectId);
+      await loadProjects(false);
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : "Failed to create task", "error");
+    }
+  };
+
   const updateTaskStatus = async (taskId: string, status: Task["status"]) => {
     try { await apiPut(`/tasks/${taskId}`, { status }); if (selectedProjectId) await loadProjectTasks(selectedProjectId); await loadProjects(false); }
     catch (err) { showToast(err instanceof Error ? err.message : "Failed to move task","error"); }
@@ -202,7 +219,7 @@ export function useProjectsData() {
   return {
     user, loading, error, notice, sessionGate, projects, departments, team, tasks, selectedProjectId, setSelectedProjectId,
     hasMoreProjects, loadingMoreProjects, setLoadingMoreProjects, loadProjects, projectForm, setProjectForm, creatingProject, createProject,
-    taskForm, setTaskForm, editTaskForm, setEditTaskForm, editingTaskId, setEditingTaskId, creatingTask, createTask,
+    taskForm, setTaskForm, editTaskForm, setEditTaskForm, editingTaskId, setEditingTaskId, creatingTask, createTask, quickCreateTask,
     updateTaskStatus, updateTaskPriority, openTaskEditor, saveTaskEdits, deleteTask,
     projectAssignQuery, setProjectAssignQuery, projectAssignRole, setProjectAssignRole, projectAssignRoleOptions, filteredProjectAssignees,
     projectTeamQuery, setProjectTeamQuery, projectTeamRole, setProjectTeamRole, projectTeamRoleOptions, filteredProjectTeamRoster,

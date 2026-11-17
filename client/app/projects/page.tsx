@@ -33,7 +33,7 @@ export default function ProjectsPage() {
     user, loading, error, sessionGate, projects, departments, team, selectedProjectId, setSelectedProjectId,
     hasMoreProjects, loadingMoreProjects, setLoadingMoreProjects, loadProjects, projectForm, setProjectForm,
     creatingProject, createProject, taskForm, setTaskForm, editTaskForm, setEditTaskForm, editingTaskId, setEditingTaskId,
-    creatingTask, createTask, updateTaskStatus, updateTaskPriority, openTaskEditor, saveTaskEdits, deleteTask,
+    creatingTask, createTask, quickCreateTask, updateTaskStatus, updateTaskPriority, openTaskEditor, saveTaskEdits, deleteTask,
     projectAssignQuery, setProjectAssignQuery, projectAssignRole, setProjectAssignRole, projectAssignRoleOptions, filteredProjectAssignees,
     projectTeamQuery, setProjectTeamQuery, projectTeamRole, setProjectTeamRole, projectTeamRoleOptions, filteredProjectTeamRoster,
     projectMemberDraftIds, toggleProjectMemberDraft, savingProjectMembers, saveProjectMembers,
@@ -46,6 +46,8 @@ export default function ProjectsPage() {
   const [manageTeamOpen, setManageTeamOpen] = useState(false);
   const [mobileProjectPickerOpen, setMobileProjectPickerOpen] = useState(false);
   const [localProjectFilter, setLocalProjectFilter] = useState("");
+  const [listQuickTitle, setListQuickTitle] = useState("");
+  const [isAddingListTask, setIsAddingListTask] = useState(false);
   const [projectSmartPasteText, setProjectSmartPasteText] = useState("");
 
   const departmentOptions = useMemo(
@@ -406,6 +408,7 @@ export default function ProjectsPage() {
                         userIds: c.userIds.includes(id) ? c.userIds.filter((x) => x !== id) : [...c.userIds, id],
                       }))
                     }
+                    onQuickCreate={quickCreateTask}
                   />
                 )}
 
@@ -431,62 +434,123 @@ export default function ProjectsPage() {
                       </div>
                     ) : (
                       <div className="space-y-1.5">
-                        {allVisibleTasksList.map((task) => (
-                          <div
-                            key={task.id}
-                            className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] p-2.5 transition-colors hover:border-[var(--accent)]/40"
-                          >
-                            <div className="min-w-0 flex-1">
-                              <div className="flex items-center gap-2">
-                                <span
-                                  className={`h-2 w-2 rounded-full shrink-0 ${
-                                    task.status === "DONE"
-                                      ? "bg-emerald-500"
+                        {allVisibleTasksList.map((task) => {
+                          const isDone = task.status === "DONE";
+                          return (
+                            <div
+                              key={task.id}
+                              className="group flex flex-col sm:flex-row sm:items-center justify-between gap-2 rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] p-2.5 transition-colors hover:border-[var(--accent)]/40 hover:bg-[var(--surface-strong,#ffffff)]"
+                            >
+                              <div className="min-w-0 flex-1 flex items-center gap-2.5">
+                                <button
+                                  type="button"
+                                  onClick={() => void updateTaskStatus(task.id, isDone ? "TODO" : "DONE")}
+                                  className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-full border transition-colors ${
+                                    isDone
+                                      ? "bg-emerald-600 border-emerald-600 text-white"
                                       : task.status === "IN_PROGRESS"
-                                      ? "bg-blue-500"
-                                      : "bg-amber-500"
+                                      ? "border-blue-500 bg-blue-50 dark:bg-blue-950/40 text-blue-600"
+                                      : "border-[var(--border-strong)] hover:border-[var(--accent)]"
                                   }`}
-                                />
-                                <h4 className="text-xs font-bold text-[var(--text-main)] truncate">
-                                  {task.title}
-                                </h4>
-                              </div>
-                              {task.description && (
-                                <p className="text-[11px] text-[var(--text-soft)] line-clamp-1 mt-0.5">
-                                  {task.description}
-                                </p>
-                              )}
-                            </div>
+                                  title={isDone ? "Mark pending" : "Mark completed"}
+                                >
+                                  {isDone && <span className="text-[10px] font-black leading-none">✓</span>}
+                                  {task.status === "IN_PROGRESS" && <span className="h-1.5 w-1.5 rounded-full bg-blue-500" />}
+                                </button>
 
-                            <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
-                              <select
-                                value={task.status}
-                                onChange={(e) => updateTaskStatus(task.id, e.target.value as Task["status"])}
-                                className="h-7 rounded border border-[var(--border)] bg-[var(--surface-strong,#ffffff)] px-1.5 text-[10px] font-medium outline-none"
-                              >
-                                <option value="TODO">Pending</option>
-                                <option value="IN_PROGRESS">In Progress</option>
-                                <option value="DONE">Completed</option>
-                              </select>
-                              <button
-                                type="button"
-                                onClick={() => openTaskEditor(task)}
-                                className="h-7 rounded border border-[var(--border)] bg-[var(--surface-strong,#ffffff)] px-2 text-[10px] font-semibold text-[var(--text-soft)]"
-                              >
-                                Edit
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => deleteTask(task.id)}
-                                className="h-7 rounded border border-rose-200 dark:border-rose-900/40 bg-[var(--surface-strong,#ffffff)] px-1.5 text-[10px] text-rose-600"
-                              >
-                                ✕
-                              </button>
+                                <div className="min-w-0 flex-1 cursor-pointer" onClick={() => openTaskEditor(task)}>
+                                  <h4 className={`text-xs font-semibold truncate hover:text-[var(--accent)] ${isDone ? "line-through text-[var(--text-faint)]" : "text-[var(--text-main)]"}`}>
+                                    {task.title}
+                                  </h4>
+                                  {task.description && (
+                                    <p className="text-[11px] text-[var(--text-soft)] line-clamp-1 mt-0.5">
+                                      {task.description}
+                                    </p>
+                                  )}
+                                </div>
+                              </div>
+
+                              <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
+                                <span className={`rounded px-1.5 py-0.5 text-[10px] font-bold uppercase ${
+                                  task.priority === "URGENT"
+                                    ? "bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-300"
+                                    : task.priority === "HIGH"
+                                    ? "bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300"
+                                    : "bg-[var(--surface-strong,#ffffff)] border border-[var(--border)] text-[var(--text-soft)]"
+                                }`}>
+                                  {task.priority ?? "MEDIUM"}
+                                </span>
+
+                                <select
+                                  value={task.status}
+                                  onChange={(e) => void updateTaskStatus(task.id, e.target.value as Task["status"])}
+                                  className="h-7 rounded border border-[var(--border)] bg-[var(--surface-strong,#ffffff)] px-1.5 text-[10px] font-medium outline-none focus:border-[var(--accent)]"
+                                >
+                                  <option value="TODO">Pending</option>
+                                  <option value="IN_PROGRESS">In Progress</option>
+                                  <option value="DONE">Completed</option>
+                                </select>
+                                <button
+                                  type="button"
+                                  onClick={() => openTaskEditor(task)}
+                                  className="h-7 rounded border border-[var(--border)] bg-[var(--surface-strong,#ffffff)] px-2 text-[10px] font-semibold text-[var(--text-soft)] hover:text-[var(--text-main)]"
+                                >
+                                  Edit
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => void deleteTask(task.id)}
+                                  className="h-7 rounded border border-rose-200 dark:border-rose-900/40 bg-[var(--surface-strong,#ffffff)] px-1.5 text-[10px] text-rose-600 hover:bg-rose-50"
+                                  title="Delete task"
+                                >
+                                  ✕
+                                </button>
+                              </div>
                             </div>
-                          </div>
-                        ))}
+                          );
+                        })}
                       </div>
                     )}
+
+                    {/* Inline Quick Add Task in List View */}
+                    <div className="pt-2 border-t border-[var(--border)]">
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="text"
+                          value={listQuickTitle}
+                          disabled={isAddingListTask}
+                          onChange={(e) => setListQuickTitle(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter" && listQuickTitle.trim()) {
+                              e.preventDefault();
+                              setIsAddingListTask(true);
+                              void quickCreateTask(listQuickTitle.trim(), "TODO").finally(() => {
+                                setListQuickTitle("");
+                                setIsAddingListTask(false);
+                              });
+                            }
+                          }}
+                          placeholder="+ Add a task to this project... (Press Enter)"
+                          className="h-8 w-full rounded-md border border-[var(--border)] bg-[var(--surface)] px-2.5 text-xs text-[var(--text-main)] outline-none focus:border-[var(--accent)]"
+                        />
+                        {listQuickTitle.trim() && (
+                          <button
+                            type="button"
+                            disabled={isAddingListTask}
+                            onClick={() => {
+                              setIsAddingListTask(true);
+                              void quickCreateTask(listQuickTitle.trim(), "TODO").finally(() => {
+                                setListQuickTitle("");
+                                setIsAddingListTask(false);
+                              });
+                            }}
+                            className="h-8 px-3 rounded-md bg-[var(--accent)] text-white text-xs font-semibold shrink-0"
+                          >
+                            {isAddingListTask ? "..." : "Add"}
+                          </button>
+                        )}
+                      </div>
+                    </div>
                   </div>
                 )}
 

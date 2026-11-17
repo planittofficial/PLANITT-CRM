@@ -29,7 +29,16 @@ const googleSiteVerification =
 
 export const metadata: Metadata = {
   title: "Planitt CRM",
-  description: "Internal CRM for sales, follow-ups, and team workflows.",
+  description: "Enterprise CRM & Team Collaboration Workspace",
+  applicationName: "Planitt CRM",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "Planitt CRM",
+  },
+  formatDetection: {
+    telephone: false,
+  },
   ...(googleSiteVerification
     ? { verification: { google: googleSiteVerification } }
     : {}),
@@ -41,8 +50,8 @@ export const viewport: Viewport = {
   maximumScale: 5,
   viewportFit: "cover",
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#f4f7ff" },
-    { media: "(prefers-color-scheme: dark)", color: "#071120" },
+    { media: "(prefers-color-scheme: light)", color: "#5b5fc7" },
+    { media: "(prefers-color-scheme: dark)", color: "#141416" },
   ],
 };
 

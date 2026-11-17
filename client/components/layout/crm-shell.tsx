@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useMemo, type ReactNode } from "react";
+import { useEffect, useState, useMemo, useRef, type ReactNode } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { apiGet, apiPost } from "@/lib/api";
@@ -75,6 +75,26 @@ export function CRMShell({ children, user, compactMobileChrome = false }: CRMShe
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const [checkedIn, setCheckedIn] = useState(false);
   const [attendanceLoading, setAttendanceLoading] = useState(false);
+  const searchInputRef = useRef<HTMLInputElement | null>(null);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        if (window.innerWidth < 640) {
+          setMobileSearchOpen((prev) => !prev);
+        } else {
+          searchInputRef.current?.focus();
+          searchInputRef.current?.select();
+        }
+      } else if (e.key === "Escape") {
+        setMobileSearchOpen(false);
+        searchInputRef.current?.blur();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
 
   const { items = [], unreadCount = 0, markAllRead, markRead, clearAll } = useNotificationsBackend(user);
 
@@ -319,6 +339,7 @@ export function CRMShell({ children, user, compactMobileChrome = false }: CRMShe
             <div className="relative flex items-center">
               <SearchIcon size={15} className="absolute left-3 text-[var(--text-soft)] pointer-events-none" />
               <input
+                ref={searchInputRef}
                 type="search"
                 value={globalSearch}
                 onChange={(e) => {

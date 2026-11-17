@@ -33,6 +33,7 @@ function TasksPageContent() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [selectedProjectId, setSelectedProjectId] = useState("ALL");
   const [statusFilter, setStatusFilter] = useState<"ALL" | Task["status"]>("ALL");
+  const [presetFilter, setPresetFilter] = useState<"ALL" | "MY_TASKS" | "HIGH_PRIORITY" | "OVERDUE">("ALL");
   const [filterOpen, setFilterOpen] = useState(false);
   const [nameFilter, setNameFilter] = useState("");
   const [tasksTotal, setTasksTotal] = useState(0);
@@ -151,6 +152,18 @@ function TasksPageContent() {
     if (statusFilter !== "ALL") {
       result = result.filter((task) => task.status === statusFilter);
     }
+    if (presetFilter === "MY_TASKS" && user?.id) {
+      result = result.filter((task) => task.assignments.some((a) => a.userId === user.id));
+    } else if (presetFilter === "HIGH_PRIORITY") {
+      result = result.filter((task) => task.priority === "HIGH" || task.priority === "URGENT");
+    } else if (presetFilter === "OVERDUE") {
+      const now = Date.now();
+      result = result.filter((task) => {
+        if (task.status === "DONE") return false;
+        const dl = getTaskDeadline(task);
+        return dl !== null && dl < now;
+      });
+    }
     const query = nameFilter.trim().toLowerCase();
     if (!query) return result;
     return result.filter((task) => {
@@ -159,7 +172,7 @@ function TasksPageContent() {
       const inAssignee = task.assignments.some((a) => a.user.name.toLowerCase().includes(query));
       return inTitle || inDescription || inAssignee;
     });
-  }, [sortedTasks, statusFilter, nameFilter]);
+  }, [sortedTasks, statusFilter, presetFilter, user?.id, nameFilter]);
 
   const loadTasks = async (append = false) => {
     const offset = append ? nextTaskOffset : 0;
@@ -370,6 +383,35 @@ function TasksPageContent() {
               <span className="font-bold text-[var(--accent)]">{taskAnalytics.avgProgress}%</span>
             </div>
           </div>
+        </div>
+
+        {/* 1-Click Fast Filter Pills (HubSpot / Linear style) */}
+        <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5">
+          <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-faint)] mr-1 shrink-0">
+            View:
+          </span>
+          {[
+            { id: "ALL", label: "All Tasks" },
+            { id: "MY_TASKS", label: "👤 Assigned to Me" },
+            { id: "HIGH_PRIORITY", label: "⚡ High Priority" },
+            { id: "OVERDUE", label: "⏰ Overdue" },
+          ].map((preset) => {
+            const isSelected = presetFilter === preset.id;
+            return (
+              <button
+                key={preset.id}
+                type="button"
+                onClick={() => setPresetFilter(preset.id as any)}
+                className={`rounded-full px-2.5 py-1 text-xs font-semibold transition-all shrink-0 ${
+                  isSelected
+                    ? "bg-[var(--accent)] text-white shadow-2xs"
+                    : "border border-[var(--border)] bg-[var(--surface-strong,#ffffff)] text-[var(--text-soft)] hover:bg-[var(--surface-soft)]"
+                }`}
+              >
+                {preset.label}
+              </button>
+            );
+          })}
         </div>
 
         {/* Filter Bar */}
