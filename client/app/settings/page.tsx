@@ -7,8 +7,7 @@ import { StatePanel } from "@/components/shared/state-panel";
 import { renderSessionGate } from "@/components/shared/session-gate";
 import { useSession } from "@/hooks/use-session";
 import { apiGet, apiPut } from "@/lib/api";
-import { EmployeesSkeleton} from "@/components/shared/skeleton";
-
+import { EmployeesSkeleton } from "@/components/shared/skeleton";
 import type { CRMUser } from "@/types/crm";
 import { showToast } from "@/hooks/use-toast";
 
@@ -35,8 +34,9 @@ export default function SettingsPage() {
           designation: data.designation ?? "",
           password: "",
         });
-      } catch (err) { setError(err instanceof Error ? err.message : "Failed to load profile");
-        showToast(err instanceof Error ? err.message : "Failed to load profile" , "error");
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Failed to load profile");
+        showToast(err instanceof Error ? err.message : "Failed to load profile", "error");
       }
     }
 
@@ -58,8 +58,8 @@ export default function SettingsPage() {
       setProfile(updated);
       setForm((current) => ({ ...current, password: "" }));
       showToast("Profile updated successfully.", "success");
-    } catch (err) { 
-      showToast(err instanceof Error ? err.message : "Failed to update profile" , "error");
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : "Failed to update profile", "error");
     } finally {
       setSaving(false);
     }
@@ -80,7 +80,7 @@ export default function SettingsPage() {
   if (!user) {
     return null;
   }
-   if (loading) {
+  if (loading) {
     return (
       <CRMShell user={user}>
         <EmployeesSkeleton />
@@ -112,18 +112,18 @@ export default function SettingsPage() {
 
   return (
     <CRMShell user={user}>
-      <div className="min-w-0 space-y-4 overflow-x-hidden pb-4">
+      <div className="min-w-0 space-y-3 sm:space-y-4 overflow-x-hidden pb-4">
         {/* Teams-style Segmented Tabs */}
-        <div className="flex items-center gap-1 border-b border-[var(--border)] pb-1" role="tablist">
+        <div className="flex h-10 items-center gap-1 overflow-x-auto no-scrollbar rounded-xl border border-[var(--border)] bg-[var(--surface)] p-1 text-xs shadow-xs" role="tablist">
           <button
             type="button"
             role="tab"
             aria-selected={settingsTab === "profile"}
             onClick={() => setSettingsTab("profile")}
-            className={`px-4 py-2 text-xs font-semibold transition-colors ${
+            className={`flex h-8 items-center whitespace-nowrap rounded-lg px-3.5 text-xs font-semibold transition-colors ${
               settingsTab === "profile"
-                ? "text-[var(--accent)] border-b-2 border-[var(--accent)] -mb-[5px]"
-                : "text-[var(--text-soft)] hover:text-[var(--text-main)]"
+                ? "bg-[var(--accent)] text-white shadow-xs"
+                : "text-[var(--text-soft)] hover:bg-[var(--surface-soft)] hover:text-[var(--text-main)]"
             }`}
           >
             My Profile
@@ -133,10 +133,10 @@ export default function SettingsPage() {
             role="tab"
             aria-selected={settingsTab === "legal"}
             onClick={() => setSettingsTab("legal")}
-            className={`px-4 py-2 text-xs font-semibold transition-colors ${
+            className={`flex h-8 items-center whitespace-nowrap rounded-lg px-3.5 text-xs font-semibold transition-colors ${
               settingsTab === "legal"
-                ? "text-[var(--accent)] border-b-2 border-[var(--accent)] -mb-[5px]"
-                : "text-[var(--text-soft)] hover:text-[var(--text-main)]"
+                ? "bg-[var(--accent)] text-white shadow-xs"
+                : "text-[var(--text-soft)] hover:bg-[var(--surface-soft)] hover:text-[var(--text-main)]"
             }`}
           >
             Legal & Policies
@@ -145,7 +145,7 @@ export default function SettingsPage() {
 
         {settingsTab === "legal" ? (
           <section
-            className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4 sm:p-5 shadow-xs"
+            className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4 sm:p-5 shadow-xs"
           >
             <div>
               <span className="rounded-md bg-indigo-50 px-2 py-0.5 text-xs font-semibold text-[var(--accent)] border border-indigo-200 dark:bg-indigo-950/40 dark:text-indigo-300 dark:border-indigo-800">
@@ -156,22 +156,22 @@ export default function SettingsPage() {
                 Review how we handle your data and the policies for using Planitt CRM.
               </p>
             </div>
-            <div className="mt-5 grid gap-3 sm:grid-cols-2">
+            <div className="mt-4 grid gap-3 sm:grid-cols-2">
               <Link
                 href="/privacy-policy"
-                className="rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] p-4 transition-colors hover:border-[var(--accent)] hover:bg-[var(--surface-hover)]"
+                className="rounded-xl border border-[var(--border)] bg-[var(--surface-soft)] p-4 transition-colors hover:border-[var(--accent)] shadow-xs"
               >
                 <p className="text-xs font-semibold text-[var(--text-soft)]">Privacy</p>
-                <p className="mt-1 text-base font-semibold text-[var(--text-main)]">Privacy Policy</p>
+                <p className="mt-1 text-sm font-bold text-[var(--text-main)]">Privacy Policy</p>
                 <p className="mt-1 text-xs text-[var(--text-soft)]">Data collection, use, retention, and your rights.</p>
                 <p className="mt-3 text-xs font-semibold text-[var(--accent)]">Read document →</p>
               </Link>
               <Link
                 href="/terms-of-service"
-                className="rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] p-4 transition-colors hover:border-[var(--accent)] hover:bg-[var(--surface-hover)]"
+                className="rounded-xl border border-[var(--border)] bg-[var(--surface-soft)] p-4 transition-colors hover:border-[var(--accent)] shadow-xs"
               >
                 <p className="text-xs font-semibold text-[var(--text-soft)]">Terms</p>
-                <p className="mt-1 text-base font-semibold text-[var(--text-main)]">Terms of Service</p>
+                <p className="mt-1 text-sm font-bold text-[var(--text-main)]">Terms of Service</p>
                 <p className="mt-1 text-xs text-[var(--text-soft)]">Acceptable use, billing, liability, and governance.</p>
                 <p className="mt-3 text-xs font-semibold text-[var(--accent)]">Read document →</p>
               </Link>
@@ -181,105 +181,97 @@ export default function SettingsPage() {
 
         {settingsTab === "profile" ? (
           <>
-        <section
-          className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4 sm:p-5 shadow-xs"
-        >
-          <div>
-            <span className="rounded-md bg-indigo-50 px-2 py-0.5 text-xs font-semibold text-[var(--accent)] border border-indigo-200 dark:bg-indigo-950/40 dark:text-indigo-300 dark:border-indigo-800">
-              Account
-            </span>
-            <h2 className="mt-1 text-xl font-bold tracking-tight text-[var(--text-main)] sm:text-2xl">Profile Settings</h2>
-            <p className="mt-0.5 text-xs text-[var(--text-soft)]">
-              Update your account name, professional title, and access credentials.
-            </p>
-          </div>
-          <div className="mt-4 grid gap-2.5 sm:grid-cols-3">
-            <div className="rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] p-3">
-              <p className="text-[10px] text-[var(--text-faint)]">Role</p>
-              <p className="mt-0.5 text-sm font-bold text-[var(--text-main)]">{user.role}</p>
-            </div>
-            <div className="rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] p-3">
-              <p className="text-[10px] text-[var(--text-faint)]">Profile Completeness</p>
-              <p className="mt-0.5 text-sm font-bold text-emerald-600">{profileCompleteness}%</p>
-            </div>
-            <div className="rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] p-3">
-              <p className="text-[10px] text-[var(--text-faint)]">Session Security</p>
-              <p className="mt-0.5 text-sm font-bold text-[var(--text-main)]">HttpOnly Cookie</p>
-            </div>
-          </div>
-        </section>
-
-        <section
-          className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4 sm:p-5 shadow-xs"
-        >
-          <div className="grid gap-4 md:grid-cols-2">
-            <div className="space-y-3">
+            <section className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4 sm:p-5 shadow-xs">
               <div>
-                <label className="text-xs font-medium text-[var(--text-soft)] mb-1 block">Full name</label>
-                <input
-                  className="h-8.5 w-full rounded-md border border-[var(--border)] bg-[var(--surface)] px-3 text-xs text-[var(--text-main)] outline-none focus:border-[var(--accent)]"
-                  value={form.name}
-                  onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))}
-                />
-              </div>
-
-              <div>
-                <label className="text-xs font-medium text-[var(--text-soft)] mb-1 block">Designation</label>
-                <input
-                  className="h-8.5 w-full rounded-md border border-[var(--border)] bg-[var(--surface)] px-3 text-xs text-[var(--text-main)] outline-none focus:border-[var(--accent)]"
-                  value={form.designation}
-                  onChange={(event) =>
-                    setForm((current) => ({ ...current, designation: event.target.value }))
-                  }
-                />
-              </div>
-
-              <div>
-                <label className="text-xs font-medium text-[var(--text-soft)] mb-1 block">New password (optional)</label>
-                <input
-                  type="password"
-                  className="h-8.5 w-full rounded-md border border-[var(--border)] bg-[var(--surface)] px-3 text-xs text-[var(--text-main)] outline-none focus:border-[var(--accent)]"
-                  placeholder="Leave empty to keep current password"
-                  value={form.password}
-                  onChange={(event) => setForm((current) => ({ ...current, password: event.target.value }))}
-                />
-              </div>
-            </div>
-
-            <div className="space-y-3">
-              <div
-                className="rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] p-3"
-              >
-                <p className="text-xs font-semibold text-[var(--text-main)]">Email policy</p>
-                <p className="mt-1 text-xs text-[var(--text-soft)]">
-                  Your email cannot be changed from this page.
+                <span className="rounded-md bg-indigo-50 px-2 py-0.5 text-xs font-semibold text-[var(--accent)] border border-indigo-200 dark:bg-indigo-950/40 dark:text-indigo-300 dark:border-indigo-800">
+                  Account
+                </span>
+                <h2 className="mt-1 text-xl font-bold tracking-tight text-[var(--text-main)] sm:text-2xl">Profile Settings</h2>
+                <p className="mt-0.5 text-xs text-[var(--text-soft)]">
+                  Update your account name, professional title, and access credentials.
                 </p>
-                <p className="mt-1 text-xs text-[var(--text-soft)]">{emailPolicyMessage}</p>
+              </div>
+              <div className="mt-4 grid gap-2.5 sm:grid-cols-3">
+                <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-soft)] p-3 shadow-xs">
+                  <p className="text-[10px] text-[var(--text-faint)]">Role</p>
+                  <p className="mt-0.5 text-sm font-bold text-[var(--text-main)]">{user.role}</p>
+                </div>
+                <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-soft)] p-3 shadow-xs">
+                  <p className="text-[10px] text-[var(--text-faint)]">Profile Completeness</p>
+                  <p className="mt-0.5 text-sm font-bold text-emerald-600">{profileCompleteness}%</p>
+                </div>
+                <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-soft)] p-3 shadow-xs">
+                  <p className="text-[10px] text-[var(--text-faint)]">Session Security</p>
+                  <p className="mt-0.5 text-sm font-bold text-[var(--text-main)]">HttpOnly Cookie</p>
+                </div>
+              </div>
+            </section>
+
+            <section className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4 sm:p-5 shadow-xs">
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="space-y-3">
+                  <div>
+                    <label className="text-xs font-medium text-[var(--text-soft)] mb-1 block">Full Name</label>
+                    <input
+                      className="h-9 w-full rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] px-3 text-xs text-[var(--text-main)] outline-none focus:border-[var(--accent)]"
+                      value={form.name}
+                      onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-medium text-[var(--text-soft)] mb-1 block">Designation</label>
+                    <input
+                      className="h-9 w-full rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] px-3 text-xs text-[var(--text-main)] outline-none focus:border-[var(--accent)]"
+                      value={form.designation}
+                      onChange={(event) =>
+                        setForm((current) => ({ ...current, designation: event.target.value }))
+                      }
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-medium text-[var(--text-soft)] mb-1 block">New Password (optional)</label>
+                    <input
+                      type="password"
+                      className="h-9 w-full rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] px-3 text-xs text-[var(--text-main)] outline-none focus:border-[var(--accent)]"
+                      placeholder="Leave empty to keep current password"
+                      value={form.password}
+                      onChange={(event) => setForm((current) => ({ ...current, password: event.target.value }))}
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-soft)] p-3 shadow-xs">
+                    <p className="text-xs font-semibold text-[var(--text-main)]">Email Policy</p>
+                    <p className="mt-1 text-xs text-[var(--text-soft)]">
+                      Your email cannot be changed from this page.
+                    </p>
+                    <p className="mt-1 text-xs text-[var(--text-soft)]">{emailPolicyMessage}</p>
+                  </div>
+
+                  <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-soft)] p-3 shadow-xs">
+                    <p className="text-xs font-semibold text-[var(--text-main)]">Current Email</p>
+                    <p className="mt-1 text-xs font-medium text-[var(--text-main)]">{profile.email}</p>
+                  </div>
+                </div>
               </div>
 
-              <div
-                className="rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] p-3"
-              >
-                <p className="text-xs font-semibold text-[var(--text-main)]">Current email</p>
-                <p className="mt-1 text-xs font-medium text-[var(--text-main)]">{profile.email}</p>
+              {error ? <p className="mt-3 text-xs font-medium text-rose-600">{error}</p> : null}
+              {notice ? <p className="mt-3 text-xs font-medium text-emerald-600">{notice}</p> : null}
+
+              <div className="mt-5 border-t border-[var(--border)] pt-4">
+                <button
+                  type="button"
+                  disabled={saving}
+                  onClick={() => void saveProfile()}
+                  className="inline-flex h-9 items-center justify-center rounded-lg bg-[var(--accent)] hover:bg-[var(--accent-strong)] px-4 text-xs font-semibold text-white shadow-xs transition-colors disabled:opacity-50"
+                >
+                  {saving ? "Saving..." : "Save Changes"}
+                </button>
               </div>
-            </div>
-          </div>
-
-          {error ? <p className="mt-3 text-xs font-medium text-rose-600">{error}</p> : null}
-          {notice ? <p className="mt-3 text-xs font-medium text-emerald-600">{notice}</p> : null}
-
-          <div className="mt-5 border-t border-[var(--border)] pt-4">
-            <button
-              type="button"
-              disabled={saving}
-              onClick={() => void saveProfile()}
-              className="inline-flex items-center justify-center rounded-lg bg-[var(--accent)] hover:bg-[var(--accent-strong)] px-4 py-2 text-xs font-semibold text-white shadow-xs transition-colors disabled:opacity-50"
-            >
-              {saving ? "Saving..." : "Save Changes"}
-            </button>
-          </div>
-        </section>
+            </section>
           </>
         ) : null}
       </div>

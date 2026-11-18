@@ -256,7 +256,7 @@ export default function DashboardPage() {
         <AttendanceCard initialCheckedIn={currentUserCheckedIn} />
 
         {/* Teams Navigation Tabs */}
-        <div className="flex items-center gap-1 border-b border-[var(--border)] pb-1">
+        <div className="flex h-10 items-center gap-1 overflow-x-auto no-scrollbar rounded-xl border border-[var(--border)] bg-[var(--surface)] p-1 text-xs shadow-xs">
           {(["analytics", "workspace"] as const).map((tab) => {
             const isActive = activeDashboardTab === tab;
             return (
@@ -264,10 +264,10 @@ export default function DashboardPage() {
                 key={tab}
                 type="button"
                 onClick={() => setActiveDashboardTab(tab)}
-                className={`relative px-4 py-2 text-xs font-semibold transition-colors ${
+                className={`flex h-8 items-center whitespace-nowrap rounded-lg px-3.5 text-xs font-semibold transition-colors ${
                   isActive
-                    ? "text-[var(--accent)] border-b-2 border-[var(--accent)] -mb-[5px]"
-                    : "text-[var(--text-soft)] hover:text-[var(--text-main)]"
+                    ? "bg-[var(--accent)] text-white shadow-xs"
+                    : "text-[var(--text-soft)] hover:bg-[var(--surface-soft)] hover:text-[var(--text-main)]"
                 }`}
               >
                 {tab === "analytics" ? "Analytics & Overview" : "Google Workspace"}

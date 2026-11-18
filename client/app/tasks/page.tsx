@@ -35,6 +35,10 @@ function TasksPageContent() {
   const [statusFilter, setStatusFilter] = useState<"ALL" | Task["status"]>("ALL");
   const [presetFilter, setPresetFilter] = useState<"ALL" | "MY_TASKS" | "HIGH_PRIORITY" | "OVERDUE">("ALL");
   const [filterOpen, setFilterOpen] = useState(false);
+
+  const activeFilterCount = useMemo(() => {
+    return (presetFilter !== "ALL" ? 1 : 0) + (selectedProjectId !== "ALL" ? 1 : 0);
+  }, [presetFilter, selectedProjectId]);
   const [nameFilter, setNameFilter] = useState("");
   const [tasksTotal, setTasksTotal] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -304,54 +308,66 @@ function TasksPageContent() {
     <CRMShell user={user}>
       <div className="space-y-5 pb-6">
         {/* ── MOBILE STREAMLINED WORKSPACE CARD (<lg) ────────────────────────── */}
-        <div className="flex lg:hidden flex-col rounded-2xl border border-[var(--border)] bg-[var(--surface-strong,#ffffff)] p-2.5 sm:p-3 shadow-xs space-y-2.5">
-          {/* Row 1: Predefined 36px (h-9) Height for Primary Controls */}
-          <div className="flex items-center justify-between gap-2">
-            {/* Search Input (Exact h-9) */}
+        <div className="flex lg:hidden flex-col rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-2.5 sm:p-3 shadow-xs space-y-2">
+          {/* Row 1: Search + Filter Toggle + Add Task (Exact h-9) */}
+          <div className="flex items-center gap-2">
+            {/* Search Input */}
             <div className="relative min-w-0 flex-1">
-              <SearchIcon size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[var(--text-soft)]" />
+              <SearchIcon size={14} className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-[var(--text-soft)]" />
               <input
                 type="text"
                 value={nameFilter}
                 onChange={(e) => setNameFilter(e.target.value)}
                 placeholder="Search tasks..."
-                className="h-9 w-full rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] pl-7 pr-2.5 text-xs text-[var(--text-main)] outline-none focus:border-[var(--accent)]/50 transition-all placeholder:text-[var(--text-faint)]"
+                className="h-9 w-full rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] pl-8 pr-7 text-xs text-[var(--text-main)] outline-none focus:border-[var(--accent)] transition-colors placeholder:text-[var(--text-faint)]"
               />
-            </div>
-
-            {/* Actions: Filter Toggle & + Task (Both Exact h-9) */}
-            <div className="flex items-center gap-1.5 shrink-0">
-              <button
-                type="button"
-                onClick={() => setFilterOpen((prev) => !prev)}
-                className={`flex h-9 items-center gap-1.5 rounded-lg border px-2.5 text-xs font-bold transition-all active:scale-95 ${
-                  filterOpen || selectedProjectId !== "ALL"
-                    ? "border-[var(--accent)] bg-[var(--accent)]/10 text-[var(--accent)]"
-                    : "border-[var(--border)] bg-[var(--surface-soft)] text-[var(--text-soft)] hover:bg-[var(--surface-hover)]"
-                }`}
-                title="Filter by project"
-              >
-                <FilterIcon size={13} />
-                <span>Filter</span>
-                {selectedProjectId !== "ALL" && <span className="h-1.5 w-1.5 rounded-full bg-[var(--accent)]" />}
-              </button>
-
-              {isAdminRole(user.role) && (
+              {nameFilter && (
                 <button
                   type="button"
-                  onClick={() => setCreateSheetOpen(true)}
-                  className="flex h-9 items-center gap-1.5 rounded-lg bg-[var(--accent)] px-3 text-xs font-bold text-white shadow-2xs transition-all active:scale-95 hover:bg-[var(--accent-strong)]"
+                  onClick={() => setNameFilter("")}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-[var(--text-faint)] hover:text-[var(--text-main)] text-xs font-bold p-0.5"
                 >
-                  <PlusIcon size={13} />
-                  <span>Task</span>
+                  ✕
                 </button>
               )}
             </div>
+
+            {/* Filter Toggle */}
+            <button
+              type="button"
+              onClick={() => setFilterOpen((prev) => !prev)}
+              className={`flex h-9 shrink-0 items-center gap-1.5 rounded-lg border px-2.5 text-xs font-semibold transition-all ${
+                filterOpen || activeFilterCount > 0
+                  ? "border-[var(--accent)] bg-[var(--accent)]/10 text-[var(--accent)]"
+                  : "border-[var(--border)] bg-[var(--surface-soft)] text-[var(--text-soft)] hover:bg-[var(--surface-hover)]"
+              }`}
+              title="Filter tasks"
+            >
+              <FilterIcon size={13} />
+              <span>Filter</span>
+              {activeFilterCount > 0 && (
+                <span className="flex h-4 min-w-4 items-center justify-center rounded-full bg-[var(--accent)] px-1 text-[10px] font-bold text-white">
+                  {activeFilterCount}
+                </span>
+              )}
+            </button>
+
+            {/* + Task Button */}
+            {isAdminRole(user.role) && (
+              <button
+                type="button"
+                onClick={() => setCreateSheetOpen(true)}
+                className="flex h-9 shrink-0 items-center gap-1 rounded-lg bg-[var(--accent)] hover:bg-[var(--accent-strong)] px-3 text-xs font-semibold text-white shadow-xs transition-colors"
+              >
+                <PlusIcon size={14} />
+                <span>Task</span>
+              </button>
+            )}
           </div>
 
-          {/* Row 2: Predefined 32px (h-8) Height: Status Tabs + Done Metric */}
-          <div className="flex items-center justify-between gap-2 pt-1 border-t border-[var(--border)]">
-            {/* Status Tabs (Exact h-8 container, h-7 tabs) */}
+          {/* Row 2: Status Tabs + Done Metric (Exact h-8) */}
+          <div className="flex items-center justify-between gap-2">
+            {/* Status Segmented Bar */}
             <div className="flex h-8 items-center rounded-lg bg-[var(--surface-soft)] p-0.5 border border-[var(--border)] overflow-x-auto no-scrollbar">
               {[
                 { key: "ALL", label: "All", count: taskAnalytics.total },
@@ -365,20 +381,14 @@ function TasksPageContent() {
                     key={tab.key}
                     type="button"
                     onClick={() => setStatusFilter(tab.key as any)}
-                    className={`flex h-7 items-center gap-1 px-2 rounded-md text-xs font-bold transition-all shrink-0 ${
+                    className={`flex h-7 items-center gap-1.5 px-2.5 rounded-md text-xs font-semibold transition-all shrink-0 ${
                       isActive
-                        ? "bg-[var(--surface-strong,#ffffff)] text-[var(--accent)] shadow-2xs border border-[var(--border)]"
+                        ? "bg-[var(--surface)] text-[var(--accent)] shadow-xs"
                         : "text-[var(--text-soft)] hover:text-[var(--text-main)]"
                     }`}
                   >
                     <span>{tab.label}</span>
-                    <span
-                      className={`rounded-full px-1 py-0.2 text-[9px] font-black ${
-                        isActive
-                          ? "bg-[var(--accent)] text-white"
-                          : "bg-[var(--surface-hover)] text-[var(--text-faint)]"
-                      }`}
-                    >
+                    <span className="text-[10px] opacity-75">
                       {tab.count}
                     </span>
                   </button>
@@ -386,57 +396,124 @@ function TasksPageContent() {
               })}
             </div>
 
-            {/* Metric Summary Pill (Exact h-8) */}
-            <div className="flex h-8 items-center gap-1.5 px-2.5 rounded-lg bg-[var(--surface-soft)] border border-[var(--border)] text-xs shrink-0">
-              <span className="text-[10px] font-semibold text-[var(--text-soft)]">Done:</span>
-              <span className="text-xs font-black text-emerald-600 dark:text-emerald-400">
-                {taskAnalytics.completionRate}%
-              </span>
+            {/* Metric Summary Badge */}
+            <div className="flex h-8 shrink-0 items-center gap-1.5 rounded-lg border border-emerald-500/20 bg-emerald-500/10 px-2.5 text-xs text-emerald-600 dark:text-emerald-400 font-semibold">
+              <span className="text-[10px] text-emerald-600/80 dark:text-emerald-400/80">Done:</span>
+              <span className="font-bold">{taskAnalytics.completionRate}%</span>
             </div>
           </div>
 
-          {/* Row 3: Predefined Fast Filter Chips */}
-          <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pt-0.5">
-            {[
-              { id: "ALL", label: "All" },
-              { id: "MY_TASKS", label: "Assigned to Me" },
-              { id: "HIGH_PRIORITY", label: "⚡ High Priority" },
-              { id: "OVERDUE", label: "⏰ Overdue" },
-            ].map((preset) => {
-              const isSelected = presetFilter === preset.id;
-              return (
+          {/* Active Filter Chips (Only shown when a filter is applied and filter drawer is closed) */}
+          {!filterOpen && activeFilterCount > 0 && (
+            <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pt-0.5 text-xs">
+              <span className="text-[10px] uppercase font-bold text-[var(--text-faint)] shrink-0">Filter:</span>
+              {presetFilter !== "ALL" && (
                 <button
-                  key={preset.id}
                   type="button"
-                  onClick={() => setPresetFilter(preset.id as any)}
-                  className={`flex h-6 items-center rounded-md px-2 text-[11px] font-bold transition-all shrink-0 ${
-                    isSelected
-                      ? "bg-[var(--accent)] text-white shadow-2xs"
-                      : "border border-[var(--border)] bg-[var(--surface-soft)] text-[var(--text-soft)] hover:bg-[var(--surface-hover)]"
-                  }`}
+                  onClick={() => setPresetFilter("ALL")}
+                  className="inline-flex h-6.5 shrink-0 items-center gap-1 rounded-full border border-[var(--accent)]/30 bg-[var(--accent)]/10 px-2.5 text-[11px] font-semibold text-[var(--accent)] hover:bg-[var(--accent)]/20 transition-colors"
                 >
-                  {preset.label}
+                  <span>
+                    {presetFilter === "MY_TASKS" ? "👤 Assigned to Me" : presetFilter === "HIGH_PRIORITY" ? "⚡ High Priority" : "⏰ Overdue"}
+                  </span>
+                  <span className="text-xs">✕</span>
                 </button>
-              );
-            })}
-          </div>
-
-          {/* Integrated Filter Options (When Filter is toggled open) */}
-          {filterOpen && (
-            <div className="pt-2 border-t border-[var(--border)] space-y-2 animate-in fade-in duration-100">
-              <label className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-soft)] block">
-                Filter by Project
-              </label>
-              <ResponsiveSelect
-                value={selectedProjectId}
-                onChange={(value) => {
-                  setSelectedProjectId(value);
-                  setLoading(true);
+              )}
+              {selectedProjectId !== "ALL" && (
+                <button
+                  type="button"
+                  onClick={() => setSelectedProjectId("ALL")}
+                  className="inline-flex h-6.5 shrink-0 items-center gap-1 rounded-full border border-[var(--accent)]/30 bg-[var(--accent)]/10 px-2.5 text-[11px] font-semibold text-[var(--accent)] hover:bg-[var(--accent)]/20 transition-colors"
+                >
+                  <span className="truncate max-w-[140px]">
+                    📁 {projects.find((p) => p.id === selectedProjectId)?.name ?? "Project"}
+                  </span>
+                  <span className="text-xs">✕</span>
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => {
+                  setPresetFilter("ALL");
+                  setSelectedProjectId("ALL");
                 }}
-                options={projectFilterOptions}
-                ariaLabel="Filter tasks by project"
-                buttonClassName="h-9 rounded-lg text-xs"
-              />
+                className="text-[10px] font-medium text-[var(--text-soft)] hover:underline shrink-0 ml-1"
+              >
+                Clear all
+              </button>
+            </div>
+          )}
+
+          {/* Expandable Filter Drawer (When Filter is toggled open) */}
+          {filterOpen && (
+            <div className="space-y-2.5 border-t border-[var(--border)] pt-2.5 animate-in fade-in duration-150">
+              <div>
+                <label className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-soft)] block mb-1.5">
+                  Quick Views
+                </label>
+                <div className="flex flex-wrap gap-1.5">
+                  {[
+                    { id: "ALL", label: "All Tasks" },
+                    { id: "MY_TASKS", label: "👤 Assigned to Me" },
+                    { id: "HIGH_PRIORITY", label: "⚡ High Priority" },
+                    { id: "OVERDUE", label: "⏰ Overdue" },
+                  ].map((preset) => {
+                    const isSelected = presetFilter === preset.id;
+                    return (
+                      <button
+                        key={preset.id}
+                        type="button"
+                        onClick={() => setPresetFilter(preset.id as any)}
+                        className={`flex h-7 items-center rounded-lg px-2.5 text-xs font-semibold transition-all ${
+                          isSelected
+                            ? "bg-[var(--accent)] text-white shadow-xs"
+                            : "border border-[var(--border)] bg-[var(--surface-soft)] text-[var(--text-soft)] hover:text-[var(--text-main)]"
+                        }`}
+                      >
+                        {preset.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div>
+                <label className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-soft)] block mb-1">
+                  Filter by Project
+                </label>
+                <ResponsiveSelect
+                  value={selectedProjectId}
+                  onChange={(value) => {
+                    setSelectedProjectId(value);
+                    setLoading(true);
+                  }}
+                  options={projectFilterOptions}
+                  ariaLabel="Filter tasks by project"
+                  buttonClassName="h-9 rounded-lg text-xs"
+                />
+              </div>
+
+              <div className="flex items-center justify-between pt-1">
+                {activeFilterCount > 0 ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setPresetFilter("ALL");
+                      setSelectedProjectId("ALL");
+                    }}
+                    className="text-xs font-semibold text-rose-600 hover:underline"
+                  >
+                    Reset filters
+                  </button>
+                ) : <span />}
+                <button
+                  type="button"
+                  onClick={() => setFilterOpen(false)}
+                  className="h-8 rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] px-3 text-xs font-semibold text-[var(--text-main)] hover:bg-[var(--surface-hover)]"
+                >
+                  Done
+                </button>
+              </div>
             </div>
           )}
         </div>

@@ -160,7 +160,7 @@ export default function CredentialsPage() {
             >
               <div className="shrink-0 space-y-3 border-b p-4" style={{ borderColor: "var(--border)" }}>
                 <input
-                  className="h-10 w-full min-w-0 rounded-xl border px-3 text-sm outline-none"
+                  className="h-9 w-full min-w-0 rounded-lg border px-3 text-xs outline-none focus:border-[var(--accent)]"
                   style={FIELD_STYLE}
                   placeholder="Search keys or projects..."
                   value={search}
@@ -206,7 +206,7 @@ export default function CredentialsPage() {
               {showAddForm ? (
                 <div className="max-h-[40vh] shrink-0 space-y-2.5 overflow-y-auto overscroll-contain border-b p-4" style={{ borderColor: "var(--border)" }}>
                   <input
-                    className="h-10 w-full min-w-0 rounded-xl border px-3 text-sm outline-none"
+                    className="h-9 w-full min-w-0 rounded-lg border px-3 text-xs outline-none focus:border-[var(--accent)]"
                     style={FIELD_STYLE}
                     placeholder="Name"
                     value={createForm.name}
@@ -214,14 +214,14 @@ export default function CredentialsPage() {
                   />
                   <div className="grid min-w-0 gap-2">
                     <input
-                      className="h-10 w-full min-w-0 rounded-xl border px-3 text-sm outline-none"
+                      className="h-9 w-full min-w-0 rounded-lg border px-3 text-xs outline-none focus:border-[var(--accent)]"
                       style={FIELD_STYLE}
                       placeholder="Provider"
                       value={createForm.provider}
                       onChange={(e) => setCreateForm((c) => ({ ...c, provider: e.target.value }))}
                     />
                     <input
-                      className="h-10 w-full min-w-0 rounded-xl border px-3 text-sm outline-none"
+                      className="h-9 w-full min-w-0 rounded-lg border px-3 text-xs outline-none focus:border-[var(--accent)]"
                       style={FIELD_STYLE}
                       placeholder="Env variable name (e.g. MONGODB_URI)"
                       value={createForm.envKey}
@@ -230,7 +230,7 @@ export default function CredentialsPage() {
                   </div>
                   <div className="grid min-w-0 gap-2 sm:grid-cols-2">
                     <input
-                      className="h-10 w-full min-w-0 rounded-xl border px-3 text-sm outline-none"
+                      className="h-9 w-full min-w-0 rounded-lg border px-3 text-xs outline-none focus:border-[var(--accent)]"
                       style={FIELD_STYLE}
                       placeholder="Validity days"
                       value={createForm.validityDays}
@@ -238,7 +238,7 @@ export default function CredentialsPage() {
                     />
                     <input
                       type="date"
-                      className="h-10 w-full min-w-0 rounded-xl border px-3 text-sm outline-none"
+                      className="h-9 w-full min-w-0 rounded-lg border px-3 text-xs outline-none focus:border-[var(--accent)]"
                       style={FIELD_STYLE}
                       value={createForm.expiresAt}
                       onChange={(e) => setCreateForm((c) => ({ ...c, expiresAt: e.target.value }))}
@@ -263,7 +263,7 @@ export default function CredentialsPage() {
                     type="button"
                     disabled={saving || !createForm.name.trim()}
                     onClick={() => void createCredential()}
-                    className="h-10 w-full rounded-xl text-sm font-semibold text-white disabled:opacity-70"
+                    className="h-9 w-full rounded-lg text-xs font-semibold text-white disabled:opacity-70 shadow-xs"
                     style={{ background: "var(--accent-strong)" }}
                   >
                     {saving ? "Saving..." : "Add credential"}

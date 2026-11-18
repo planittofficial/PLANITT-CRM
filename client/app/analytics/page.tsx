@@ -241,6 +241,7 @@ export default function AnalyticsPage() {
     user?.role === "SUPERADMIN" || user?.role === "ADMIN" || user?.role === "MANAGER";
 
   const [tab, setTab] = useState<ReportTab>("executive");
+  const [showMobileFilters, setShowMobileFilters] = useState(false);
   const [startDate, setStartDate] = useState(() => isoDay(new Date(Date.now() - 13 * 24 * 60 * 60 * 1000)));
   const [endDate, setEndDate] = useState(() => isoDay(new Date()));
   const [employeeId, setEmployeeId] = useState<string>("");
@@ -422,7 +423,7 @@ export default function AnalyticsPage() {
     <CRMShell user={user}>
       <div className="min-w-0 space-y-3 sm:space-y-4">
         <Surface className="p-4 sm:p-5">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <div className="flex items-center gap-2">
                 <span className="rounded-md bg-indigo-50 px-2 py-0.5 text-xs font-semibold text-[var(--accent)] border border-indigo-200 dark:bg-indigo-950/40 dark:text-indigo-300 dark:border-indigo-800">
@@ -440,7 +441,14 @@ export default function AnalyticsPage() {
             <div className="flex items-center gap-2">
               <button
                 type="button"
-                className="inline-flex items-center justify-center h-8 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 text-xs font-medium text-[var(--text-main)] transition-colors hover:bg-[var(--surface-hover)] disabled:opacity-50"
+                onClick={() => setShowMobileFilters(!showMobileFilters)}
+                className="sm:hidden inline-flex items-center justify-center h-9 rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] px-3 text-xs font-semibold text-[var(--text-main)] transition-colors"
+              >
+                Filters {Boolean(employeeId || departmentId || projectId) ? "•" : ""}
+              </button>
+              <button
+                type="button"
+                className="inline-flex items-center justify-center h-9 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 text-xs font-medium text-[var(--text-main)] transition-colors hover:bg-[var(--surface-hover)] disabled:opacity-50 shadow-xs"
                 disabled={!exportButtonsEnabled || loadingReport}
                 onClick={() => void handleExport("csv")}
               >
@@ -448,7 +456,7 @@ export default function AnalyticsPage() {
               </button>
               <button
                 type="button"
-                className="inline-flex items-center justify-center h-8 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 text-xs font-medium text-[var(--text-main)] transition-colors hover:bg-[var(--surface-hover)] disabled:opacity-50"
+                className="inline-flex items-center justify-center h-9 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 text-xs font-medium text-[var(--text-main)] transition-colors hover:bg-[var(--surface-hover)] disabled:opacity-50 shadow-xs"
                 disabled={!exportButtonsEnabled || loadingReport}
                 onClick={() => void handleExport("pdf")}
               >
@@ -458,11 +466,11 @@ export default function AnalyticsPage() {
           </div>
 
           {/* Clean Teams-style Filter Toolbar */}
-          <div className="mt-4 grid grid-cols-1 gap-2.5 sm:grid-cols-2 lg:grid-cols-5 border-t border-[var(--border)] pt-4">
+          <div className={`mt-4 grid grid-cols-1 gap-2.5 sm:grid-cols-2 lg:grid-cols-5 border-t border-[var(--border)] pt-4 ${showMobileFilters ? "grid" : "hidden sm:grid"}`}>
             <div>
               <label className="text-[11px] font-medium text-[var(--text-soft)] mb-1 block">Start date</label>
               <input
-                className="h-8.5 w-full rounded-md border border-[var(--border)] bg-[var(--surface)] px-2.5 text-xs text-[var(--text-main)] outline-none focus:border-[var(--accent)]"
+                className="h-9 w-full rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] px-3 text-xs text-[var(--text-main)] outline-none focus:border-[var(--accent)]"
                 type="date"
                 value={startDate}
                 onChange={(e) => setStartDate(e.target.value)}
@@ -471,7 +479,7 @@ export default function AnalyticsPage() {
             <div>
               <label className="text-[11px] font-medium text-[var(--text-soft)] mb-1 block">End date</label>
               <input
-                className="h-8.5 w-full rounded-md border border-[var(--border)] bg-[var(--surface)] px-2.5 text-xs text-[var(--text-main)] outline-none focus:border-[var(--accent)]"
+                className="h-9 w-full rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] px-3 text-xs text-[var(--text-main)] outline-none focus:border-[var(--accent)]"
                 type="date"
                 value={endDate}
                 onChange={(e) => setEndDate(e.target.value)}
@@ -480,7 +488,7 @@ export default function AnalyticsPage() {
             <div>
               <label className="text-[11px] font-medium text-[var(--text-soft)] mb-1 block">Employee</label>
               <select
-                className="h-8.5 w-full rounded-md border border-[var(--border)] bg-[var(--surface)] px-2.5 text-xs text-[var(--text-main)] outline-none focus:border-[var(--accent)]"
+                className="h-9 w-full rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] px-3 text-xs text-[var(--text-main)] outline-none focus:border-[var(--accent)]"
                 value={employeeId}
                 onChange={(e) => setEmployeeId(e.target.value)}
               >
@@ -495,7 +503,7 @@ export default function AnalyticsPage() {
             <div>
               <label className="text-[11px] font-medium text-[var(--text-soft)] mb-1 block">Department</label>
               <select
-                className="h-8.5 w-full rounded-md border border-[var(--border)] bg-[var(--surface)] px-2.5 text-xs text-[var(--text-main)] outline-none focus:border-[var(--accent)]"
+                className="h-9 w-full rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] px-3 text-xs text-[var(--text-main)] outline-none focus:border-[var(--accent)]"
                 value={departmentId}
                 onChange={(e) => setDepartmentId(e.target.value)}
               >
@@ -510,7 +518,7 @@ export default function AnalyticsPage() {
             <div>
               <label className="text-[11px] font-medium text-[var(--text-soft)] mb-1 block">Project</label>
               <select
-                className="h-8.5 w-full rounded-md border border-[var(--border)] bg-[var(--surface)] px-2.5 text-xs text-[var(--text-main)] outline-none focus:border-[var(--accent)]"
+                className="h-9 w-full rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] px-3 text-xs text-[var(--text-main)] outline-none focus:border-[var(--accent)]"
                 value={projectId}
                 onChange={(e) => setProjectId(e.target.value)}
               >
@@ -526,15 +534,15 @@ export default function AnalyticsPage() {
         </Surface>
 
         {/* Clean Segmented Tab Strip */}
-        <div className="flex items-center gap-1 overflow-x-auto border-b border-[var(--border)] pb-1">
+        <div className="flex h-10 items-center gap-1 overflow-x-auto no-scrollbar rounded-xl border border-[var(--border)] bg-[var(--surface)] p-1 text-xs shadow-xs">
           {([
-            ["executive", "Executive Overview"],
-            ["employee", "Individual Performance"],
-            ["department", "Department Metrics"],
-            ["attendance", "Attendance Logs"],
-            ["project", "Project Delivery"],
-            ["taskSla", "Task SLA & Deadlines"],
-            ["leave", "Leave Breakdown"],
+            ["executive", "Overview"],
+            ["employee", "Individual"],
+            ["department", "Departments"],
+            ["attendance", "Attendance"],
+            ["project", "Projects"],
+            ["taskSla", "SLA & Deadlines"],
+            ["leave", "Leaves"],
           ] as Array<[ReportTab, string]>).map(([key, label]) => {
             const isActive = tab === key;
             return (
@@ -542,10 +550,10 @@ export default function AnalyticsPage() {
                 key={key}
                 type="button"
                 onClick={() => setTab(key)}
-                className={`whitespace-nowrap px-3.5 py-2 text-xs font-semibold transition-colors ${
+                className={`flex h-8 shrink-0 items-center whitespace-nowrap rounded-lg px-3 text-xs font-semibold transition-colors ${
                   isActive
-                    ? "text-[var(--accent)] border-b-2 border-[var(--accent)] -mb-[5px]"
-                    : "text-[var(--text-soft)] hover:text-[var(--text-main)]"
+                    ? "bg-[var(--accent)] text-white shadow-xs"
+                    : "text-[var(--text-soft)] hover:bg-[var(--surface-soft)] hover:text-[var(--text-main)]"
                 }`}
               >
                 {label}

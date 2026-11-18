@@ -197,14 +197,14 @@ export default function ChatPage() {
                       setDirectTargetUserId("");
                       setShowStartDirectModal(true);
                     }}
-                    className="h-8.5 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-2.5 text-xs font-medium text-[var(--text-main)] hover:bg-[var(--surface-hover)] transition-colors"
+                    className="h-9 rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] px-2.5 text-xs font-medium text-[var(--text-main)] hover:bg-[var(--surface)] hover:border-[var(--accent)] transition-colors shadow-xs"
                   >
                     + Direct Chat
                   </button>
                   <button
                     type="button"
                     onClick={() => groups_.setShowCreateGroup(true)}
-                    className="h-8.5 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-2.5 text-xs font-medium text-[var(--text-main)] hover:bg-[var(--surface-hover)] transition-colors"
+                    className="h-9 rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] px-2.5 text-xs font-medium text-[var(--text-main)] hover:bg-[var(--surface)] hover:border-[var(--accent)] transition-colors shadow-xs"
                   >
                     + New Channel
                   </button>
