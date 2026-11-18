@@ -21,7 +21,7 @@ import { showToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { StatCard } from "@/components/ui/stat-card";
 import { Sheet } from "@/components/ui/sheet";
-import { PlusIcon, FilterIcon, CheckSquareIcon } from "@/components/ui/icons";
+import { PlusIcon, FilterIcon, CheckSquareIcon, SearchIcon } from "@/components/ui/icons";
 import type { Task, Project, TaskPriority } from "@/types/crm";
 
 type PaginatedResponse<T> = { items: T[]; total: number; hasMore: boolean; nextOffset: number };
@@ -303,123 +303,129 @@ function TasksPageContent() {
   return (
     <CRMShell user={user}>
       <div className="space-y-5 pb-6">
-        {/* Header Action Bar */}
-        <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <h1 className="text-lg font-bold tracking-tight text-[var(--text-main)] sm:text-xl">
-              Tasks
-            </h1>
-            <p className="text-xs text-[var(--text-soft)]">
-              {isAdminRole(user.role)
-                ? "Assign, organize, and monitor workflows across all teams."
-                : "Manage your assigned work and keep progress up to date."}
-            </p>
-          </div>
+        {/* ── MOBILE STREAMLINED WORKSPACE CARD (<lg) ────────────────────────── */}
+        <div className="flex lg:hidden flex-col rounded-2xl border border-[var(--border)] bg-[var(--surface-strong,#ffffff)] p-2.5 sm:p-3 shadow-xs space-y-2.5">
+          {/* Row 1: Predefined 36px (h-9) Height for Primary Controls */}
+          <div className="flex items-center justify-between gap-2">
+            {/* Search Input (Exact h-9) */}
+            <div className="relative min-w-0 flex-1">
+              <SearchIcon size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[var(--text-soft)]" />
+              <input
+                type="text"
+                value={nameFilter}
+                onChange={(e) => setNameFilter(e.target.value)}
+                placeholder="Search tasks..."
+                className="h-9 w-full rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] pl-7 pr-2.5 text-xs text-[var(--text-main)] outline-none focus:border-[var(--accent)]/50 transition-all placeholder:text-[var(--text-faint)]"
+              />
+            </div>
 
-          <div className="flex items-center gap-1.5 sm:gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              leftIcon={<FilterIcon size={14} />}
-              onClick={() => setFilterOpen((prev) => !prev)}
-              className="text-xs"
-            >
-              {filterOpen ? "Hide Filters" : "Filter"}
-            </Button>
-
-            {isAdminRole(user.role) && (
-              <Button
-                variant="primary"
-                size="sm"
-                leftIcon={<PlusIcon size={14} />}
-                onClick={() => setCreateSheetOpen(true)}
-                className="text-xs"
+            {/* Actions: Filter Toggle & + Task (Both Exact h-9) */}
+            <div className="flex items-center gap-1.5 shrink-0">
+              <button
+                type="button"
+                onClick={() => setFilterOpen((prev) => !prev)}
+                className={`flex h-9 items-center gap-1.5 rounded-lg border px-2.5 text-xs font-bold transition-all active:scale-95 ${
+                  filterOpen || selectedProjectId !== "ALL"
+                    ? "border-[var(--accent)] bg-[var(--accent)]/10 text-[var(--accent)]"
+                    : "border-[var(--border)] bg-[var(--surface-soft)] text-[var(--text-soft)] hover:bg-[var(--surface-hover)]"
+                }`}
+                title="Filter by project"
               >
-                New Task
-              </Button>
-            )}
-          </div>
-        </div>
+                <FilterIcon size={13} />
+                <span>Filter</span>
+                {selectedProjectId !== "ALL" && <span className="h-1.5 w-1.5 rounded-full bg-[var(--accent)]" />}
+              </button>
 
-        {/* Compact Status Tabs & Metric Summary */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[var(--border)] pb-2.5">
-          {/* Status Filter Chips */}
-          <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar">
+              {isAdminRole(user.role) && (
+                <button
+                  type="button"
+                  onClick={() => setCreateSheetOpen(true)}
+                  className="flex h-9 items-center gap-1.5 rounded-lg bg-[var(--accent)] px-3 text-xs font-bold text-white shadow-2xs transition-all active:scale-95 hover:bg-[var(--accent-strong)]"
+                >
+                  <PlusIcon size={13} />
+                  <span>Task</span>
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Row 2: Predefined 32px (h-8) Height: Status Tabs + Done Metric */}
+          <div className="flex items-center justify-between gap-2 pt-1 border-t border-[var(--border)]">
+            {/* Status Tabs (Exact h-8 container, h-7 tabs) */}
+            <div className="flex h-8 items-center rounded-lg bg-[var(--surface-soft)] p-0.5 border border-[var(--border)] overflow-x-auto no-scrollbar">
+              {[
+                { key: "ALL", label: "All", count: taskAnalytics.total },
+                { key: "TODO", label: "Pending", count: taskAnalytics.todo },
+                { key: "IN_PROGRESS", label: "Active", count: taskAnalytics.inProgress },
+                { key: "DONE", label: "Done", count: taskAnalytics.done },
+              ].map((tab) => {
+                const isActive = statusFilter === tab.key;
+                return (
+                  <button
+                    key={tab.key}
+                    type="button"
+                    onClick={() => setStatusFilter(tab.key as any)}
+                    className={`flex h-7 items-center gap-1 px-2 rounded-md text-xs font-bold transition-all shrink-0 ${
+                      isActive
+                        ? "bg-[var(--surface-strong,#ffffff)] text-[var(--accent)] shadow-2xs border border-[var(--border)]"
+                        : "text-[var(--text-soft)] hover:text-[var(--text-main)]"
+                    }`}
+                  >
+                    <span>{tab.label}</span>
+                    <span
+                      className={`rounded-full px-1 py-0.2 text-[9px] font-black ${
+                        isActive
+                          ? "bg-[var(--accent)] text-white"
+                          : "bg-[var(--surface-hover)] text-[var(--text-faint)]"
+                      }`}
+                    >
+                      {tab.count}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Metric Summary Pill (Exact h-8) */}
+            <div className="flex h-8 items-center gap-1.5 px-2.5 rounded-lg bg-[var(--surface-soft)] border border-[var(--border)] text-xs shrink-0">
+              <span className="text-[10px] font-semibold text-[var(--text-soft)]">Done:</span>
+              <span className="text-xs font-black text-emerald-600 dark:text-emerald-400">
+                {taskAnalytics.completionRate}%
+              </span>
+            </div>
+          </div>
+
+          {/* Row 3: Predefined Fast Filter Chips */}
+          <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pt-0.5">
             {[
-              { key: "ALL", label: "All", count: taskAnalytics.total, badge: "bg-[var(--surface-hover)] text-[var(--text-main)]" },
-              { key: "TODO", label: "Pending", count: taskAnalytics.todo, badge: "bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30" },
-              { key: "IN_PROGRESS", label: "In Progress", count: taskAnalytics.inProgress, badge: "bg-blue-500/15 text-blue-600 dark:text-blue-400 border border-blue-500/30" },
-              { key: "DONE", label: "Completed", count: taskAnalytics.done, badge: "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30" },
-            ].map((tab) => {
-              const isActive = statusFilter === tab.key;
+              { id: "ALL", label: "All" },
+              { id: "MY_TASKS", label: "Assigned to Me" },
+              { id: "HIGH_PRIORITY", label: "⚡ High Priority" },
+              { id: "OVERDUE", label: "⏰ Overdue" },
+            ].map((preset) => {
+              const isSelected = presetFilter === preset.id;
               return (
                 <button
-                  key={tab.key}
+                  key={preset.id}
                   type="button"
-                  onClick={() => setStatusFilter(tab.key as any)}
-                  className={`flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-bold transition-all shrink-0 ${
-                    isActive
-                      ? "bg-[var(--accent)] text-white shadow-xs"
-                      : "border border-[var(--border)] bg-[var(--surface-strong,#ffffff)] text-[var(--text-soft)] hover:bg-[var(--surface-soft)]"
+                  onClick={() => setPresetFilter(preset.id as any)}
+                  className={`flex h-6 items-center rounded-md px-2 text-[11px] font-bold transition-all shrink-0 ${
+                    isSelected
+                      ? "bg-[var(--accent)] text-white shadow-2xs"
+                      : "border border-[var(--border)] bg-[var(--surface-soft)] text-[var(--text-soft)] hover:bg-[var(--surface-hover)]"
                   }`}
                 >
-                  <span>{tab.label}</span>
-                  <span className={`rounded-full px-1.5 py-0.2 text-[10px] font-extrabold ${isActive ? "bg-white/20 text-white" : tab.badge}`}>
-                    {tab.count}
-                  </span>
+                  {preset.label}
                 </button>
               );
             })}
           </div>
 
-          {/* Metric Summary Pill */}
-          <div className="flex items-center gap-2 text-xs shrink-0 self-end sm:self-center">
-            <div className="flex items-center gap-1.5 rounded-xl border border-[var(--border)] bg-[var(--surface-strong,#ffffff)] px-2.5 py-1 text-xs shadow-2xs">
-              <span className="font-semibold text-[var(--text-soft)]">Done:</span>
-              <span className="font-extrabold text-emerald-600">{taskAnalytics.completionRate}%</span>
-            </div>
-            <div className="flex items-center gap-1.5 rounded-xl border border-[var(--border)] bg-[var(--surface-strong,#ffffff)] px-2.5 py-1 text-xs shadow-2xs">
-              <span className="font-semibold text-[var(--text-soft)]">Avg:</span>
-              <span className="font-extrabold text-[var(--accent)]">{taskAnalytics.avgProgress}%</span>
-            </div>
-          </div>
-        </div>
-
-        {/* 1-Click Fast Filter Pills (HubSpot / Linear style) */}
-        <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5">
-          <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-faint)] mr-1 shrink-0">
-            View:
-          </span>
-          {[
-            { id: "ALL", label: "All Tasks" },
-            { id: "MY_TASKS", label: "👤 Assigned to Me" },
-            { id: "HIGH_PRIORITY", label: "⚡ High Priority" },
-            { id: "OVERDUE", label: "⏰ Overdue" },
-          ].map((preset) => {
-            const isSelected = presetFilter === preset.id;
-            return (
-              <button
-                key={preset.id}
-                type="button"
-                onClick={() => setPresetFilter(preset.id as any)}
-                className={`rounded-full px-3 py-1 text-xs font-bold transition-all shrink-0 ${
-                  isSelected
-                    ? "bg-gradient-to-r from-indigo-600 to-violet-600 text-white shadow-xs"
-                    : "border border-[var(--border)] bg-[var(--surface-strong,#ffffff)] text-[var(--text-soft)] hover:bg-[var(--surface-soft)]"
-                }`}
-              >
-                {preset.label}
-              </button>
-            );
-          })}
-        </div>
-
-        {/* Filter Bar */}
-        {filterOpen && (
-          <div className="flex flex-wrap gap-3 rounded-xl border border-[var(--border)] bg-[var(--surface-strong,#ffffff)] p-3 shadow-xs">
-            <div className="w-full sm:w-64">
-              <label className="text-[11px] font-semibold uppercase tracking-wider text-[var(--text-soft)] block mb-1">
-                Project
+          {/* Integrated Filter Options (When Filter is toggled open) */}
+          {filterOpen && (
+            <div className="pt-2 border-t border-[var(--border)] space-y-2 animate-in fade-in duration-100">
+              <label className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-soft)] block">
+                Filter by Project
               </label>
               <ResponsiveSelect
                 value={selectedProjectId}
@@ -432,33 +438,165 @@ function TasksPageContent() {
                 buttonClassName="h-9 rounded-lg text-xs"
               />
             </div>
-            <div className="flex-1 min-w-[200px]">
-              <label className="text-[11px] font-semibold uppercase tracking-wider text-[var(--text-soft)] block mb-1">
-                Search Tasks
-              </label>
-              <input
-                className="h-9 w-full rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] px-3 text-xs outline-none focus:border-[var(--accent)] focus:bg-[var(--surface-strong,#ffffff)] transition-all"
-                value={nameFilter}
-                placeholder="Search title, description, assignee..."
-                onChange={(e) => setNameFilter(e.target.value)}
-              />
+          )}
+        </div>
+
+        {/* ── DESKTOP STREAMLINED HEADER (Hidden on mobile <lg) ──────────────── */}
+        <div className="hidden lg:block space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-lg font-bold tracking-tight text-[var(--text-main)] sm:text-xl">
+                Tasks
+              </h1>
+              <p className="text-xs text-[var(--text-soft)]">
+                {isAdminRole(user.role)
+                  ? "Assign, organize, and monitor workflows across all teams."
+                  : "Manage your assigned work and keep progress up to date."}
+              </p>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                leftIcon={<FilterIcon size={14} />}
+                onClick={() => setFilterOpen((prev) => !prev)}
+                className="text-xs"
+              >
+                {filterOpen ? "Hide Filters" : "Filter"}
+              </Button>
+
+              {isAdminRole(user.role) && (
+                <Button
+                  variant="primary"
+                  size="sm"
+                  leftIcon={<PlusIcon size={14} />}
+                  onClick={() => setCreateSheetOpen(true)}
+                  className="text-xs"
+                >
+                  New Task
+                </Button>
+              )}
             </div>
           </div>
-        )}
+
+          {/* Desktop Status Tabs & Metric Summary */}
+          <div className="flex items-center justify-between gap-2 border-b border-[var(--border)] pb-2.5">
+            <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar">
+              {[
+                { key: "ALL", label: "All", count: taskAnalytics.total, badge: "bg-[var(--surface-hover)] text-[var(--text-main)]" },
+                { key: "TODO", label: "Pending", count: taskAnalytics.todo, badge: "bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30" },
+                { key: "IN_PROGRESS", label: "In Progress", count: taskAnalytics.inProgress, badge: "bg-blue-500/15 text-blue-600 dark:text-blue-400 border border-blue-500/30" },
+                { key: "DONE", label: "Completed", count: taskAnalytics.done, badge: "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30" },
+              ].map((tab) => {
+                const isActive = statusFilter === tab.key;
+                return (
+                  <button
+                    key={tab.key}
+                    type="button"
+                    onClick={() => setStatusFilter(tab.key as any)}
+                    className={`flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-bold transition-all shrink-0 ${
+                      isActive
+                        ? "bg-[var(--accent)] text-white shadow-xs"
+                        : "border border-[var(--border)] bg-[var(--surface-strong,#ffffff)] text-[var(--text-soft)] hover:bg-[var(--surface-soft)]"
+                    }`}
+                  >
+                    <span>{tab.label}</span>
+                    <span className={`rounded-full px-1.5 py-0.2 text-[10px] font-extrabold ${isActive ? "bg-white/20 text-white" : tab.badge}`}>
+                      {tab.count}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+
+            <div className="flex items-center gap-2 text-xs shrink-0">
+              <div className="flex items-center gap-1.5 rounded-xl border border-[var(--border)] bg-[var(--surface-strong,#ffffff)] px-2.5 py-1 text-xs shadow-2xs">
+                <span className="font-semibold text-[var(--text-soft)]">Done:</span>
+                <span className="font-extrabold text-emerald-600">{taskAnalytics.completionRate}%</span>
+              </div>
+              <div className="flex items-center gap-1.5 rounded-xl border border-[var(--border)] bg-[var(--surface-strong,#ffffff)] px-2.5 py-1 text-xs shadow-2xs">
+                <span className="font-semibold text-[var(--text-soft)]">Avg:</span>
+                <span className="font-extrabold text-[var(--accent)]">{taskAnalytics.avgProgress}%</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Desktop Fast Filter Pills */}
+          <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-faint)] mr-1 shrink-0">
+              View:
+            </span>
+            {[
+              { id: "ALL", label: "All Tasks" },
+              { id: "MY_TASKS", label: "👤 Assigned to Me" },
+              { id: "HIGH_PRIORITY", label: "⚡ High Priority" },
+              { id: "OVERDUE", label: "⏰ Overdue" },
+            ].map((preset) => {
+              const isSelected = presetFilter === preset.id;
+              return (
+                <button
+                  key={preset.id}
+                  type="button"
+                  onClick={() => setPresetFilter(preset.id as any)}
+                  className={`rounded-full px-3 py-1 text-xs font-bold transition-all shrink-0 ${
+                    isSelected
+                      ? "bg-gradient-to-r from-indigo-600 to-violet-600 text-white shadow-xs"
+                      : "border border-[var(--border)] bg-[var(--surface-strong,#ffffff)] text-[var(--text-soft)] hover:bg-[var(--surface-soft)]"
+                  }`}
+                >
+                  {preset.label}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Desktop Filter Bar (When Toggled) */}
+          {filterOpen && (
+            <div className="flex flex-wrap gap-3 rounded-xl border border-[var(--border)] bg-[var(--surface-strong,#ffffff)] p-3 shadow-xs">
+              <div className="w-full sm:w-64">
+                <label className="text-[11px] font-semibold uppercase tracking-wider text-[var(--text-soft)] block mb-1">
+                  Project
+                </label>
+                <ResponsiveSelect
+                  value={selectedProjectId}
+                  onChange={(value) => {
+                    setSelectedProjectId(value);
+                    setLoading(true);
+                  }}
+                  options={projectFilterOptions}
+                  ariaLabel="Filter tasks by project"
+                  buttonClassName="h-9 rounded-lg text-xs"
+                />
+              </div>
+              <div className="flex-1 min-w-[200px]">
+                <label className="text-[11px] font-semibold uppercase tracking-wider text-[var(--text-soft)] block mb-1">
+                  Search Tasks
+                </label>
+                <input
+                  className="h-9 w-full rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] px-3 text-xs outline-none focus:border-[var(--accent)] focus:bg-[var(--surface-strong,#ffffff)] transition-all"
+                  value={nameFilter}
+                  placeholder="Search title, description, assignee..."
+                  onChange={(e) => setNameFilter(e.target.value)}
+                />
+              </div>
+            </div>
+          )}
+        </div>
 
         {/* Main Task List Table / Cards */}
-        <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-strong,#ffffff)] shadow-xs overflow-hidden">
-          <div className="flex items-center justify-between border-b border-[var(--border)] px-4 py-3">
+        <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface-strong,#ffffff)] shadow-xs overflow-hidden">
+          <div className="flex items-center justify-between border-b border-[var(--border)] px-3.5 py-2.5 sm:px-4 sm:py-3">
             <div className="flex items-center gap-2">
-              <CheckSquareIcon size={16} className="text-blue-600" />
-              <h2 className="text-sm font-semibold text-[var(--text-main)]">Task Board</h2>
+              <CheckSquareIcon size={16} className="text-[var(--accent)]" />
+              <h2 className="text-xs sm:text-sm font-bold text-[var(--text-main)]">Task Board</h2>
             </div>
-            <span className="text-xs text-[var(--text-soft)]">
+            <span className="text-xs font-semibold text-[var(--text-soft)]">
               {tasksTotal ? `Showing ${visibleTasks.length} of ${tasksTotal}` : `${visibleTasks.length} tasks`}
             </span>
           </div>
 
-          <div className="p-4">
+          <div className="p-2.5 sm:p-4">
             {loading ? (
               <div className="space-y-3">
                 <Skeleton className="h-12 w-full rounded-lg" />

@@ -579,7 +579,7 @@ export function TaskList({
                                 priority: event.target.value as TaskPriority,
                               })
                             }
-                            className="w-full min-w-0 rounded-md border border-[var(--border)] bg-[var(--surface)] px-2 py-1 text-xs outline-none focus:border-[var(--accent)] sm:w-auto"
+                            className="h-8 w-full min-w-0 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-2.5 text-xs outline-none focus:border-[var(--accent)] sm:w-auto"
                             title="Priority"
                           >
                             {TASK_PRIORITY_OPTIONS.map((opt) => (
@@ -598,7 +598,7 @@ export function TaskList({
                                 status: event.target.value as Task["status"],
                               })
                             }
-                            className="w-full min-w-0 rounded-md border border-[var(--border)] bg-[var(--surface)] px-2 py-1 text-xs outline-none focus:border-[var(--accent)] sm:w-auto"
+                            className="h-8 w-full min-w-0 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-2.5 text-xs outline-none focus:border-[var(--accent)] sm:w-auto"
                           >
                             {statuses.map((status) => (
                               <option key={status} value={status}>
@@ -623,7 +623,7 @@ export function TaskList({
                               });
                             }
                           }}
-                          className="rounded-md border border-[var(--border)] px-2.5 py-1 text-xs font-semibold text-[var(--accent)] hover:bg-[var(--surface-soft)]"
+                          className="h-8 flex items-center rounded-lg border border-[var(--border)] px-2.5 text-xs font-semibold text-[var(--accent)] hover:bg-[var(--surface-soft)]"
                         >
                           Responses ({task.issues.filter((issue) => Boolean(issue.managerResponse)).length})
                         </button>
@@ -633,7 +633,7 @@ export function TaskList({
                           <button
                             type="button"
                             onClick={() => openEditTask(task)}
-                            className="rounded-md border border-[var(--border)] px-2.5 py-1 text-xs font-semibold text-[var(--text-soft)] hover:bg-[var(--surface-soft)]"
+                            className="h-8 flex items-center rounded-lg border border-[var(--border)] px-2.5 text-xs font-semibold text-[var(--text-soft)] hover:bg-[var(--surface-soft)]"
                           >
                             Edit
                           </button>
@@ -641,7 +641,7 @@ export function TaskList({
                             type="button"
                             onClick={() => void handleDeleteTask(task.id)}
                             disabled={savingId === task.id}
-                            className="rounded-md border border-rose-200 dark:border-rose-900/40 px-2.5 py-1 text-xs font-semibold text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 disabled:opacity-60"
+                            className="h-8 flex items-center rounded-lg border border-rose-200 dark:border-rose-900/40 px-2.5 text-xs font-semibold text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 disabled:opacity-60"
                           >
                             Delete
                           </button>
@@ -650,7 +650,7 @@ export function TaskList({
                       <button
                         type="button"
                         onClick={() => toggleIssuePanel(task.id)}
-                        className="rounded-md border border-[var(--border)] px-2.5 py-1 text-xs font-semibold text-[var(--text-soft)] hover:bg-[var(--surface-soft)]"
+                        className="h-8 flex items-center rounded-lg border border-[var(--border)] px-2.5 text-xs font-semibold text-[var(--text-soft)] hover:bg-[var(--surface-soft)]"
                       >
                         {issuePanelTaskId === task.id ? "Minimize Issues" : `Issues (${task.issues.length})`}
                       </button>
