@@ -115,47 +115,9 @@ export function TaskKanban({
 
   return (
     <div className="space-y-3">
-      {/* ── MOBILE INTERACTIVE COLUMN SWITCHER ─────────────────────────────── */}
-      <div className="flex sm:hidden items-center justify-between gap-1 p-1 rounded-xl bg-[var(--surface-soft)] border border-[var(--border)]">
-        {COLUMNS.map((col) => {
-          const count = groupedTasks[col.key]?.length ?? 0;
-          const isActive = mobileColumnFilter === col.key;
-          return (
-            <button
-              key={col.key}
-              type="button"
-              onClick={() => setMobileColumnFilter(col.key)}
-              className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg text-xs font-bold transition-all ${
-                isActive
-                  ? "bg-[var(--surface-strong,#ffffff)] text-[var(--text-main)] shadow-2xs border border-[var(--border)]"
-                  : "text-[var(--text-soft)] hover:text-[var(--text-main)]"
-              }`}
-            >
-              <span className="text-[11px]">{col.icon}</span>
-              <span className="truncate">{col.label}</span>
-              <span className={`rounded-full px-1.5 py-0.2 text-[10px] font-extrabold ${isActive ? "bg-[var(--accent)] text-white" : "bg-[var(--surface-hover)] text-[var(--text-soft)]"}`}>
-                {count}
-              </span>
-            </button>
-          );
-        })}
-        <button
-          type="button"
-          onClick={() => setMobileColumnFilter(mobileColumnFilter === "ALL" ? "TODO" : "ALL")}
-          className={`px-2 py-1.5 text-xs font-bold rounded-lg transition-all ${
-            mobileColumnFilter === "ALL"
-              ? "bg-[var(--accent)] text-white shadow-2xs"
-              : "text-[var(--text-soft)] hover:text-[var(--text-main)]"
-          }`}
-          title="Toggle All Columns view"
-        >
-          All
-        </button>
-      </div>
-
-      {/* ── KANBAN BOARD GRID ──────────────────────────────────────────────── */}
+      {/* ── KANBAN BOARD CONTAINER ─────────────────────────────────────────── */}
       <section
-        className={`flex overflow-x-auto snap-x snap-mandatory gap-3.5 pb-3 ${
+        className={`flex overflow-x-auto snap-x snap-mandatory gap-3 pb-2 ${
           mobileColumnFilter === "ALL"
             ? "lg:grid lg:grid-cols-3 lg:items-start lg:overflow-visible lg:pb-0"
             : "w-full lg:grid lg:grid-cols-3 lg:items-start lg:overflow-visible lg:pb-0"
@@ -166,14 +128,60 @@ export function TaskKanban({
           return (
             <div
               key={col.key}
-              className={`flex shrink-0 snap-center flex-col rounded-2xl border border-[var(--border)] bg-[var(--surface-strong,#ffffff)] p-3.5 shadow-xs transition-all ${
+              className={`flex shrink-0 snap-center flex-col rounded-2xl border border-[var(--border)] bg-[var(--surface-strong,#ffffff)] shadow-xs transition-all overflow-hidden ${
                 mobileColumnFilter === "ALL"
-                  ? "w-[85vw] max-w-[340px] sm:w-[320px] lg:w-auto max-h-[min(70vh,600px)] lg:max-h-[min(75vh,800px)]"
+                  ? "w-[85vw] max-w-[340px] sm:w-[320px] lg:w-auto p-3.5 max-h-[min(70vh,600px)] lg:max-h-[min(75vh,800px)]"
                   : "w-full max-h-[min(75vh,700px)] lg:max-h-[min(75vh,800px)]"
               }`}
             >
-              {/* Column Header */}
-              <div className="flex shrink-0 items-center justify-between border-b border-[var(--border)] pb-2.5">
+              {/* ── MOBILE INTEGRATED COLUMN TAB BAR (Only on mobile single-column mode) ── */}
+              {mobileColumnFilter !== "ALL" && (
+                <div className="flex sm:hidden border-b border-[var(--border)] bg-[var(--surface-soft)] p-1 gap-1 shrink-0">
+                  {COLUMNS.map((c) => {
+                    const count = groupedTasks[c.key]?.length ?? 0;
+                    const isActive = mobileColumnFilter === c.key;
+                    return (
+                      <button
+                        key={c.key}
+                        type="button"
+                        onClick={() => setMobileColumnFilter(c.key)}
+                        className={`flex-1 flex h-8 items-center justify-center gap-1.5 px-2 rounded-lg text-xs font-bold transition-all ${
+                          isActive
+                            ? "bg-[var(--surface-strong,#ffffff)] text-[var(--accent)] shadow-2xs border border-[var(--border)]"
+                            : "text-[var(--text-soft)] hover:text-[var(--text-main)]"
+                        }`}
+                      >
+                        <span className="text-[11px]">{c.icon}</span>
+                        <span className="truncate">{c.label}</span>
+                        <span
+                          className={`rounded-full px-1.5 py-0.2 text-[10px] font-black ${
+                            isActive
+                              ? "bg-[var(--accent)] text-white"
+                              : "bg-[var(--surface-hover)] text-[var(--text-faint)]"
+                          }`}
+                        >
+                          {count}
+                        </span>
+                      </button>
+                    );
+                  })}
+                  <button
+                    type="button"
+                    onClick={() => setMobileColumnFilter("ALL")}
+                    className="h-8 px-2 text-[11px] font-bold rounded-lg text-[var(--text-faint)] hover:text-[var(--text-main)] transition-colors shrink-0"
+                    title="View all 3 columns side by side"
+                  >
+                    All ⇥
+                  </button>
+                </div>
+              )}
+
+              {/* ── STANDARD COLUMN HEADER (Shown on Desktop OR in 'ALL' carousel mode) ── */}
+              <div
+                className={`${
+                  mobileColumnFilter !== "ALL" ? "hidden sm:flex p-3.5 pb-2.5" : "flex pb-2.5"
+                } shrink-0 items-center justify-between border-b border-[var(--border)]`}
+              >
                 <div className="flex items-center gap-2">
                   <span className={`h-2.5 w-2.5 rounded-full ${col.tone} ring-2 ring-[var(--surface-soft)] shadow-2xs`} />
                   <h3 className="text-xs font-extrabold uppercase tracking-wider text-[var(--text-main)]">
@@ -186,7 +194,9 @@ export function TaskKanban({
               </div>
 
               {/* Scrollable Tasks Column */}
-              <div className="mt-2.5 min-h-0 flex-1 space-y-2.5 overflow-y-auto overscroll-contain pr-0.5">
+              <div className={`min-h-0 flex-1 space-y-2.5 overflow-y-auto overscroll-contain pr-0.5 ${
+                mobileColumnFilter !== "ALL" ? "p-3 sm:p-3.5" : "mt-2.5"
+              }`}>
                 {columnTasks.map((task) => {
                   const doneSubtasks = task.checklistItems.filter((x) => x.completed).length;
                   const totalSubtasks = task.checklistItems.length;
@@ -449,17 +459,38 @@ export function TaskKanban({
                 })}
 
                 {columnTasks.length === 0 && (
-                  <div className="rounded-xl border border-dashed border-[var(--border)] p-5 text-center text-xs text-[var(--text-soft)]">
-                    No tasks in this column.
+                  <div className="flex flex-col items-center justify-center py-8 sm:py-12 px-4 text-center rounded-xl border border-dashed border-[var(--border)] bg-[var(--surface-soft)]/40">
+                    <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[var(--surface-strong,#ffffff)] text-lg border border-[var(--border)] shadow-2xs">
+                      {col.icon}
+                    </div>
+                    <p className="mt-3 text-xs font-bold text-[var(--text-main)]">
+                      No {col.label.toLowerCase()} tasks
+                    </p>
+                    <p className="mt-0.5 text-[11px] text-[var(--text-soft)] max-w-[200px]">
+                      Create a task to track work in this stage.
+                    </p>
+                    {onQuickCreate && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setAddingCol(col.key);
+                          setNewTitle("");
+                        }}
+                        className="mt-3.5 flex h-8 items-center gap-1.5 rounded-lg border border-[var(--border)] bg-[var(--surface-strong,#ffffff)] px-3 text-xs font-bold text-[var(--accent)] hover:bg-[var(--surface-hover)] active:scale-95 transition-all shadow-2xs"
+                      >
+                        <span className="text-sm font-bold">+</span>
+                        <span>Add task</span>
+                      </button>
+                    )}
                   </div>
                 )}
               </div>
 
               {/* Fast Inline "+ Add task" Creation Row */}
               {onQuickCreate && (
-                <div className="mt-2.5 pt-2 border-t border-[var(--border)] shrink-0">
+                <div className={`border-t border-[var(--border)] shrink-0 ${mobileColumnFilter !== "ALL" ? "p-3 sm:p-3.5 pt-2.5" : "mt-2.5 pt-2"}`}>
                   {addingCol === col.key ? (
-                    <div className="space-y-1.5 animate-in fade-in duration-100">
+                    <div className="space-y-2 animate-in fade-in duration-100">
                       <input
                         autoFocus
                         type="text"
@@ -476,7 +507,7 @@ export function TaskKanban({
                           }
                         }}
                         placeholder="Task name... (Press Enter to add)"
-                        className="h-8 w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] px-2.5 text-xs text-[var(--text-main)] outline-none focus:border-[var(--accent)]"
+                        className="h-9 w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 text-xs text-[var(--text-main)] outline-none focus:border-[var(--accent)] transition-all"
                       />
                       <div className="flex items-center justify-end gap-1.5">
                         <button
@@ -485,7 +516,7 @@ export function TaskKanban({
                             setAddingCol(null);
                             setNewTitle("");
                           }}
-                          className="rounded-lg px-2 py-1 text-xs text-[var(--text-soft)] hover:bg-[var(--surface-soft)]"
+                          className="h-7 rounded-lg px-2.5 text-xs font-semibold text-[var(--text-soft)] hover:bg-[var(--surface-soft)]"
                         >
                           Cancel
                         </button>
@@ -493,7 +524,7 @@ export function TaskKanban({
                           type="button"
                           disabled={!newTitle.trim() || isSubmittingQuick}
                           onClick={() => void handleQuickAdd(col.key)}
-                          className="rounded-lg bg-[var(--accent)] px-2.5 py-1 text-xs font-semibold text-white hover:bg-[var(--accent-strong)] disabled:opacity-50 shadow-2xs"
+                          className="h-7 rounded-lg bg-[var(--accent)] px-3 text-xs font-bold text-white hover:bg-[var(--accent-strong)] disabled:opacity-50 shadow-2xs transition-all active:scale-95"
                         >
                           {isSubmittingQuick ? "Adding..." : "Add"}
                         </button>
@@ -506,9 +537,9 @@ export function TaskKanban({
                         setAddingCol(col.key);
                         setNewTitle("");
                       }}
-                      className="flex items-center gap-1.5 w-full rounded-xl px-2.5 py-1.5 text-xs font-semibold text-[var(--text-soft)] hover:bg-[var(--surface-hover)] hover:text-[var(--accent)] transition-colors"
+                      className="flex h-9 items-center gap-2 w-full rounded-lg px-3 text-xs font-semibold text-[var(--text-soft)] border border-dashed border-[var(--border)] bg-[var(--surface-soft)] hover:bg-[var(--surface-hover)] hover:text-[var(--accent)] hover:border-[var(--accent)]/40 transition-all active:scale-[0.99]"
                     >
-                      <span className="text-sm font-bold text-[var(--accent)]">+</span>
+                      <span className="flex h-4 w-4 items-center justify-center rounded-md bg-[var(--accent)] text-white text-xs font-bold">+</span>
                       <span>Add a task</span>
                     </button>
                   )}

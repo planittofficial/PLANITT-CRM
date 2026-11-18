@@ -209,76 +209,92 @@ export default function ProjectsPage() {
           </div>
         </div>
 
-        {/* ── MOBILE STREAMLINED APP BAR (<lg) ──────────────────────────────── */}
-        <div className="flex lg:hidden flex-col gap-2.5 pb-0.5">
-          {/* Row 1: Project Picker Button + Quick Add Actions */}
+        {/* ── MOBILE STREAMLINED WORKSPACE CARD (<lg) ────────────────────────── */}
+        <div className="flex lg:hidden flex-col rounded-2xl border border-[var(--border)] bg-[var(--surface-strong,#ffffff)] p-2.5 sm:p-3 shadow-xs space-y-2.5">
+          {/* Row 1: Predefined 36px (h-9) Height for All Primary Elements */}
           <div className="flex items-center justify-between gap-2">
+            {/* Project Switcher Pill Button (Exact h-9) */}
             <button
               type="button"
               onClick={() => setMobileProjectPickerOpen(true)}
-              className="flex items-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--surface-strong,#ffffff)] px-3 py-2 text-left shadow-xs transition-all hover:border-[var(--accent)] active:scale-[0.98] min-w-0 flex-1"
+              className="flex h-9 min-w-0 flex-1 items-center gap-2 rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] px-2.5 text-left transition-all active:scale-[0.99] hover:border-[var(--accent)]/50"
             >
-              <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-[var(--accent)] text-white font-bold text-xs shrink-0 shadow-2xs">
-                📁
-              </span>
+              <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-[var(--accent)] text-white shadow-2xs">
+                <FolderKanbanIcon size={12} />
+              </div>
               <div className="min-w-0 flex-1">
-                <p className="text-xs font-extrabold text-[var(--text-main)] truncate">
+                <p className="text-xs font-bold text-[var(--text-main)] truncate leading-tight">
                   {selectedProject ? selectedProject.name : "Select Board"}
                 </p>
                 {selectedProject && (
-                  <p className="text-[10px] text-[var(--text-soft)] truncate">
-                    {selectedProject.department.name} • {selectedProject.progress}% done
+                  <p className="text-[10px] font-medium text-[var(--text-soft)] truncate leading-none">
+                    {selectedProject.department.name}
                   </p>
                 )}
               </div>
-              <span className="text-[10px] font-bold text-[var(--accent)] shrink-0 bg-[var(--surface-hover)] px-1.5 py-0.5 rounded-md">
+              <span className="text-[10px] font-bold text-[var(--accent)] shrink-0 bg-[var(--surface-hover)] px-1.5 py-0.5 rounded">
                 Switch ▾
               </span>
             </button>
 
+            {/* Actions: + Task & + Board (Both Exact h-9) */}
             <div className="flex items-center gap-1.5 shrink-0">
               <button
                 type="button"
                 onClick={() => setCreateTaskOpen(true)}
-                className="flex h-9 items-center gap-1.5 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 px-3 text-xs font-bold text-white shadow-xs active:scale-95 transition-transform"
+                className="flex h-9 items-center gap-1.5 rounded-lg bg-[var(--accent)] px-3 text-xs font-bold text-white shadow-2xs transition-all active:scale-95 hover:bg-[var(--accent-strong)]"
               >
-                <PlusIcon size={14} />
+                <PlusIcon size={13} />
                 <span>Task</span>
               </button>
               <button
                 type="button"
                 onClick={() => setCreateProjectOpen(true)}
-                className="flex h-9 w-9 items-center justify-center rounded-xl border border-[var(--border)] bg-[var(--surface-strong,#ffffff)] text-[var(--text-main)] shadow-xs active:scale-95 hover:bg-[var(--surface-soft)]"
+                className="flex h-9 w-9 items-center justify-center rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] text-[var(--text-main)] shadow-2xs transition-all active:scale-95 hover:bg-[var(--surface-hover)]"
                 title="New Board"
               >
-                <FolderKanbanIcon size={15} />
+                <FolderKanbanIcon size={14} />
               </button>
             </div>
           </div>
 
-          {/* Row 2: Segmented View Switcher (Board | List | Team) */}
-          <div className="flex items-center justify-between gap-2">
-            <div className="flex items-center rounded-xl bg-[var(--surface-soft)] p-1 border border-[var(--border)]">
-              {(["board", "list", "team"] as ActiveTab[]).map((tab) => (
-                <button
-                  key={tab}
-                  type="button"
-                  onClick={() => setActiveTab(tab)}
-                  className={`px-3 py-1 text-xs font-bold rounded-lg transition-all capitalize ${
-                    activeTab === tab
-                      ? "bg-[var(--surface-strong,#ffffff)] text-[var(--accent)] shadow-2xs border border-[var(--border)]"
-                      : "text-[var(--text-soft)] hover:text-[var(--text-main)]"
-                  }`}
-                >
-                  {tab === "board" ? "📋 Board" : tab === "list" ? "☰ List" : "👥 Team"}
-                </button>
-              ))}
+          {/* Row 2: Predefined 32px (h-8) Height for View Tabs & Sprint Meter */}
+          <div className="flex items-center justify-between gap-2 pt-1 border-t border-[var(--border)]">
+            {/* View Switcher Tabs (Exact h-8 container, h-7 tabs) */}
+            <div className="flex h-8 items-center rounded-lg bg-[var(--surface-soft)] p-0.5 border border-[var(--border)]">
+              {[
+                { id: "board", label: "Board", icon: FolderKanbanIcon },
+                { id: "list", label: "List", icon: CheckSquareIcon },
+                { id: "team", label: "Team", icon: UsersIcon },
+                { id: "credentials", label: "Keys", icon: KeyIcon },
+              ].map((tab) => {
+                const isActive = activeTab === tab.id;
+                const Icon = tab.icon;
+                return (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    onClick={() => setActiveTab(tab.id as ActiveTab)}
+                    className={`flex h-7 items-center gap-1 px-2.5 rounded-md text-xs font-bold transition-all ${
+                      isActive
+                        ? "bg-[var(--surface-strong,#ffffff)] text-[var(--accent)] shadow-2xs border border-[var(--border)]"
+                        : "text-[var(--text-soft)] hover:text-[var(--text-main)]"
+                    }`}
+                  >
+                    <Icon size={12} className={isActive ? "text-[var(--accent)]" : "text-[var(--text-soft)]"} />
+                    <span>{tab.label}</span>
+                  </button>
+                );
+              })}
             </div>
 
+            {/* Sprint Progress Meter (Exact h-8) */}
             {selectedProject && (
-              <div className="flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-xl bg-[var(--surface-strong,#ffffff)] border border-[var(--border)] shadow-2xs">
+              <div className="flex h-8 items-center gap-1.5 px-2.5 rounded-lg bg-[var(--surface-soft)] border border-[var(--border)]">
                 <span className="text-[10px] font-semibold text-[var(--text-soft)]">Sprint:</span>
-                <span className="text-xs font-extrabold text-[var(--accent)]">{selectedProject.progress}%</span>
+                <span className="text-xs font-black text-emerald-600 dark:text-emerald-400">
+                  {selectedProject.progress}%
+                </span>
               </div>
             )}
           </div>
@@ -579,7 +595,7 @@ export default function ProjectsPage() {
                             }
                           }}
                           placeholder="+ Add a task to this project... (Press Enter)"
-                          className="h-8 w-full rounded-md border border-[var(--border)] bg-[var(--surface)] px-2.5 text-xs text-[var(--text-main)] outline-none focus:border-[var(--accent)]"
+                          className="h-9 w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 text-xs text-[var(--text-main)] outline-none focus:border-[var(--accent)] transition-all"
                         />
                         {listQuickTitle.trim() && (
                           <button
@@ -592,7 +608,7 @@ export default function ProjectsPage() {
                                 setIsAddingListTask(false);
                               });
                             }}
-                            className="h-8 px-3 rounded-md bg-[var(--accent)] text-white text-xs font-semibold shrink-0"
+                            className="h-9 px-3.5 rounded-lg bg-[var(--accent)] text-white text-xs font-bold shrink-0 shadow-2xs active:scale-95 transition-all"
                           >
                             {isAddingListTask ? "..." : "Add"}
                           </button>
