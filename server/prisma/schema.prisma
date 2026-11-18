@@ -58,6 +58,8 @@ model User {
   assignedLeads             Lead[]                     @relation("AssignedLeads")
   assignedDeals             Deal[]                     @relation("AssignedDeals")
   organizedEvents           CalendarEvent[]            @relation("OrganizedEvents")
+  sentCommunications        LeadCommunication[]        @relation("SentCommunications")
+  deviceTokens              UserDeviceToken[]          @relation("UserDeviceTokens")
 }
 
 model LeaveType {
@@ -691,6 +693,7 @@ model Lead {
   createdAt    DateTime    @default(now())
   updatedAt    DateTime    @updatedAt
   deals        Deal[]
+  communications LeadCommunication[]
 
   @@index([status])
   @@index([assignedToId])
@@ -725,6 +728,7 @@ model Deal {
   createdAt         DateTime        @default(now())
   updatedAt         DateTime        @updatedAt
   calendarEvents    CalendarEvent[]
+  communications    LeadCommunication[]
 
   @@index([stage])
   @@index([assignedToId])
@@ -732,17 +736,84 @@ model Deal {
 }
 
 model Contact {
-  id          String   @id @default(cuid())
-  name        String
-  email       String?  @unique
-  phone       String?
-  company     String?
-  designation String?
-  notes       String?
-  deals       Deal[]
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id             String              @id @default(cuid())
+  name           String
+  email          String?             @unique
+  phone          String?
+  company        String?
+  designation    String?
+  notes          String?
+  deals          Deal[]
+  communications LeadCommunication[]
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
 
   @@index([email])
+}
+
+// ─────────────────────────────────────────────
+// Omnichannel CRM & Mobile Push Notifications
+// ─────────────────────────────────────────────
+
+enum MessageChannel {
+  WHATSAPP
+  EMAIL
+  SMS
+}
+
+enum MessageDirection {
+  INBOUND
+  OUTBOUND
+}
+
+enum MessageDeliveryStatus {
+  SENT
+  DELIVERED
+  READ
+  FAILED
+  RECEIVED
+}
+
+model LeadCommunication {
+  id           String                @id @default(cuid())
+  leadId       String?
+  lead         Lead?                 @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  dealId       String?
+  deal         Deal?                 @relation(fields: [dealId], references: [id], onDelete: SetNull)
+  contactId    String?
+  contact      Contact?              @relation(fields: [contactId], references: [id], onDelete: SetNull)
+  channel      MessageChannel        @default(WHATSAPP)
+  direction    MessageDirection      @default(OUTBOUND)
+  sender       String?
+  recipient    String
+  subject      String?
+  body         String
+  status       MessageDeliveryStatus @default(SENT)
+  templateName String?
+  metadata     String?
+  sentById     String?
+  sentBy       User?                 @relation("SentCommunications", fields: [sentById], references: [id], onDelete: SetNull)
+  createdAt    DateTime              @default(now())
+  updatedAt    DateTime              @updatedAt
+
+  @@index([leadId])
+  @@index([dealId])
+  @@index([recipient])
+  @@index([channel])
+  @@index([createdAt])
+}
+
+model UserDeviceToken {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation("UserDeviceTokens", fields: [userId], references: [id], onDelete: Cascade)
+  token       String   @unique
+  platform    String   @default("ANDROID") // ANDROID, IOS, WEB
+  deviceModel String?
+  lastActive  DateTime @default(now())
+  createdAt   DateTime @default(now())
+
+  @@index([userId])
+  @@index([token])
 }
 

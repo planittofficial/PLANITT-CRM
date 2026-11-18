@@ -3,6 +3,7 @@ import jwt from "jsonwebtoken";
 import prisma from "./config/db.js";
 import { getAllowedCorsOrigins, getJwtSecret, isCorsOriginAllowed } from "./config/security.js";
 import { getAuthCookieName } from "./utils/auth-cookie.js";
+import { sendPushNotificationToUsers, registerDeviceToken, unregisterDeviceToken } from "./services/fcm.service.js";
 
 let ioInstance = null;
 const LEADERSHIP_ROLES = ["SUPERADMIN", "ADMIN", "MANAGER"];
@@ -258,6 +259,21 @@ export function initSocket(server) {
       }
     });
 
+    // FCM Device Token Registration Listeners
+    socket.on("fcm:register", async (payload = {}) => {
+      if (!userId || !payload.token) return;
+      await registerDeviceToken(userId, {
+        token: payload.token,
+        platform: payload.platform || "ANDROID",
+        deviceModel: payload.deviceModel || null,
+      });
+    });
+
+    socket.on("fcm:unregister", async (payload = {}) => {
+      if (!payload.token) return;
+      await unregisterDeviceToken(payload.token);
+    });
+
     socket.on("crm:join", (payload = {}) => {
       const authUser = getSocketUser(socket);
       if (!authUser) {
@@ -345,6 +361,19 @@ export function emitNotification(userIds, notification) {
       ioInstance.to(`user:${userId}`).emit("notification:new", notification);
     }
   });
+
+  // Automatically dispatch mobile push notification via FCM
+  sendPushNotificationToUsers(targetUserIds, {
+    title: notification.title || "Planitt CRM Alert",
+    body: notification.message || "",
+    data: {
+      id: notification.id ? String(notification.id) : "",
+      href: notification.href || "/dashboard",
+      type: notification.type || "INFO",
+    },
+    priority:
+      notification.priority === "URGENT" || notification.priority === "HIGH" ? "high" : "normal",
+  }).catch((err) => console.warn("Failed to dispatch FCM push notification:", err.message));
 }
 
 /**

@@ -4,6 +4,7 @@ import { useEffect, useState, useMemo } from "react";
 import { CRMShell } from "@/components/layout/crm-shell";
 import { useSession } from "@/hooks/use-session";
 import { renderSessionGate } from "@/components/shared/session-gate";
+import { OmnichannelDrawer } from "@/components/crm/omnichannel-drawer";
 import { apiGet, apiPost, apiPut, apiDelete } from "@/lib/api";
 import { showToast } from "@/hooks/use-toast";
 import {
@@ -45,6 +46,16 @@ export default function CrmPage() {
   const [createLeadOpen, setCreateLeadOpen] = useState(false);
   const [createContactOpen, setCreateContactOpen] = useState(false);
   const [convertingLead, setConvertingLead] = useState<Lead | null>(null);
+  const [omnichannelTarget, setOmnichannelTarget] = useState<{
+    type: "LEAD" | "DEAL";
+    id: string;
+    name: string;
+    email?: string | null;
+    phone?: string | null;
+    company?: string | null;
+    value?: number | null;
+    statusOrStage?: string;
+  } | null>(null);
 
   // Forms
   const [dealForm, setDealForm] = useState({
@@ -343,6 +354,32 @@ export default function CrmPage() {
                               </p>
                             )}
 
+                            {/* Quick Omnichannel Trigger */}
+                            <div className="mt-2.5 flex items-center justify-between gap-1">
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setOmnichannelTarget({
+                                    type: "DEAL",
+                                    id: deal.id,
+                                    name: deal.title,
+                                    email: deal.contact?.email || deal.lead?.email,
+                                    phone: deal.contact?.phone || deal.lead?.phone,
+                                    company: deal.contact?.company || deal.lead?.company,
+                                    value: deal.value,
+                                    statusOrStage: deal.stage,
+                                  })
+                                }
+                                className="inline-flex items-center gap-1 rounded-md bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-700 border border-emerald-200 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:border-emerald-800 dark:text-emerald-300 transition"
+                                title="Open WhatsApp and Email Inbox for this deal"
+                              >
+                                <span>💬 WhatsApp / ✉️</span>
+                              </button>
+                              <span className="text-[10px] text-[var(--text-soft)] font-medium">
+                                {deal.probability}% Prob
+                              </span>
+                            </div>
+
                             {/* Stage action buttons */}
                             <div className="mt-3 pt-2 border-t border-[var(--border)] flex items-center justify-between text-[10px]">
                               {col.id !== "WON" && (
@@ -405,16 +442,38 @@ export default function CrmPage() {
                       </td>
                       <td className="px-4 py-3 text-[var(--text-soft)]">{lead.phone || lead.email || "-"}</td>
                       <td className="px-4 py-3 text-right">
-                        {lead.status !== "CONVERTED" && (
+                        <div className="flex items-center justify-end gap-1.5">
                           <button
                             type="button"
-                            onClick={() => handleConvertLead(lead)}
-                            className="inline-flex items-center gap-1 rounded-lg bg-[var(--accent)] px-2.5 py-1 text-[11px] font-bold text-white hover:opacity-90"
+                            onClick={() =>
+                              setOmnichannelTarget({
+                                type: "LEAD",
+                                id: lead.id,
+                                name: lead.name,
+                                email: lead.email,
+                                phone: lead.phone,
+                                company: lead.company,
+                                value: lead.value,
+                                statusOrStage: lead.status,
+                              })
+                            }
+                            className="inline-flex items-center gap-1 rounded-lg border border-emerald-300 dark:border-emerald-800 bg-emerald-50 px-2 py-1 text-[11px] font-bold text-emerald-700 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:text-emerald-300 transition"
+                            title="Open WhatsApp & Email Inbox"
                           >
-                            <span>Convert to Deal</span>
-                            <ChevronRightIcon size={12} />
+                            <span>💬 WhatsApp / ✉️</span>
                           </button>
-                        )}
+
+                          {lead.status !== "CONVERTED" && (
+                            <button
+                              type="button"
+                              onClick={() => handleConvertLead(lead)}
+                              className="inline-flex items-center gap-1 rounded-lg bg-[var(--accent)] px-2.5 py-1 text-[11px] font-bold text-white hover:opacity-90"
+                            >
+                              <span>Convert to Deal</span>
+                              <ChevronRightIcon size={12} />
+                            </button>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -644,6 +703,13 @@ export default function CrmPage() {
             </div>
           </div>
         )}
+        {/* ── OMNICHANNEL WHATSAPP & EMAIL DRAWER ─────────────────────── */}
+        <OmnichannelDrawer
+          isOpen={Boolean(omnichannelTarget)}
+          onClose={() => setOmnichannelTarget(null)}
+          target={omnichannelTarget}
+          currentUser={user!}
+        />
       </div>
     </CRMShell>
   );

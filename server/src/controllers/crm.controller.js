@@ -224,8 +224,8 @@ export async function getDeals(req, res) {
       where,
       orderBy: { createdAt: "desc" },
       include: {
-        lead: { select: { id: true, name: true, company: true } },
-        contact: { select: { id: true, name: true, email: true, phone: true } },
+        lead: { select: { id: true, name: true, company: true, email: true, phone: true } },
+        contact: { select: { id: true, name: true, email: true, phone: true, company: true } },
         project: { select: { id: true, name: true } },
         assignedTo: {
           select: { id: true, name: true, email: true, avatarUrl: true, role: true },
@@ -263,8 +263,8 @@ export async function createDeal(req, res) {
         projectId: projectId || null,
       },
       include: {
-        lead: { select: { id: true, name: true, company: true } },
-        contact: { select: { id: true, name: true, email: true, phone: true } },
+        lead: { select: { id: true, name: true, company: true, email: true, phone: true } },
+        contact: { select: { id: true, name: true, email: true, phone: true, company: true } },
         project: { select: { id: true, name: true } },
         assignedTo: {
           select: { id: true, name: true, email: true, avatarUrl: true, role: true },
@@ -306,8 +306,8 @@ export async function updateDeal(req, res) {
         ...(projectId !== undefined ? { projectId: projectId || null } : {}),
       },
       include: {
-        lead: { select: { id: true, name: true, company: true } },
-        contact: { select: { id: true, name: true, email: true, phone: true } },
+        lead: { select: { id: true, name: true, company: true, email: true, phone: true } },
+        contact: { select: { id: true, name: true, email: true, phone: true, company: true } },
         project: { select: { id: true, name: true } },
         assignedTo: {
           select: { id: true, name: true, email: true, avatarUrl: true, role: true },
@@ -498,5 +498,156 @@ export async function getCrmSummary(req, res) {
   } catch (error) {
     console.error("Error fetching CRM summary:", error);
     res.status(500).json({ error: "Failed to fetch CRM summary" });
+  }
+}
+
+// ─────────────────────────────────────────────
+// OMNICHANNEL WHATSAPP & EMAIL INBOX
+// ─────────────────────────────────────────────
+
+import { sendWhatsAppMessage, handleWhatsAppWebhook } from "../services/whatsapp.service.js";
+import { sendEmailMessage } from "../services/email.service.js";
+
+const PLANITT_TEMPLATES = [
+  {
+    id: "planitt_pro_trial",
+    name: "Planitt Pro 3-Day Trial Access",
+    channel: "ALL",
+    category: "ONBOARDING",
+    subject: "Welcome to Planitt Solutions — Your Pro AI Trading Intelligence Access",
+    body: "Hello {{name}},\n\nThank you for reaching out to Planitt Solutions! We empower traders and investors with verified AI-backed market signals across NSE/BSE and F&O.\n\nHere is your complimentary 3-day access to our live signals dashboard:\n🔗 https://planitt.in/app\n\nFeel free to reply here if you would like our analyst desk to walk you through our Smart Money Concepts strategies.\n\nBest regards,\nPlanitt Operations Desk",
+  },
+  {
+    id: "pms_wealth_consultation",
+    name: "PMS Wealth Advisory Consultation (Google Meet)",
+    channel: "ALL",
+    category: "ADVISORY",
+    subject: "Planitt Wealth Advisory — Complimentary 20-Minute Portfolio Review",
+    body: "Hi {{name}},\n\nOur wealth advisory team reviewed your portfolio inquiry. We would love to schedule a 20-minute 1-on-1 Google Meet consultation with our investment research desk to assess your risk profile and discuss custom asset allocation.\n\n📅 Join our live meeting room: {{meet_url}}\n\nLooking forward to connecting with you!\n\nWarm regards,\nPlanitt Advisory Desk",
+  },
+  {
+    id: "daily_quant_signal_performance",
+    name: "Daily Quant Signal Performance Report",
+    channel: "ALL",
+    category: "MARKET_UPDATE",
+    subject: "Today's Planitt Quant Market Brief & Win-Rate Report",
+    body: "Hi {{name}},\n\nHere is today's Planitt Quant Market Brief:\n🎯 Nifty & BankNifty Signals: 4/4 Targets Hit\n📈 Top Momentum Model: +3.2% Alpha\n\nRead our complete verified performance breakdown here:\n📊 https://planitt.in/reports\n\nUpgrade to Planitt Elite Trader to get real-time alerts directly on WhatsApp.\n\nPlanitt Research Team",
+  },
+  {
+    id: "subscription_payment_link",
+    name: "Subscription Activation & Payment Link",
+    channel: "ALL",
+    category: "CLOSING",
+    subject: "Activate Your Planitt Elite Trader Subscription",
+    body: "Hello {{name}},\n\nHere is your direct activation link for the Planitt Elite Trader subscription:\n💳 Payment link: {{payment_link}}\n\nOnce completed, your real-time signal access, F&O Greeks engine, and AI Confidant will be instantly unlocked. Welcome aboard!\n\nPlanitt Solutions Support",
+  },
+  {
+    id: "followup_feedback",
+    name: "Follow-Up & Check-In",
+    channel: "ALL",
+    category: "FOLLOWUP",
+    subject: "Quick check-in from Planitt Research Desk",
+    body: "Hi {{name}},\n\nJust checking in from Planitt Solutions. Did you get a chance to test our AI trading signals or review the portfolio projection we sent over?\n\nLet me know if you have any questions — always happy to help!\n\nBest,\nPlanitt Client Success Desk",
+  },
+];
+
+export async function getOmnichannelTemplates(_req, res) {
+  res.json(PLANITT_TEMPLATES);
+}
+
+export async function sendWhatsApp(req, res) {
+  try {
+    const { leadId, dealId, contactId, recipientPhone, body, templateName } = req.body;
+    if (!recipientPhone || !body) {
+      return res.status(400).json({ error: "Recipient phone and message body are required" });
+    }
+
+    const result = await sendWhatsAppMessage({
+      leadId,
+      dealId,
+      contactId,
+      recipientPhone,
+      body,
+      templateName,
+      sentById: req.user.id || req.user.userId,
+    });
+
+    res.status(201).json(result);
+  } catch (error) {
+    console.error("Error sending WhatsApp message:", error);
+    res.status(500).json({ error: error.message || "Failed to send WhatsApp message" });
+  }
+}
+
+export async function sendEmail(req, res) {
+  try {
+    const { leadId, dealId, contactId, recipientEmail, subject, body, templateName } = req.body;
+    if (!recipientEmail || !body) {
+      return res.status(400).json({ error: "Recipient email and message body are required" });
+    }
+
+    const result = await sendEmailMessage({
+      leadId,
+      dealId,
+      contactId,
+      recipientEmail,
+      subject,
+      body,
+      templateName,
+      sentById: req.user.id || req.user.userId,
+    });
+
+    res.status(201).json(result);
+  } catch (error) {
+    console.error("Error sending Email:", error);
+    res.status(500).json({ error: error.message || "Failed to send email" });
+  }
+}
+
+export async function getCommunications(req, res) {
+  try {
+    const { leadId, dealId, contactId } = req.query;
+
+    const where = {};
+    if (leadId) where.leadId = leadId;
+    if (dealId) where.dealId = dealId;
+    if (contactId) where.contactId = contactId;
+
+    const communications = await prisma.leadCommunication.findMany({
+      where,
+      orderBy: { createdAt: "asc" },
+      include: {
+        sentBy: { select: { id: true, name: true, avatarUrl: true } },
+      },
+    });
+
+    res.json(communications);
+  } catch (error) {
+    console.error("Error fetching communications:", error);
+    res.status(500).json({ error: "Failed to fetch communications" });
+  }
+}
+
+export async function handleWhatsAppWebhookEndpoint(req, res) {
+  try {
+    // Meta webhook verification challenge
+    if (req.method === "GET") {
+      const mode = req.query["hub.mode"];
+      const token = req.query["hub.verify_token"];
+      const challenge = req.query["hub.challenge"];
+
+      const verifyToken = process.env.WHATSAPP_WEBHOOK_VERIFY_TOKEN || "planitt_crm_webhook";
+      if (mode === "subscribe" && token === verifyToken) {
+        return res.status(200).send(challenge);
+      }
+      return res.status(403).json({ error: "Verification failed" });
+    }
+
+    // Inbound message processing
+    await handleWhatsAppWebhook(req.body);
+    res.status(200).json({ status: "success" });
+  } catch (error) {
+    console.error("Error handling WhatsApp webhook:", error);
+    res.status(500).json({ error: "Webhook processing error" });
   }
 }

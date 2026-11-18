@@ -21,6 +21,43 @@ export type UserPresence = {
   lastSeen?: string | null;
 };
 
+export type MessageChannel = "WHATSAPP" | "EMAIL" | "SMS";
+export type MessageDirection = "INBOUND" | "OUTBOUND";
+export type MessageDeliveryStatus = "SENT" | "DELIVERED" | "READ" | "FAILED" | "RECEIVED";
+
+export type LeadCommunication = {
+  id: string;
+  leadId?: string | null;
+  dealId?: string | null;
+  contactId?: string | null;
+  channel: MessageChannel;
+  direction: MessageDirection;
+  sender?: string | null;
+  recipient: string;
+  subject?: string | null;
+  body: string;
+  status: MessageDeliveryStatus;
+  templateName?: string | null;
+  metadata?: string | null;
+  sentById?: string | null;
+  sentBy?: {
+    id: string;
+    name: string;
+    avatarUrl?: string | null;
+  } | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type OmnichannelTemplate = {
+  id: string;
+  name: string;
+  channel: string;
+  category: string;
+  subject?: string;
+  body: string;
+};
+
 export type Department = {
   id: string;
   name: string;
@@ -845,12 +882,15 @@ export type Deal = {
     id: string;
     name: string;
     company?: string | null;
+    email?: string | null;
+    phone?: string | null;
   } | null;
   contact?: {
     id: string;
     name: string;
     email?: string | null;
     phone?: string | null;
+    company?: string | null;
   } | null;
   project?: {
     id: string;

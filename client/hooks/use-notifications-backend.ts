@@ -96,6 +96,32 @@ export function useNotificationsBackend(user: CRMUser) {
     socket.emit("crm:join", {});
 
     const handleNewNotification = (notification: NotificationItem) => {
+      // Bridge to Native Android System Push Notification if running in APK
+      if (typeof window !== "undefined" && (window as any).AndroidApp?.showNotification) {
+        try {
+          (window as any).AndroidApp.showNotification(
+            notification.title || "Planitt CRM Alert",
+            notification.message || "",
+            notification.href || ""
+          );
+        } catch (e) {
+          console.warn("Android native push bridge error:", e);
+        }
+      } else if (
+        typeof window !== "undefined" &&
+        "Notification" in window &&
+        Notification.permission === "granted"
+      ) {
+        try {
+          new Notification(notification.title || "Planitt CRM Alert", {
+            body: notification.message || "",
+            icon: "/icon.png",
+          });
+        } catch {
+          // Ignore web notification failure
+        }
+      }
+
       setItems((current) => {
         const existing = current.find((item) => item.id === notification.id);
         if (!notification.read && (!existing || existing.read)) {
