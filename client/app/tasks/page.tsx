@@ -341,15 +341,15 @@ function TasksPageContent() {
           </div>
         </div>
 
-        {/* Teams Compact Status Tabs & Metric Summary */}
+        {/* Compact Status Tabs & Metric Summary */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[var(--border)] pb-2.5">
           {/* Status Filter Chips */}
           <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar">
             {[
-              { key: "ALL", label: "All", count: taskAnalytics.total },
-              { key: "TODO", label: "Pending", count: taskAnalytics.todo },
-              { key: "IN_PROGRESS", label: "In Progress", count: taskAnalytics.inProgress },
-              { key: "DONE", label: "Completed", count: taskAnalytics.done },
+              { key: "ALL", label: "All", count: taskAnalytics.total, badge: "bg-[var(--surface-hover)] text-[var(--text-main)]" },
+              { key: "TODO", label: "Pending", count: taskAnalytics.todo, badge: "bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30" },
+              { key: "IN_PROGRESS", label: "In Progress", count: taskAnalytics.inProgress, badge: "bg-blue-500/15 text-blue-600 dark:text-blue-400 border border-blue-500/30" },
+              { key: "DONE", label: "Completed", count: taskAnalytics.done, badge: "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30" },
             ].map((tab) => {
               const isActive = statusFilter === tab.key;
               return (
@@ -357,14 +357,14 @@ function TasksPageContent() {
                   key={tab.key}
                   type="button"
                   onClick={() => setStatusFilter(tab.key as any)}
-                  className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-semibold transition-all shrink-0 ${
+                  className={`flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-bold transition-all shrink-0 ${
                     isActive
-                      ? "bg-[var(--accent)] text-white shadow-2xs"
+                      ? "bg-[var(--accent)] text-white shadow-xs"
                       : "border border-[var(--border)] bg-[var(--surface-strong,#ffffff)] text-[var(--text-soft)] hover:bg-[var(--surface-soft)]"
                   }`}
                 >
                   <span>{tab.label}</span>
-                  <span className={`rounded-full px-1.5 py-0.2 text-[10px] font-bold ${isActive ? "bg-white/20 text-white" : "bg-[var(--surface-soft)] text-[var(--text-main)]"}`}>
+                  <span className={`rounded-full px-1.5 py-0.2 text-[10px] font-extrabold ${isActive ? "bg-white/20 text-white" : tab.badge}`}>
                     {tab.count}
                   </span>
                 </button>
@@ -374,13 +374,13 @@ function TasksPageContent() {
 
           {/* Metric Summary Pill */}
           <div className="flex items-center gap-2 text-xs shrink-0 self-end sm:self-center">
-            <div className="flex items-center gap-1.5 rounded-lg border border-[var(--border)] bg-[var(--surface-strong,#ffffff)] px-2.5 py-1 text-xs">
+            <div className="flex items-center gap-1.5 rounded-xl border border-[var(--border)] bg-[var(--surface-strong,#ffffff)] px-2.5 py-1 text-xs shadow-2xs">
               <span className="font-semibold text-[var(--text-soft)]">Done:</span>
-              <span className="font-bold text-emerald-600">{taskAnalytics.completionRate}%</span>
+              <span className="font-extrabold text-emerald-600">{taskAnalytics.completionRate}%</span>
             </div>
-            <div className="flex items-center gap-1.5 rounded-lg border border-[var(--border)] bg-[var(--surface-strong,#ffffff)] px-2.5 py-1 text-xs">
+            <div className="flex items-center gap-1.5 rounded-xl border border-[var(--border)] bg-[var(--surface-strong,#ffffff)] px-2.5 py-1 text-xs shadow-2xs">
               <span className="font-semibold text-[var(--text-soft)]">Avg:</span>
-              <span className="font-bold text-[var(--accent)]">{taskAnalytics.avgProgress}%</span>
+              <span className="font-extrabold text-[var(--accent)]">{taskAnalytics.avgProgress}%</span>
             </div>
           </div>
         </div>
@@ -402,9 +402,9 @@ function TasksPageContent() {
                 key={preset.id}
                 type="button"
                 onClick={() => setPresetFilter(preset.id as any)}
-                className={`rounded-full px-2.5 py-1 text-xs font-semibold transition-all shrink-0 ${
+                className={`rounded-full px-3 py-1 text-xs font-bold transition-all shrink-0 ${
                   isSelected
-                    ? "bg-[var(--accent)] text-white shadow-2xs"
+                    ? "bg-gradient-to-r from-indigo-600 to-violet-600 text-white shadow-xs"
                     : "border border-[var(--border)] bg-[var(--surface-strong,#ffffff)] text-[var(--text-soft)] hover:bg-[var(--surface-soft)]"
                 }`}
               >

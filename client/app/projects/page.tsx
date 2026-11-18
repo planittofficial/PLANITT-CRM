@@ -135,93 +135,95 @@ export default function ProjectsPage() {
   return (
     <CRMShell user={user}>
       <div className="space-y-3.5 pb-6">
-        {/* ── TEAMS COMPACT HEADER & ACTIONS ──────────────────────────────── */}
-        <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <h1 className="text-lg font-bold tracking-tight text-[var(--text-main)] sm:text-xl">
-              Projects
-            </h1>
-            <p className="text-xs text-[var(--text-soft)]">
-              Organize team boards, sprint tasks, and credentials.
-            </p>
-          </div>
-
-          {/* Action Buttons: Responsive, shrink-proof & no overlapping on mobile */}
-          <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap sm:flex-nowrap">
-            {selectedProject && (
-              <>
-                <button
-                  type="button"
-                  onClick={() => setManageTeamOpen(true)}
-                  className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--border)] bg-[var(--surface-strong,#ffffff)] px-2.5 py-1.5 text-xs font-semibold text-[var(--text-main)] hover:bg-[var(--surface-soft)] transition-colors shadow-2xs"
-                  title="Manage project members"
-                >
-                  <UsersIcon size={14} className="text-[var(--text-soft)]" />
-                  <span>Team ({selectedProject.members?.length ?? 0})</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setCreateTaskOpen(true)}
-                  className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--border)] bg-[var(--surface-strong,#ffffff)] px-2.5 py-1.5 text-xs font-semibold text-[var(--text-main)] hover:bg-[var(--surface-soft)] transition-colors shadow-2xs"
-                  title="Add new task"
-                >
-                  <PlusIcon size={14} className="text-[var(--accent)]" />
-                  <span>Add Task</span>
-                </button>
-              </>
-            )}
-            <Button
-              variant="primary"
-              size="sm"
-              leftIcon={<FolderKanbanIcon size={14} />}
-              onClick={() => setCreateProjectOpen(true)}
-              className="text-xs"
-            >
-              New Board
-            </Button>
-          </div>
-        </div>
-
-        {/* ── STREAMLINED METRICS PILL STRIP (Replaces 5 giant bulky cards) ── */}
-        <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar">
-          <div className="flex items-center gap-1.5 rounded-lg border border-[var(--border)] bg-[var(--surface-strong,#ffffff)] px-3 py-1.5 text-xs shadow-2xs shrink-0">
-            <span className="font-semibold text-[var(--text-soft)]">Boards:</span>
-            <span className="font-bold text-[var(--text-main)]">{projectAnalytics.totalProjects}</span>
-          </div>
-          <div className="flex items-center gap-1.5 rounded-lg border border-[var(--border)] bg-[var(--surface-strong,#ffffff)] px-3 py-1.5 text-xs shadow-2xs shrink-0">
-            <span className="font-semibold text-[var(--text-soft)]">Tasks:</span>
-            <span className="font-bold text-[var(--text-main)]">{projectAnalytics.totalTasks}</span>
-          </div>
-          <div className="flex items-center gap-1.5 rounded-lg border border-[var(--border)] bg-[var(--surface-strong,#ffffff)] px-3 py-1.5 text-xs shadow-2xs shrink-0">
-            <span className="font-semibold text-[var(--text-soft)]">Completion:</span>
-            <span className="font-bold text-emerald-600">{projectAnalytics.completionRate}%</span>
-          </div>
-          <div className="flex items-center gap-1.5 rounded-lg border border-[var(--border)] bg-[var(--surface-strong,#ffffff)] px-3 py-1.5 text-xs shadow-2xs shrink-0">
-            <span className="font-semibold text-[var(--text-soft)]">Avg Progress:</span>
-            <span className="font-bold text-[var(--accent)]">{projectAnalytics.avgProgress}%</span>
-          </div>
-          {projectAnalytics.delayedProjects > 0 && (
-            <div className="flex items-center gap-1.5 rounded-lg border border-amber-200 bg-amber-50 dark:border-amber-900/40 dark:bg-amber-950/30 px-3 py-1.5 text-xs shadow-2xs shrink-0 text-amber-700 dark:text-amber-300">
-              <span className="font-semibold">At Risk:</span>
-              <span className="font-bold">{projectAnalytics.delayedProjects}</span>
+        {/* ── DESKTOP HEADER & ACTIONS (Hidden on mobile) ──────────────── */}
+        <div className="hidden lg:block space-y-3.5">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-lg font-bold tracking-tight text-[var(--text-main)] sm:text-xl">
+                Projects
+              </h1>
+              <p className="text-xs text-[var(--text-soft)]">
+                Organize team boards, sprint tasks, and credentials.
+              </p>
             </div>
-          )}
+
+            <div className="flex items-center gap-2">
+              {selectedProject && (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => setManageTeamOpen(true)}
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--border)] bg-[var(--surface-strong,#ffffff)] px-2.5 py-1.5 text-xs font-semibold text-[var(--text-main)] hover:bg-[var(--surface-soft)] transition-colors shadow-2xs"
+                    title="Manage project members"
+                  >
+                    <UsersIcon size={14} className="text-[var(--text-soft)]" />
+                    <span>Team ({selectedProject.members?.length ?? 0})</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setCreateTaskOpen(true)}
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--border)] bg-[var(--surface-strong,#ffffff)] px-2.5 py-1.5 text-xs font-semibold text-[var(--text-main)] hover:bg-[var(--surface-soft)] transition-colors shadow-2xs"
+                    title="Add new task"
+                  >
+                    <PlusIcon size={14} className="text-[var(--accent)]" />
+                    <span>Add Task</span>
+                  </button>
+                </>
+              )}
+              <Button
+                variant="primary"
+                size="sm"
+                leftIcon={<FolderKanbanIcon size={14} />}
+                onClick={() => setCreateProjectOpen(true)}
+                className="text-xs"
+              >
+                New Board
+              </Button>
+            </div>
+          </div>
+
+          {/* Metrics Pill Strip */}
+          <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar">
+            <div className="flex items-center gap-1.5 rounded-lg border border-[var(--border)] bg-[var(--surface-strong,#ffffff)] px-3 py-1.5 text-xs shadow-2xs shrink-0">
+              <span className="font-semibold text-[var(--text-soft)]">Boards:</span>
+              <span className="font-bold text-[var(--text-main)]">{projectAnalytics.totalProjects}</span>
+            </div>
+            <div className="flex items-center gap-1.5 rounded-lg border border-[var(--border)] bg-[var(--surface-strong,#ffffff)] px-3 py-1.5 text-xs shadow-2xs shrink-0">
+              <span className="font-semibold text-[var(--text-soft)]">Tasks:</span>
+              <span className="font-bold text-[var(--text-main)]">{projectAnalytics.totalTasks}</span>
+            </div>
+            <div className="flex items-center gap-1.5 rounded-lg border border-[var(--border)] bg-[var(--surface-strong,#ffffff)] px-3 py-1.5 text-xs shadow-2xs shrink-0">
+              <span className="font-semibold text-[var(--text-soft)]">Completion:</span>
+              <span className="font-bold text-emerald-600">{projectAnalytics.completionRate}%</span>
+            </div>
+            <div className="flex items-center gap-1.5 rounded-lg border border-[var(--border)] bg-[var(--surface-strong,#ffffff)] px-3 py-1.5 text-xs shadow-2xs shrink-0">
+              <span className="font-semibold text-[var(--text-soft)]">Avg Progress:</span>
+              <span className="font-bold text-[var(--accent)]">{projectAnalytics.avgProgress}%</span>
+            </div>
+            {projectAnalytics.delayedProjects > 0 && (
+              <div className="flex items-center gap-1.5 rounded-lg border border-amber-200 bg-amber-50 dark:border-amber-900/40 dark:bg-amber-950/30 px-3 py-1.5 text-xs shadow-2xs shrink-0 text-amber-700 dark:text-amber-300">
+                <span className="font-semibold">At Risk:</span>
+                <span className="font-bold">{projectAnalytics.delayedProjects}</span>
+              </div>
+            )}
+          </div>
         </div>
 
-        {/* ── MOBILE PROJECT SELECTOR BAR (1-Tap Switcher) ────────────────── */}
-        <div className="lg:hidden">
-          <button
-            type="button"
-            onClick={() => setMobileProjectPickerOpen(true)}
-            className="flex w-full items-center justify-between rounded-xl border border-[var(--border)] bg-[var(--surface-strong,#ffffff)] px-3.5 py-2.5 text-left shadow-xs transition-colors hover:bg-[var(--surface-soft)]"
-          >
-            <div className="flex items-center gap-2.5 min-w-0">
-              <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-[var(--accent)]/10 text-[var(--accent)] font-bold text-xs shrink-0">
+        {/* ── MOBILE STREAMLINED APP BAR (<lg) ──────────────────────────────── */}
+        <div className="flex lg:hidden flex-col gap-2.5 pb-0.5">
+          {/* Row 1: Project Picker Button + Quick Add Actions */}
+          <div className="flex items-center justify-between gap-2">
+            <button
+              type="button"
+              onClick={() => setMobileProjectPickerOpen(true)}
+              className="flex items-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--surface-strong,#ffffff)] px-3 py-2 text-left shadow-xs transition-all hover:border-[var(--accent)] active:scale-[0.98] min-w-0 flex-1"
+            >
+              <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-[var(--accent)] text-white font-bold text-xs shrink-0 shadow-2xs">
                 📁
               </span>
-              <div className="min-w-0">
-                <p className="text-xs font-bold text-[var(--text-main)] truncate">
-                  {selectedProject ? selectedProject.name : "Select a project board"}
+              <div className="min-w-0 flex-1">
+                <p className="text-xs font-extrabold text-[var(--text-main)] truncate">
+                  {selectedProject ? selectedProject.name : "Select Board"}
                 </p>
                 {selectedProject && (
                   <p className="text-[10px] text-[var(--text-soft)] truncate">
@@ -229,11 +231,57 @@ export default function ProjectsPage() {
                   </p>
                 )}
               </div>
+              <span className="text-[10px] font-bold text-[var(--accent)] shrink-0 bg-[var(--surface-hover)] px-1.5 py-0.5 rounded-md">
+                Switch ▾
+              </span>
+            </button>
+
+            <div className="flex items-center gap-1.5 shrink-0">
+              <button
+                type="button"
+                onClick={() => setCreateTaskOpen(true)}
+                className="flex h-9 items-center gap-1.5 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 px-3 text-xs font-bold text-white shadow-xs active:scale-95 transition-transform"
+              >
+                <PlusIcon size={14} />
+                <span>Task</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setCreateProjectOpen(true)}
+                className="flex h-9 w-9 items-center justify-center rounded-xl border border-[var(--border)] bg-[var(--surface-strong,#ffffff)] text-[var(--text-main)] shadow-xs active:scale-95 hover:bg-[var(--surface-soft)]"
+                title="New Board"
+              >
+                <FolderKanbanIcon size={15} />
+              </button>
             </div>
-            <span className="text-xs font-semibold text-[var(--accent)] ml-2 shrink-0">
-              Switch ▾
-            </span>
-          </button>
+          </div>
+
+          {/* Row 2: Segmented View Switcher (Board | List | Team) */}
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center rounded-xl bg-[var(--surface-soft)] p-1 border border-[var(--border)]">
+              {(["board", "list", "team"] as ActiveTab[]).map((tab) => (
+                <button
+                  key={tab}
+                  type="button"
+                  onClick={() => setActiveTab(tab)}
+                  className={`px-3 py-1 text-xs font-bold rounded-lg transition-all capitalize ${
+                    activeTab === tab
+                      ? "bg-[var(--surface-strong,#ffffff)] text-[var(--accent)] shadow-2xs border border-[var(--border)]"
+                      : "text-[var(--text-soft)] hover:text-[var(--text-main)]"
+                  }`}
+                >
+                  {tab === "board" ? "📋 Board" : tab === "list" ? "☰ List" : "👥 Team"}
+                </button>
+              ))}
+            </div>
+
+            {selectedProject && (
+              <div className="flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-xl bg-[var(--surface-strong,#ffffff)] border border-[var(--border)] shadow-2xs">
+                <span className="text-[10px] font-semibold text-[var(--text-soft)]">Sprint:</span>
+                <span className="text-xs font-extrabold text-[var(--accent)]">{selectedProject.progress}%</span>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* ── 2-COLUMN TEAMS WORKSPACE (Channels sidebar on left, Tabbed workspace on right) ── */}
@@ -319,8 +367,8 @@ export default function ProjectsPage() {
           <div className="space-y-3 min-w-0">
             {selectedProject ? (
               <>
-                {/* Clean Project Header Bar */}
-                <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-strong,#ffffff)] p-3.5 shadow-xs">
+                {/* Clean Project Header Bar (Desktop only, mobile has it in top bar) */}
+                <div className="hidden lg:block rounded-xl border border-[var(--border)] bg-[var(--surface-strong,#ffffff)] p-3.5 shadow-xs">
                   <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                     <div className="min-w-0">
                       <div className="flex items-center gap-2 text-[11px] text-[var(--text-soft)]">
@@ -355,8 +403,8 @@ export default function ProjectsPage() {
                   </div>
                 </div>
 
-                {/* Teams Channel Tabs (Board / List / Credentials / Team) */}
-                <div className="flex items-center gap-1 border-b border-[var(--border)] pb-0.5 overflow-x-auto no-scrollbar">
+                {/* Teams Channel Tabs (Board / List / Credentials / Team) - Desktop only */}
+                <div className="hidden lg:flex items-center gap-1 border-b border-[var(--border)] pb-0.5 overflow-x-auto no-scrollbar">
                   {[
                     { id: "board", label: "Board", icon: FolderKanbanIcon },
                     { id: "list", label: "List", icon: CheckSquareIcon },

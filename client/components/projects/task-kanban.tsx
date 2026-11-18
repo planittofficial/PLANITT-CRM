@@ -14,10 +14,10 @@ type TaskFormState = {
   deadlineAt: string;
 };
 
-const COLUMNS: Array<{ key: Task["status"]; label: string; tone: string; badge: string; border: string }> = [
-  { key: "TODO", label: "Pending", tone: "bg-amber-500", badge: "bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300", border: "border-amber-500/20" },
-  { key: "IN_PROGRESS", label: "In Progress", tone: "bg-blue-500", badge: "bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300", border: "border-blue-500/20" },
-  { key: "DONE", label: "Completed", tone: "bg-emerald-500", badge: "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300", border: "border-emerald-500/20" },
+const COLUMNS: Array<{ key: Task["status"]; label: string; tone: string; badge: string; border: string; icon: string }> = [
+  { key: "TODO", label: "Pending", tone: "bg-amber-500", badge: "bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30", border: "border-l-amber-500", icon: "⏳" },
+  { key: "IN_PROGRESS", label: "In Progress", tone: "bg-blue-500", badge: "bg-blue-500/15 text-blue-600 dark:text-blue-400 border border-blue-500/30", border: "border-l-blue-500", icon: "⚡" },
+  { key: "DONE", label: "Completed", tone: "bg-emerald-500", badge: "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30", border: "border-l-emerald-500", icon: "✅" },
 ];
 
 const FIELD_STYLE = {
@@ -78,7 +78,8 @@ export function TaskKanban({
   toggleEditAssignee,
   onQuickCreate,
 }: Props) {
-  const [mobileColumnFilter, setMobileColumnFilter] = useState<Task["status"] | "ALL">("ALL");
+  // Mobile defaults to the first column with tasks, or "TODO" for a clean single-column view
+  const [mobileColumnFilter, setMobileColumnFilter] = useState<Task["status"] | "ALL">("TODO");
   const [openMenuTaskId, setOpenMenuTaskId] = useState<string | null>(null);
   const [addingCol, setAddingCol] = useState<Task["status"] | null>(null);
   const [newTitle, setNewTitle] = useState("");
@@ -114,19 +115,8 @@ export function TaskKanban({
 
   return (
     <div className="space-y-3">
-      {/* Mobile Column Quick-Filter Tabs */}
-      <div className="flex sm:hidden items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar">
-        <button
-          type="button"
-          onClick={() => setMobileColumnFilter("ALL")}
-          className={`shrink-0 rounded-lg px-3 py-1.5 text-xs font-semibold transition-all ${
-            mobileColumnFilter === "ALL"
-              ? "bg-[var(--accent)] text-white shadow-xs"
-              : "border border-[var(--border)] bg-[var(--surface-strong,#ffffff)] text-[var(--text-soft)] hover:bg-[var(--surface-soft)]"
-          }`}
-        >
-          All Columns
-        </button>
+      {/* ── MOBILE INTERACTIVE COLUMN SWITCHER ─────────────────────────────── */}
+      <div className="flex sm:hidden items-center justify-between gap-1 p-1 rounded-xl bg-[var(--surface-soft)] border border-[var(--border)]">
         {COLUMNS.map((col) => {
           const count = groupedTasks[col.key]?.length ?? 0;
           const isActive = mobileColumnFilter === col.key;
@@ -135,46 +125,58 @@ export function TaskKanban({
               key={col.key}
               type="button"
               onClick={() => setMobileColumnFilter(col.key)}
-              className={`shrink-0 flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-semibold transition-all ${
+              className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg text-xs font-bold transition-all ${
                 isActive
-                  ? "bg-[var(--accent)] text-white shadow-xs"
-                  : "border border-[var(--border)] bg-[var(--surface-strong,#ffffff)] text-[var(--text-soft)] hover:bg-[var(--surface-soft)]"
+                  ? "bg-[var(--surface-strong,#ffffff)] text-[var(--text-main)] shadow-2xs border border-[var(--border)]"
+                  : "text-[var(--text-soft)] hover:text-[var(--text-main)]"
               }`}
             >
-              <span className={`h-2 w-2 rounded-full ${col.tone}`} />
-              <span>{col.label}</span>
-              <span className={`rounded-full px-1.5 py-0.2 text-[10px] font-bold ${isActive ? "bg-white/20 text-white" : col.badge}`}>
+              <span className="text-[11px]">{col.icon}</span>
+              <span className="truncate">{col.label}</span>
+              <span className={`rounded-full px-1.5 py-0.2 text-[10px] font-extrabold ${isActive ? "bg-[var(--accent)] text-white" : "bg-[var(--surface-hover)] text-[var(--text-soft)]"}`}>
                 {count}
               </span>
             </button>
           );
         })}
+        <button
+          type="button"
+          onClick={() => setMobileColumnFilter(mobileColumnFilter === "ALL" ? "TODO" : "ALL")}
+          className={`px-2 py-1.5 text-xs font-bold rounded-lg transition-all ${
+            mobileColumnFilter === "ALL"
+              ? "bg-[var(--accent)] text-white shadow-2xs"
+              : "text-[var(--text-soft)] hover:text-[var(--text-main)]"
+          }`}
+          title="Toggle All Columns view"
+        >
+          All
+        </button>
       </div>
 
-      {/* Kanban Board Grid */}
+      {/* ── KANBAN BOARD GRID ──────────────────────────────────────────────── */}
       <section
-        className={`flex overflow-x-auto snap-x snap-mandatory gap-3 pb-3 ${
+        className={`flex overflow-x-auto snap-x snap-mandatory gap-3.5 pb-3 ${
           mobileColumnFilter === "ALL"
             ? "lg:grid lg:grid-cols-3 lg:items-start lg:overflow-visible lg:pb-0"
-            : "w-full"
+            : "w-full lg:grid lg:grid-cols-3 lg:items-start lg:overflow-visible lg:pb-0"
         }`}
       >
-        {visibleColumns.map((col) => {
+        {(mobileColumnFilter === "ALL" ? COLUMNS : visibleColumns).map((col) => {
           const columnTasks = groupedTasks[col.key] ?? [];
           return (
             <div
               key={col.key}
-              className={`flex shrink-0 snap-center flex-col rounded-xl border border-[var(--border)] bg-[var(--surface-strong,#ffffff)] p-3 shadow-xs ${
+              className={`flex shrink-0 snap-center flex-col rounded-2xl border border-[var(--border)] bg-[var(--surface-strong,#ffffff)] p-3.5 shadow-xs transition-all ${
                 mobileColumnFilter === "ALL"
                   ? "w-[85vw] max-w-[340px] sm:w-[320px] lg:w-auto max-h-[min(70vh,600px)] lg:max-h-[min(75vh,800px)]"
-                  : "w-full min-h-[300px]"
+                  : "w-full max-h-[min(75vh,700px)] lg:max-h-[min(75vh,800px)]"
               }`}
             >
               {/* Column Header */}
               <div className="flex shrink-0 items-center justify-between border-b border-[var(--border)] pb-2.5">
                 <div className="flex items-center gap-2">
-                  <span className={`h-2.5 w-2.5 rounded-full ${col.tone}`} />
-                  <h3 className="text-xs font-bold uppercase tracking-wider text-[var(--text-main)]">
+                  <span className={`h-2.5 w-2.5 rounded-full ${col.tone} ring-2 ring-[var(--surface-soft)] shadow-2xs`} />
+                  <h3 className="text-xs font-extrabold uppercase tracking-wider text-[var(--text-main)]">
                     {col.label}
                   </h3>
                 </div>
@@ -196,7 +198,17 @@ export function TaskKanban({
                   return (
                     <article
                       key={task.id}
-                      className="group relative overflow-visible rounded-xl border border-[var(--border)] bg-[var(--surface-soft)] p-3 shadow-2xs transition-all hover:border-[var(--accent)]/50 hover:shadow-xs"
+                      className={`group relative overflow-visible rounded-xl border border-[var(--border)] p-3 shadow-2xs transition-all hover:border-[var(--accent)] hover:shadow-xs active:scale-[0.99] ${
+                        isDone
+                          ? "bg-emerald-500/5 border-emerald-500/25 border-l-4 border-l-emerald-500"
+                          : task.priority === "URGENT"
+                          ? "bg-[var(--surface-soft)] border-l-4 border-l-rose-500"
+                          : task.priority === "HIGH"
+                          ? "bg-[var(--surface-soft)] border-l-4 border-l-amber-500"
+                          : task.status === "IN_PROGRESS"
+                          ? "bg-[var(--surface-soft)] border-l-4 border-l-blue-500"
+                          : "bg-[var(--surface-soft)] border-l-4 border-l-slate-300 dark:border-l-slate-700"
+                      }`}
                     >
                       <div className="space-y-2">
                         {/* Title Row with Completion Ring & Action Dropdown */}
@@ -205,12 +217,12 @@ export function TaskKanban({
                           <button
                             type="button"
                             onClick={() => onStatusChange(task.id, isDone ? "TODO" : "DONE")}
-                            className={`mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full border transition-colors ${
+                            className={`mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full border transition-all ${
                               isDone
-                                ? "bg-emerald-600 border-emerald-600 text-white"
+                                ? "bg-emerald-600 border-emerald-600 text-white shadow-2xs"
                                 : task.status === "IN_PROGRESS"
-                                ? "border-blue-500 bg-blue-50 dark:bg-blue-950/40 text-blue-600"
-                                : "border-[var(--border-strong)] hover:border-[var(--accent)]"
+                                ? "border-blue-500 bg-blue-50 dark:bg-blue-950/40 text-blue-600 ring-2 ring-blue-500/20"
+                                : "border-[var(--border-strong)] hover:border-[var(--accent)] hover:scale-105"
                             }`}
                             title={isDone ? "Mark as pending" : "Mark as completed"}
                           >
@@ -248,7 +260,7 @@ export function TaskKanban({
                             {isMenuOpen && (
                               <div
                                 ref={menuRef}
-                                className="absolute right-0 top-full mt-1 w-44 rounded-lg border border-[var(--border)] bg-[var(--surface-strong,#ffffff)] p-1 shadow-lg z-50 text-xs animate-in fade-in zoom-in-95 duration-100"
+                                className="absolute right-0 top-full mt-1 w-44 rounded-xl border border-[var(--border)] bg-[var(--surface-strong,#ffffff)] p-1 shadow-xl z-50 text-xs animate-in fade-in zoom-in-95 duration-100"
                                 onClick={(e) => e.stopPropagation()}
                               >
                                 <button
@@ -257,7 +269,7 @@ export function TaskKanban({
                                     setOpenMenuTaskId(null);
                                     onOpenEditor(task);
                                   }}
-                                  className="flex w-full items-center gap-2 rounded px-2.5 py-1.5 text-left text-[var(--text-main)] hover:bg-[var(--surface-soft)] font-medium"
+                                  className="flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-left text-[var(--text-main)] hover:bg-[var(--surface-soft)] font-semibold"
                                 >
                                   ✏️ <span>Edit Details</span>
                                 </button>
@@ -274,7 +286,7 @@ export function TaskKanban({
                                       setOpenMenuTaskId(null);
                                       onStatusChange(task.id, c.key);
                                     }}
-                                    className="flex w-full items-center gap-1.5 rounded px-2.5 py-1 text-left text-[var(--text-soft)] hover:bg-[var(--surface-soft)] hover:text-[var(--text-main)]"
+                                    className="flex w-full items-center gap-1.5 rounded-lg px-2.5 py-1 text-left text-[var(--text-soft)] hover:bg-[var(--surface-soft)] hover:text-[var(--text-main)]"
                                   >
                                     <span className={`h-1.5 w-1.5 rounded-full ${c.tone}`} />
                                     <span>{c.label}</span>
@@ -288,7 +300,7 @@ export function TaskKanban({
                                     setOpenMenuTaskId(null);
                                     onDelete(task.id);
                                   }}
-                                  className="flex w-full items-center gap-2 rounded px-2.5 py-1.5 text-left text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 font-medium"
+                                  className="flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-left text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 font-semibold"
                                 >
                                   🗑️ <span>Delete Task</span>
                                 </button>
@@ -304,39 +316,38 @@ export function TaskKanban({
                           </p>
                         )}
 
-                        {/* Teams Planner Metadata Chips */}
+                        {/* Rich Metadata Chips */}
                         <div className="flex flex-wrap items-center gap-1.5 pl-6 pt-0.5 text-[10px]">
-                          {/* Priority Pill (Only if High or Urgent) */}
-                          {(task.priority === "URGENT" || task.priority === "HIGH") && (
-                            <span
-                              className={`rounded px-1.5 py-0.5 font-bold uppercase ${
-                                task.priority === "URGENT"
-                                  ? "bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-300"
-                                  : "bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300"
-                              }`}
-                            >
-                              {task.priority}
+                          {/* Priority Pill with Rich Gradient */}
+                          {task.priority === "URGENT" && (
+                            <span className="rounded bg-gradient-to-r from-rose-500 to-pink-500 text-white font-extrabold uppercase px-1.5 py-0.5 text-[9px] shadow-2xs">
+                              Urgent
+                            </span>
+                          )}
+                          {task.priority === "HIGH" && (
+                            <span className="rounded bg-gradient-to-r from-amber-500 to-orange-500 text-white font-extrabold uppercase px-1.5 py-0.5 text-[9px] shadow-2xs">
+                              High
                             </span>
                           )}
 
-                          {/* Due Date Chip */}
+                          {/* Rich Due Date Chip */}
                           {dueDate && (
                             <span
-                              className={`inline-flex items-center gap-1 rounded px-1.5 py-0.5 font-medium ${
+                              className={`inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 font-bold ${
                                 dueDate.isPast
-                                  ? "bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-300"
+                                  ? "bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-300 border border-rose-200 dark:border-rose-900/50"
                                   : dueDate.isToday
-                                  ? "bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300"
+                                  ? "bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-900/50"
                                   : "bg-[var(--surface-strong,#ffffff)] border border-[var(--border)] text-[var(--text-soft)]"
                               }`}
                             >
-                              📅 {dueDate.label}
+                              {dueDate.isPast ? "🚨" : dueDate.isToday ? "⚡" : "📅"} {dueDate.label}
                             </span>
                           )}
 
                           {/* Checklist Subtasks Count */}
                           {totalSubtasks > 0 && (
-                            <span className="inline-flex items-center gap-1 rounded bg-[var(--surface-strong,#ffffff)] border border-[var(--border)] px-1.5 py-0.5 text-[var(--text-soft)] font-medium">
+                            <span className="inline-flex items-center gap-1 rounded-md bg-[var(--surface-strong,#ffffff)] border border-[var(--border)] px-1.5 py-0.5 text-[var(--text-soft)] font-semibold">
                               ☑ {doneSubtasks}/{totalSubtasks}
                             </span>
                           )}
@@ -368,7 +379,7 @@ export function TaskKanban({
 
                           {/* Progress percentage */}
                           {totalSubtasks > 0 && (
-                            <span className="text-[10px] text-[var(--text-faint)] font-medium">
+                            <span className="text-[10px] text-[var(--text-faint)] font-bold">
                               {task.progress}%
                             </span>
                           )}
@@ -377,9 +388,9 @@ export function TaskKanban({
 
                       {/* Inline Edit Form when editing */}
                       {isEditing && (
-                        <div className="mt-3 grid gap-2 rounded-lg border border-[var(--border)] bg-[var(--surface-strong,#ffffff)] p-2.5 animate-in fade-in duration-100">
+                        <div className="mt-3 grid gap-2 rounded-xl border border-[var(--border)] bg-[var(--surface-strong,#ffffff)] p-3 animate-in fade-in duration-100 shadow-xs">
                           <input
-                            className="h-8 rounded-md border px-2 text-xs outline-none focus:border-[var(--accent)]"
+                            className="h-8 rounded-lg border px-2 text-xs outline-none focus:border-[var(--accent)]"
                             style={FIELD_STYLE}
                             value={editTaskForm.title}
                             onChange={(e) => onEditTaskFormChange("title", e.target.value)}
@@ -387,7 +398,7 @@ export function TaskKanban({
                           />
                           <textarea
                             rows={2}
-                            className="rounded-md border p-2 text-xs outline-none focus:border-[var(--accent)]"
+                            className="rounded-lg border p-2 text-xs outline-none focus:border-[var(--accent)]"
                             style={FIELD_STYLE}
                             value={editTaskForm.description}
                             onChange={(e) => onEditTaskFormChange("description", e.target.value)}
@@ -395,7 +406,7 @@ export function TaskKanban({
                           />
                           <div className="grid grid-cols-2 gap-1.5">
                             <select
-                              className="h-7 w-full rounded-md border px-1.5 text-[11px] outline-none"
+                              className="h-7 w-full rounded-lg border px-1.5 text-[11px] outline-none"
                               style={FIELD_STYLE}
                               value={editTaskForm.priority}
                               onChange={(e) => onEditTaskFormChange("priority", e.target.value)}
@@ -408,7 +419,7 @@ export function TaskKanban({
                             </select>
                             <input
                               type="date"
-                              className="h-7 w-full rounded-md border px-1.5 text-[11px] outline-none"
+                              className="h-7 w-full rounded-lg border px-1.5 text-[11px] outline-none"
                               style={FIELD_STYLE}
                               value={editTaskForm.deadlineAt}
                               onChange={(e) => onEditTaskFormChange("deadlineAt", e.target.value)}
@@ -419,14 +430,14 @@ export function TaskKanban({
                             <button
                               type="button"
                               onClick={onCancelEdit}
-                              className="rounded-md border border-[var(--border)] px-2.5 py-1 text-xs text-[var(--text-soft)] hover:bg-[var(--surface-soft)]"
+                              className="rounded-lg border border-[var(--border)] px-2.5 py-1 text-xs text-[var(--text-soft)] hover:bg-[var(--surface-soft)]"
                             >
                               Cancel
                             </button>
                             <button
                               type="button"
                               onClick={onSaveEdit}
-                              className="rounded-md bg-[var(--accent)] px-2.5 py-1 text-xs font-semibold text-white"
+                              className="rounded-lg bg-[var(--accent)] px-2.5 py-1 text-xs font-semibold text-white shadow-2xs"
                             >
                               Save
                             </button>
@@ -438,13 +449,13 @@ export function TaskKanban({
                 })}
 
                 {columnTasks.length === 0 && (
-                  <div className="rounded-lg border border-dashed border-[var(--border)] p-5 text-center text-xs text-[var(--text-soft)]">
+                  <div className="rounded-xl border border-dashed border-[var(--border)] p-5 text-center text-xs text-[var(--text-soft)]">
                     No tasks in this column.
                   </div>
                 )}
               </div>
 
-              {/* Teams Fast Inline "+ Add task" Creation Row */}
+              {/* Fast Inline "+ Add task" Creation Row */}
               {onQuickCreate && (
                 <div className="mt-2.5 pt-2 border-t border-[var(--border)] shrink-0">
                   {addingCol === col.key ? (
@@ -465,7 +476,7 @@ export function TaskKanban({
                           }
                         }}
                         placeholder="Task name... (Press Enter to add)"
-                        className="h-8 w-full rounded-md border border-[var(--border)] bg-[var(--surface)] px-2.5 text-xs text-[var(--text-main)] outline-none focus:border-[var(--accent)]"
+                        className="h-8 w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] px-2.5 text-xs text-[var(--text-main)] outline-none focus:border-[var(--accent)]"
                       />
                       <div className="flex items-center justify-end gap-1.5">
                         <button
@@ -474,7 +485,7 @@ export function TaskKanban({
                             setAddingCol(null);
                             setNewTitle("");
                           }}
-                          className="rounded-md px-2 py-1 text-xs text-[var(--text-soft)] hover:bg-[var(--surface-soft)]"
+                          className="rounded-lg px-2 py-1 text-xs text-[var(--text-soft)] hover:bg-[var(--surface-soft)]"
                         >
                           Cancel
                         </button>
@@ -482,7 +493,7 @@ export function TaskKanban({
                           type="button"
                           disabled={!newTitle.trim() || isSubmittingQuick}
                           onClick={() => void handleQuickAdd(col.key)}
-                          className="rounded-md bg-[var(--accent)] px-2.5 py-1 text-xs font-semibold text-white hover:bg-[var(--accent-strong)] disabled:opacity-50"
+                          className="rounded-lg bg-[var(--accent)] px-2.5 py-1 text-xs font-semibold text-white hover:bg-[var(--accent-strong)] disabled:opacity-50 shadow-2xs"
                         >
                           {isSubmittingQuick ? "Adding..." : "Add"}
                         </button>
@@ -495,7 +506,7 @@ export function TaskKanban({
                         setAddingCol(col.key);
                         setNewTitle("");
                       }}
-                      className="flex items-center gap-1.5 w-full rounded-lg px-2 py-1.5 text-xs font-medium text-[var(--text-soft)] hover:bg-[var(--surface-soft)] hover:text-[var(--text-main)] transition-colors"
+                      className="flex items-center gap-1.5 w-full rounded-xl px-2.5 py-1.5 text-xs font-semibold text-[var(--text-soft)] hover:bg-[var(--surface-hover)] hover:text-[var(--accent)] transition-colors"
                     >
                       <span className="text-sm font-bold text-[var(--accent)]">+</span>
                       <span>Add a task</span>
