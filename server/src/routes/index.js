@@ -15,11 +15,17 @@ import notificationRouter from "./notification.routes.js";
 import reportsRouter from "./reports.routes.js";
 import checklistRouter from "./checklist.routes.js";
 import credentialRouter from "./credential.routes.js";
+import crmRouter from "./crm.routes.js";
+import channelRouter from "./channel.routes.js";
+import calendarRouter from "./calendar.routes.js";
 
 const router = Router();
 
 router.use("/auth", authRouter);
 router.use("/chat", chatRouter);
+router.use("/channels", channelRouter);
+router.use("/calendar", calendarRouter);
+router.use("/crm", crmRouter);
 router.use("/checklist", checklistRouter);
 router.use("/dashboard", dashboardRouter);
 router.use("/departments", departmentRouter);

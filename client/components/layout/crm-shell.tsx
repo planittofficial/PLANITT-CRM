@@ -27,6 +27,9 @@ import {
   MoonIcon,
   LogOutIcon,
   ClockIcon,
+  VideoIcon,
+  TrendingUpIcon,
+  HashIcon,
 } from "@/components/ui/icons";
 import type { CRMUser } from "@/types/crm";
 
@@ -54,7 +57,10 @@ const roleLabels: Record<CRMUser["role"], string> = {
 const pageMetadata: Record<string, { title: string; category: string }> = {
   "/dashboard": { title: "Dashboard", category: "Overview" },
   "/projects": { title: "Projects", category: "Work" },
-  "/tasks": { title: "Tasks", category: "Work" },
+  "/tasks": { title: "Tasks & Planner", category: "Work" },
+  "/teams": { title: "Teams & Channels", category: "Collaboration" },
+  "/calendar": { title: "Calendar & Meet", category: "Google Workspace" },
+  "/crm": { title: "Sales & Deals Pipeline", category: "CRM" },
   "/leaves": { title: "Leaves", category: "HR" },
   "/employees": { title: "Employees", category: "Directory" },
   "/departments": { title: "Departments", category: "Organization" },
@@ -171,22 +177,41 @@ export function CRMShell({ children, user, compactMobileChrome = false }: CRMShe
     setTheme(theme === "light" ? "dark" : "light");
   };
 
+  const handleQuickMeetNow = async () => {
+    try {
+      const res = await apiPost<{ meetUrl: string }>("/calendar/quick-meet", {
+        title: `${user.name} Instant Google Meet`,
+      });
+      if (res.meetUrl) {
+        window.open(res.meetUrl, "_blank");
+        await navigator.clipboard.writeText(res.meetUrl).catch(() => {});
+        showToast("Google Meet launched & link copied to clipboard!", "success");
+      }
+    } catch {
+      showToast("Failed to launch Google Meet", "error");
+    }
+  };
+
   const navItems: NavItem[] = useMemo(() => {
     const isLeadership = user.role === "SUPERADMIN" || user.role === "ADMIN" || user.role === "MANAGER";
     const isAdmin = user.role === "SUPERADMIN" || user.role === "ADMIN";
 
     return [
-      { href: "/dashboard", label: "Dashboard", icon: LayoutDashboardIcon },
-      ...(isLeadership ? [{ href: "/projects", label: "Projects", icon: FolderKanbanIcon }] : []),
-      { href: "/tasks", label: "Tasks", icon: CheckSquareIcon },
+      { href: "/notifications", label: "Activity", icon: BellIcon, badge: unreadCount },
       { href: "/chat", label: "Chat", icon: MessageSquareIcon },
-      { href: "/leaves", label: "Leaves", icon: CalendarDaysIcon },
+      { href: "/teams", label: "Teams", icon: HashIcon },
+      { href: "/calendar", label: "Calendar & Meet", icon: CalendarDaysIcon },
+      { href: "/crm", label: "Sales & Deals", icon: TrendingUpIcon },
+      { href: "/tasks", label: "Tasks & Planner", icon: CheckSquareIcon },
+      ...(isLeadership ? [{ href: "/projects", label: "Projects", icon: FolderKanbanIcon }] : []),
+      { href: "/dashboard", label: "Hub & Overview", icon: LayoutDashboardIcon },
       ...(isLeadership ? [{ href: "/employees", label: "People", icon: UsersIcon }] : []),
+      { href: "/leaves", label: "Leaves", icon: ClockIcon },
       ...(isAdmin ? [{ href: "/departments", label: "Depts", icon: Building2Icon }] : []),
       ...(isAdmin ? [{ href: "/logs", label: "Audit", icon: ScrollTextIcon }] : []),
       { href: "/settings", label: "Settings", icon: SettingsIcon },
     ];
-  }, [user.role]);
+  }, [user.role, unreadCount]);
 
   const currentPage = pageMetadata[pathname] ?? {
     title: pathname.startsWith("/leaves") ? "Leaves" : "Planitt CRM",
@@ -228,6 +253,11 @@ export function CRMShell({ children, user, compactMobileChrome = false }: CRMShe
                   title={item.label}
                 >
                   <Icon size={19} />
+                  {typeof item.badge === "number" && item.badge > 0 && (
+                    <span className="absolute -top-1 -right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-rose-600 px-1 text-[9px] font-black text-white shadow-2xs">
+                      {item.badge > 99 ? "99+" : item.badge}
+                    </span>
+                  )}
                   {/* Tooltip flyout on hover */}
                   <span className="pointer-events-none absolute left-full ml-2 hidden whitespace-nowrap rounded-md bg-slate-900 px-2 py-1 text-xs font-semibold text-white shadow-lg group-hover:block z-50">
                     {item.label}
@@ -382,6 +412,17 @@ export function CRMShell({ children, user, compactMobileChrome = false }: CRMShe
               aria-label="Toggle search"
             >
               <SearchIcon size={15} />
+            </button>
+
+            {/* Quick Google Meet Action */}
+            <button
+              type="button"
+              onClick={handleQuickMeetNow}
+              className="inline-flex items-center gap-1.5 rounded-lg bg-purple-600 hover:bg-purple-700 px-2.5 py-1 text-xs font-bold text-white shadow-2xs transition"
+              title="Instant Google Meet"
+            >
+              <VideoIcon size={13} />
+              <span className="hidden sm:inline">Meet</span>
             </button>
 
             {/* Quick Attendance Action */}
