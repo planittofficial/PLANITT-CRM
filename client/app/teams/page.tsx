@@ -4,6 +4,8 @@ import { useEffect, useState, useMemo, useRef } from "react";
 import { CRMShell } from "@/components/layout/crm-shell";
 import { useSession } from "@/hooks/use-session";
 import { renderSessionGate } from "@/components/shared/session-gate";
+import { usePresence } from "@/components/providers/presence-provider";
+import { Avatar } from "@/components/ui/avatar";
 import { apiGet, apiPost } from "@/lib/api";
 import { showToast } from "@/hooks/use-toast";
 import {
@@ -24,6 +26,7 @@ import type { Department, Project, TeamChannel, ChannelMessage, CRMUser, Task } 
 
 export default function TeamsPage() {
   const { user, loading: sessionLoading, error: sessionError, retry: retrySession } = useSession();
+  const { getUserPresence, setMeetingStatus } = usePresence();
 
   const [departments, setDepartments] = useState<Department[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
@@ -422,6 +425,9 @@ export default function TeamsPage() {
                       messages.map((msg) => {
                         const isMeeting = msg.messageType === "MEETING";
                         const date = new Date(msg.createdAt);
+                        const authorPresence = getUserPresence(msg.author.id);
+                        const authorStatus = authorPresence?.status;
+                        const authorCustomMsg = authorPresence?.customStatusMessage;
 
                         return (
                           <div
@@ -432,15 +438,24 @@ export default function TeamsPage() {
                                 : "border-[var(--border)] bg-[var(--surface-strong,#ffffff)]"
                             }`}
                           >
-                            <div className="h-9 w-9 rounded-full bg-[var(--accent)] text-white flex items-center justify-center font-bold text-xs shrink-0">
-                              {msg.author.name.charAt(0)}
-                            </div>
+                            <Avatar
+                              name={msg.author.name}
+                              avatarUrl={msg.author.avatarUrl}
+                              size="md"
+                              status={authorStatus}
+                              statusTitle={`${msg.author.name}${authorStatus ? ` (${authorStatus})` : ""}${authorCustomMsg ? ` - "${authorCustomMsg}"` : ""}`}
+                            />
 
                             <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-2">
+                              <div className="flex items-center gap-2 flex-wrap">
                                 <span className="text-xs font-bold text-[var(--text-main)]">
                                   {msg.author.name}
                                 </span>
+                                {authorCustomMsg && (
+                                  <span className="rounded bg-[var(--surface-soft)] px-1.5 py-0.5 text-[10px] text-[var(--text-soft)] italic truncate max-w-[200px]" title={authorCustomMsg}>
+                                    "{authorCustomMsg}"
+                                  </span>
+                                )}
                                 <span className="text-[10px] text-[var(--text-soft)]">
                                   {date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                                 </span>
@@ -461,6 +476,10 @@ export default function TeamsPage() {
                                       href={msg.meetingUrl}
                                       target="_blank"
                                       rel="noreferrer"
+                                      onClick={async () => {
+                                        await setMeetingStatus(msg.meetingTitle || "Google Meet Session");
+                                        showToast("Joined meeting! Status automatically set to In a Meeting (🔴)", "success");
+                                      }}
                                       className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-bold text-white hover:bg-emerald-700 transition"
                                     >
                                       <VideoIcon size={13} />

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import type { CRMUser } from "@/types/crm";
+import type { CRMUser, UserPresenceStatus } from "@/types/crm";
 
 function initials(name: string) {
   return name
@@ -18,7 +18,7 @@ type UserAvatarProps = {
   authProvider?: CRMUser["authProvider"];
   className: string;
   imageClassName?: string;
-  status?: "online" | "offline" | "busy" | "away";
+  status?: "online" | "offline" | "busy" | "away" | UserPresenceStatus;
 };
 
 export function UserAvatar({
@@ -58,13 +58,17 @@ export function UserAvatar({
 
       {status && (
         <span
-          className={`absolute bottom-0 right-0 h-2 w-2 rounded-full ring-2 ring-[var(--surface-strong,#ffffff)] ${
-            status === "online"
+          className={`absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full ring-2 ring-[var(--surface-strong,#ffffff)] ${
+            status === "online" || status === "AVAILABLE"
               ? "bg-emerald-500"
-              : status === "busy"
+              : status === "busy" || status === "BUSY"
               ? "bg-rose-500"
-              : status === "away"
+              : status === "IN_A_MEETING"
+              ? "bg-rose-500 ring-rose-400 animate-pulse"
+              : status === "away" || status === "AWAY"
               ? "bg-amber-500"
+              : status === "DND"
+              ? "bg-red-600 ring-red-400"
               : "bg-slate-400"
           }`}
           aria-hidden

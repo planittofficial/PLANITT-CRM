@@ -16,6 +16,10 @@ model User {
   avatarUrl                 String?
   authProvider              String                     @default("password")
   role                      UserRole                   @default(EMPLOYEE)
+  presenceStatus            UserPresenceStatus         @default(AVAILABLE)
+  customStatusMessage       String?
+  customStatusExpiresAt     DateTime?
+  inMeetingUntil            DateTime?
   createdAt                 DateTime                   @default(now())
   updatedAt                 DateTime                   @updatedAt
   createdById               String?
@@ -363,6 +367,15 @@ enum UserRole {
   MANAGER
   INTERN
   SUPERADMIN
+}
+
+enum UserPresenceStatus {
+  AVAILABLE
+  BUSY
+  IN_A_MEETING
+  AWAY
+  OFFLINE
+  DND
 }
 
 enum TaskStatus {

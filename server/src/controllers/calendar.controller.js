@@ -1,5 +1,5 @@
 import prisma from "../config/db.js";
-import { emitNotification, emitCRMEvent } from "../socket.js";
+import { emitNotification, emitCRMEvent, setLivePresence } from "../socket.js";
 
 const GOOGLE_CALENDAR_EVENTS_URL = "https://www.googleapis.com/calendar/v3/calendars/primary/events";
 
@@ -251,6 +251,24 @@ export async function quickMeet(req, res) {
         },
       });
     }
+
+    // Automatically set organizer presence to IN_A_MEETING
+    setLivePresence(req.user.id, {
+      status: "IN_A_MEETING",
+      customStatusMessage: `In a Meeting: ${title}`,
+      inMeetingUntil: end.toISOString(),
+    });
+
+    prisma.user
+      .update({
+        where: { id: req.user.id },
+        data: {
+          presenceStatus: "IN_A_MEETING",
+          customStatusMessage: `In a Meeting: ${title}`,
+          inMeetingUntil: end,
+        },
+      })
+      .catch((err) => console.warn("Failed to update user presence on quick meet:", err.message));
 
     emitCRMEvent("meet:instant_created", event);
     res.status(201).json(event);

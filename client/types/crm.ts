@@ -1,5 +1,26 @@
 export type UserRole = "SUPERADMIN" | "ADMIN" | "MANAGER" | "EMPLOYEE" | "INTERN";
 
+export type UserPresenceStatus =
+  | "AVAILABLE"
+  | "BUSY"
+  | "IN_A_MEETING"
+  | "AWAY"
+  | "OFFLINE"
+  | "DND";
+
+export type UserPresence = {
+  userId: string;
+  name?: string;
+  email?: string;
+  avatarUrl?: string | null;
+  role?: UserRole;
+  status: UserPresenceStatus;
+  customStatusMessage?: string | null;
+  customStatusExpiresAt?: string | null;
+  inMeetingUntil?: string | null;
+  lastSeen?: string | null;
+};
+
 export type Department = {
   id: string;
   name: string;
@@ -55,6 +76,10 @@ export type CRMUser = {
   name: string;
   email: string;
   avatarUrl?: string | null;
+  presenceStatus?: UserPresenceStatus;
+  customStatusMessage?: string | null;
+  customStatusExpiresAt?: string | null;
+  inMeetingUntil?: string | null;
   role: UserRole;
   designation?: string | null;
   departmentId?: string | null;

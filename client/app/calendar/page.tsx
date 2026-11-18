@@ -3,6 +3,7 @@
 import { useEffect, useState, useMemo } from "react";
 import { CRMShell } from "@/components/layout/crm-shell";
 import { useSession } from "@/hooks/use-session";
+import { usePresence } from "@/components/providers/presence-provider";
 import { renderSessionGate } from "@/components/shared/session-gate";
 import { apiGet, apiPost, apiDelete } from "@/lib/api";
 import { showToast } from "@/hooks/use-toast";
@@ -20,6 +21,7 @@ import type { CalendarItem, CRMUser, Project } from "@/types/crm";
 
 export default function CalendarPage() {
   const { user, loading: sessionLoading, error: sessionError, retry: retrySession } = useSession();
+  const { setMeetingStatus } = usePresence();
   const [items, setItems] = useState<CalendarItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [scheduleModalOpen, setScheduleModalOpen] = useState(false);
@@ -66,9 +68,10 @@ export default function CalendarPage() {
         title: `${user?.name || "Team"} Instant Google Meet`,
       });
       if (res.meetUrl) {
+        await setMeetingStatus(`${user?.name || "Team"} Instant Google Meet`);
         window.open(res.meetUrl, "_blank");
         await navigator.clipboard.writeText(res.meetUrl).catch(() => {});
-        showToast("Google Meet launched & link copied to clipboard!", "success");
+        showToast("Google Meet launched! Status automatically set to In a Meeting (🔴)", "success");
         fetchCalendar();
       }
     } catch (err) {
@@ -295,6 +298,10 @@ export default function CalendarPage() {
                           href={item.meetUrl}
                           target="_blank"
                           rel="noreferrer"
+                          onClick={async () => {
+                            await setMeetingStatus(item.title || "Google Meet Session");
+                            showToast("Joined meeting! Status automatically set to In a Meeting (🔴)", "success");
+                          }}
                           className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-bold text-white hover:bg-emerald-700 transition"
                         >
                           <VideoIcon size={13} />

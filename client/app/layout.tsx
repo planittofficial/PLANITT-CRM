@@ -2,6 +2,7 @@ import "../styles/globals.css";
 import { BackendKeepAlive } from "@/components/providers/backend-keepalive";
 import { CrmSearchProvider } from "@/components/providers/crm-search-provider";
 import { SocketProvider } from "@/components/providers/socket-provider";
+import { PresenceProvider } from "@/components/providers/presence-provider";
 import { ThemeProvider } from "@/components/providers/theme-provider";
 import { DEFAULT_CRM_THEME } from "@/lib/theme-storage";
 import type { Metadata, Viewport } from "next";
@@ -81,7 +82,9 @@ export default function RootLayout({
         <ThemeProvider>
           <BackendKeepAlive />
           <SocketProvider>
-            <CrmSearchProvider>{children}</CrmSearchProvider>
+            <PresenceProvider>
+              <CrmSearchProvider>{children}</CrmSearchProvider>
+            </PresenceProvider>
           </SocketProvider>
         </ThemeProvider>
         <Toast/>
