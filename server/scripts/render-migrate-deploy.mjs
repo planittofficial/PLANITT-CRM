@@ -50,4 +50,11 @@ try {
   }
 }
 
+try {
+  console.log("[migrate] Ensuring database tables match Prisma schema...");
+  run(`${PRISMA_CLI} db push --schema ${SCHEMA} --skip-generate`);
+} catch (error) {
+  console.warn("[migrate] db push warning:", error.message || error);
+}
+
 run(`${PRISMA_CLI} generate --schema ${SCHEMA}`);

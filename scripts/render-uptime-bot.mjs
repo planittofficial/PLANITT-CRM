@@ -14,7 +14,7 @@
  *   node scripts/render-uptime-bot.mjs
  *   node scripts/render-uptime-bot.mjs --interval=30
  *   node scripts/render-uptime-bot.mjs --once
- *   node scripts/render-uptime-bot.mjs https://planitt-crm-ewr4.onrender.com
+ *   node scripts/render-uptime-bot.mjs https://planitt-crm-wyeh.onrender.com
  *
  * Environment variables:
  *   RENDER_BACKEND_URL or NEXT_PUBLIC_API_URL or API_URL
@@ -98,7 +98,7 @@ let targetRaw =
   process.env.NEXT_PUBLIC_API_URL ||
   process.env.API_URL ||
   getTargetUrlFromEnvFiles() ||
-  "https://planitt-crm-ewr4.onrender.com/api";
+  "https://planitt-crm-wyeh.onrender.com/api";
 
 // Normalize target URL to health check endpoint
 function resolveHealthEndpoint(raw) {

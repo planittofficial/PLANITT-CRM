@@ -23,7 +23,7 @@ jobs:
 
       - name: Run Uptime Bot Keep-Alive Ping
         env:
-          RENDER_BACKEND_URL: ${{ secrets.RENDER_BACKEND_URL || 'https://planitt-crm-ewr4.onrender.com/api' }}
+          RENDER_BACKEND_URL: ${{ secrets.RENDER_BACKEND_URL || 'https://planitt-crm-wyeh.onrender.com/api' }}
           ALERT_WEBHOOK_URL: ${{ secrets.ALERT_WEBHOOK_URL }}
         run: |
           node scripts/render-uptime-bot.mjs --once
