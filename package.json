@@ -12,7 +12,12 @@
     "dev:server": "npm run dev --workspace server",
     "build": "npm run build --workspace client",
     "start": "npm run start --workspace server",
-    "build:render-api": "npm ci && node ./server/scripts/render-migrate-deploy.mjs"
+    "build:apk": "cd android-app && ./gradlew assembleDebug && cp app/build/outputs/apk/debug/app-debug.apk ../Planitt-CRM.apk",
+    "create-admin": "node ./server/scripts/create-admin.mjs",
+    "build:render-api": "npm ci && node ./server/scripts/render-migrate-deploy.mjs",
+    "uptime-bot": "node ./scripts/render-uptime-bot.mjs",
+    "uptime-bot:30m": "node ./scripts/render-uptime-bot.mjs --interval=30",
+    "uptime-bot:once": "node ./scripts/render-uptime-bot.mjs --once"
   },
   "devDependencies": {
     "prisma": "^6.19.3"

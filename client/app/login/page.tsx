@@ -16,6 +16,31 @@ export default function LoginPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
+  const [serverWarmup, setServerWarmup] = useState<"idle" | "waking" | "ready">("idle");
+
+  useEffect(() => {
+    let isMounted = true;
+    const slowTimer = setTimeout(() => {
+      if (isMounted) setServerWarmup("waking");
+    }, 2200);
+
+    fetch(`${resolveApiBaseUrl()}/health`, { method: "GET" })
+      .then((res) => {
+        if (!isMounted) return;
+        clearTimeout(slowTimer);
+        if (res.ok) {
+          setServerWarmup("ready");
+        }
+      })
+      .catch(() => {
+        // Cold boot or connection issue will be handled by regular login attempts
+      });
+
+    return () => {
+      isMounted = false;
+      clearTimeout(slowTimer);
+    };
+  }, []);
 
   const GOOGLE_FRIENDLY_ERROR = "Unable to continue with Google login right now. Please try again in a moment.";
 
@@ -184,6 +209,23 @@ export default function LoginPage() {
           <p className="mt-2 text-sm leading-6 text-[var(--text-soft)] sm:mt-3">
             Use the seeded admin or employee account to explore the CRM experience.
           </p>
+
+          {serverWarmup === "waking" && (
+            <div className="mt-3 flex items-center gap-2 rounded-xl bg-amber-500/10 border border-amber-500/20 px-3 py-2 text-xs text-amber-700 dark:text-amber-300">
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
+              </span>
+              <span>Waking up cloud backend... First login may take ~20s.</span>
+            </div>
+          )}
+
+          {serverWarmup === "ready" && (
+            <div className="mt-3 flex items-center gap-1.5 text-[11px] font-medium text-emerald-600 dark:text-emerald-400">
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+              <span>Cloud backend ready</span>
+            </div>
+          )}
 
           <form
             className="mt-6 space-y-4 sm:mt-8"

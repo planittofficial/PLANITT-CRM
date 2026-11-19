@@ -11,6 +11,10 @@ import {
   updateMyProfile,
   updateUserProfileByLeadership,
   updateUserAssignment,
+  getUserPresenceStatuses,
+  updateMyPresence,
+  reportMeetingStarted,
+  reportMeetingEnded,
 } from "../controllers/user.controller.js";
 import { authMiddleware, authorizeRoles } from "../middleware/auth.middleware.js";
 
@@ -24,6 +28,10 @@ const upload = multer({
 
 router.get("/me", authMiddleware, getMyProfile);
 router.put("/me/profile", authMiddleware, updateMyProfile);
+router.get("/presence", authMiddleware, getUserPresenceStatuses);
+router.put("/me/presence", authMiddleware, updateMyPresence);
+router.post("/me/meeting-started", authMiddleware, reportMeetingStarted);
+router.post("/me/meeting-ended", authMiddleware, reportMeetingEnded);
 router.get(
   "/directory-stats",
   authMiddleware,

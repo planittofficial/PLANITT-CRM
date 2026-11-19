@@ -2,6 +2,7 @@ import "../styles/globals.css";
 import { BackendKeepAlive } from "@/components/providers/backend-keepalive";
 import { CrmSearchProvider } from "@/components/providers/crm-search-provider";
 import { SocketProvider } from "@/components/providers/socket-provider";
+import { PresenceProvider } from "@/components/providers/presence-provider";
 import { ThemeProvider } from "@/components/providers/theme-provider";
 import { DEFAULT_CRM_THEME } from "@/lib/theme-storage";
 import type { Metadata, Viewport } from "next";
@@ -29,7 +30,20 @@ const googleSiteVerification =
 
 export const metadata: Metadata = {
   title: "Planitt CRM",
-  description: "Internal CRM for sales, follow-ups, and team workflows.",
+  description: "Enterprise CRM & Team Collaboration Workspace",
+  applicationName: "Planitt CRM",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "Planitt CRM",
+  },
+  formatDetection: {
+    telephone: false,
+  },
+  icons: {
+    icon: "/icon.png",
+    apple: "/icon.png",
+  },
   ...(googleSiteVerification
     ? { verification: { google: googleSiteVerification } }
     : {}),
@@ -41,8 +55,8 @@ export const viewport: Viewport = {
   maximumScale: 5,
   viewportFit: "cover",
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#f4f7ff" },
-    { media: "(prefers-color-scheme: dark)", color: "#071120" },
+    { media: "(prefers-color-scheme: light)", color: "#5b5fc7" },
+    { media: "(prefers-color-scheme: dark)", color: "#141416" },
   ],
 };
 
@@ -68,7 +82,9 @@ export default function RootLayout({
         <ThemeProvider>
           <BackendKeepAlive />
           <SocketProvider>
-            <CrmSearchProvider>{children}</CrmSearchProvider>
+            <PresenceProvider>
+              <CrmSearchProvider>{children}</CrmSearchProvider>
+            </PresenceProvider>
           </SocketProvider>
         </ThemeProvider>
         <Toast/>

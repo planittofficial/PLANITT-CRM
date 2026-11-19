@@ -1,0 +1,29 @@
+name: Render Backend Keep-Alive Bot
+
+on:
+  schedule:
+    # Runs every 14 minutes to keep Render free tier awake (Render sleeps after 15m idle)
+    - cron: '*/14 * * * *'
+  workflow_dispatch: # Allows manual trigger from GitHub Actions tab
+
+jobs:
+  ping-render:
+    name: Ping Render Backend
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Run Uptime Bot Keep-Alive Ping
+        env:
+          RENDER_BACKEND_URL: ${{ secrets.RENDER_BACKEND_URL || 'https://planitt-crm-ewr4.onrender.com/api' }}
+          ALERT_WEBHOOK_URL: ${{ secrets.ALERT_WEBHOOK_URL }}
+        run: |
+          node scripts/render-uptime-bot.mjs --once

@@ -6,6 +6,7 @@ import { CRMShell } from "@/components/layout/crm-shell";
 import { ResponsiveSelect } from "@/components/shared/responsive-select";
 import { renderSessionGate } from "@/components/shared/session-gate";
 import { EmployeesSkeleton } from "@/components/shared/skeleton";
+import { SearchIcon, PlusIcon, CalendarDaysIcon } from "@/components/ui/icons";
 import { useSession } from "@/hooks/use-session";
 import { apiGet } from "@/lib/api";
 import type { LeaveRequest } from "@/types/crm";
@@ -82,6 +83,13 @@ export default function LeavesPage() {
     return leaveRequests;
   }, [leaveRequests]);
 
+  const stats = useMemo(() => {
+    const total = leaveRequests.length;
+    const pending = leaveRequests.filter((l) => l.status === "PENDING").length;
+    const approved = leaveRequests.filter((l) => l.status === "APPROVED").length;
+    return { total, pending, approved };
+  }, [leaveRequests]);
+
   const sessionGate = renderSessionGate({
     loading: sessionLoading,
     user,
@@ -98,7 +106,7 @@ export default function LeavesPage() {
   if (!user) {
     return null;
   }
-   if (loading) {
+  if (loading) {
     return (
       <CRMShell user={user}>
         <EmployeesSkeleton />
@@ -110,57 +118,115 @@ export default function LeavesPage() {
     setSearch(event.target.value);
   };
 
-  const handleStatusChange = (event: ChangeEvent<HTMLSelectElement>) => {
-    setStatusFilter(event.target.value);
-  };
-
   return (
     <CRMShell user={user}>
-      <div className="min-w-0 space-y-4 overflow-x-hidden pb-4">
-        {/* Teams Header */}
-        <section className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4 sm:p-5 shadow-xs">
+      <div className="min-w-0 space-y-3 sm:space-y-4 overflow-x-hidden pb-4">
+        {/* Unified Mobile Leave Workspace Card (sm:hidden) */}
+        <div className="sm:hidden rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-2.5 space-y-2 shadow-xs">
+          {/* Row 1: Search + Apply Button */}
+          <div className="flex items-center gap-2">
+            <div className="relative flex-1">
+              <SearchIcon className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-soft)]" size={14} />
+              <input
+                type="search"
+                value={search}
+                onChange={handleSearchChange}
+                placeholder="Search leaves, employees..."
+                className="h-9 w-full rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] pl-8.5 pr-3 text-xs text-[var(--text-main)] outline-none focus:border-[var(--accent)]"
+              />
+            </div>
+            <Link
+              href="/leaves/new"
+              className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-lg bg-[var(--accent)] hover:bg-[var(--accent-strong)] px-3 text-xs font-semibold text-white shadow-xs transition-colors"
+            >
+              <PlusIcon size={14} />
+              <span>Apply</span>
+            </Link>
+          </div>
+
+          {/* Row 2: Status Tabs + Pending Count Chip */}
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex h-8 items-center gap-0.5 rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] p-0.5 text-xs overflow-x-auto no-scrollbar">
+              {[
+                { label: "All", value: "" },
+                { label: "Pending", value: "PENDING" },
+                { label: "Approved", value: "APPROVED" },
+                { label: "Rejected", value: "REJECTED" },
+              ].map((tab) => {
+                const isActive = statusFilter === tab.value;
+                return (
+                  <button
+                    key={tab.label}
+                    type="button"
+                    onClick={() => setStatusFilter(tab.value)}
+                    className={`flex h-7 items-center whitespace-nowrap rounded-md px-2.5 text-xs font-semibold transition-colors ${
+                      isActive
+                        ? "bg-[var(--surface)] text-[var(--accent)] shadow-xs"
+                        : "text-[var(--text-soft)] hover:text-[var(--text-main)]"
+                    }`}
+                  >
+                    {tab.label}
+                  </button>
+                );
+              })}
+            </div>
+
+            <div className="flex h-8 shrink-0 items-center gap-1.5 rounded-lg border border-amber-200/70 bg-amber-50/80 px-2.5 text-[11px] font-semibold text-amber-700 dark:border-amber-900/60 dark:bg-amber-950/40 dark:text-amber-300">
+              <span>Pending:</span>
+              <span className="font-bold">{stats.pending}</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Desktop Header */}
+        <section className="hidden sm:block rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4 sm:p-5 shadow-xs">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <div className="flex items-center gap-2">
                 <span className="rounded-md bg-indigo-50 px-2 py-0.5 text-xs font-semibold text-[var(--accent)] border border-indigo-200 dark:bg-indigo-950/40 dark:text-indigo-300 dark:border-indigo-800">
                   Human Resources
                 </span>
-                <span className="text-xs text-[var(--text-soft)]">Time Off</span>
+                <span className="text-xs text-[var(--text-soft)]">Time Off Management</span>
               </div>
-              <h1 className="mt-1 text-xl font-bold tracking-tight text-[var(--text-main)] sm:text-2xl">Leaves & Absences</h1>
+              <h1 className="mt-1 text-2xl font-bold tracking-tight text-[var(--text-main)]">Leaves & Absences</h1>
               <p className="mt-0.5 text-xs text-[var(--text-soft)]">
                 Submit leave requests, review team approvals, and track status.
               </p>
             </div>
             <Link
               href="/leaves/new"
-              className="inline-flex items-center justify-center rounded-lg bg-[var(--accent)] hover:bg-[var(--accent-strong)] px-3.5 py-2 text-xs font-semibold text-white shadow-xs transition-colors"
+              className="inline-flex h-9 items-center justify-center rounded-lg bg-[var(--accent)] hover:bg-[var(--accent-strong)] px-4 text-xs font-semibold text-white shadow-xs transition-colors"
             >
+              <PlusIcon size={14} className="mr-1.5" />
               Apply for Leave
             </Link>
           </div>
         </section>
 
-        <section className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4 sm:p-5 shadow-xs">
-          <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        {/* Main Content Section */}
+        <section className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-3.5 sm:p-5 shadow-xs">
+          <div className="mb-4 hidden sm:flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between border-b border-[var(--border)] pb-3">
             <div>
-              <h3 className="text-sm font-semibold text-[var(--text-main)]">Leave Requests</h3>
+              <h3 className="text-sm font-bold text-[var(--text-main)]">Leave Requests</h3>
               <p className="text-xs text-[var(--text-soft)]">{filteredLeaves.length} requests in record</p>
             </div>
             <div className="flex flex-col sm:flex-row items-center gap-2">
-              <input
-                type="search"
-                value={search}
-                onChange={handleSearchChange}
-                className="h-8.5 w-full sm:w-64 rounded-md border border-[var(--border)] bg-[var(--surface)] px-3 text-xs text-[var(--text-main)] outline-none focus:border-[var(--accent)]"
-                placeholder="Search type, requester, manager..."
-              />
+              <div className="relative w-full sm:w-64">
+                <SearchIcon className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-soft)]" size={14} />
+                <input
+                  type="search"
+                  value={search}
+                  onChange={handleSearchChange}
+                  className="h-9 w-full rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] pl-8.5 pr-3 text-xs text-[var(--text-main)] outline-none focus:border-[var(--accent)]"
+                  placeholder="Search type, requester, manager..."
+                />
+              </div>
               <ResponsiveSelect
                 value={statusFilter}
                 onChange={setStatusFilter}
                 options={statusSelectOptions}
                 ariaLabel="Filter leave requests by status"
-                buttonClassName="h-8.5 rounded-md text-xs px-3"
+                buttonClassName="h-9 rounded-lg text-xs px-3"
               />
             </div>
           </div>
@@ -170,7 +236,7 @@ export default function LeavesPage() {
           ) : error ? (
             <p className="py-8 text-center text-xs text-rose-600">{error}</p>
           ) : filteredLeaves.length === 0 ? (
-            <div className="rounded-lg border border-dashed border-[var(--border)] p-8 text-center text-xs text-[var(--text-soft)]">
+            <div className="rounded-xl border border-dashed border-[var(--border)] p-8 text-center text-xs text-[var(--text-soft)]">
               No leave requests match your search or filter.
             </div>
           ) : (
@@ -185,7 +251,7 @@ export default function LeavesPage() {
                   return (
                     <div
                       key={leave.id}
-                      className="rounded-xl border border-[var(--border)] bg-[var(--surface-soft)] p-3 space-y-2"
+                      className="rounded-xl border border-[var(--border)] bg-[var(--surface-soft)] p-3 space-y-2 shadow-xs"
                     >
                       <div className="flex items-start justify-between gap-2">
                         <Link href={`/leaves/${leave.id}`} className="font-bold text-xs text-[var(--accent)] hover:underline">
@@ -206,10 +272,10 @@ export default function LeavesPage() {
                         </span>
                       </div>
                       <div className="flex items-center justify-between text-[11px] text-[var(--text-soft)]">
-                        <span>Requester: <strong className="text-[var(--text-main)]">{leave.user.name}</strong></span>
+                        <span>Requester: <strong className="text-[var(--text-main)] font-semibold">{leave.user.name}</strong></span>
                         <span>Manager: {leave.manager?.name ?? "—"}</span>
                       </div>
-                      <div className="flex items-center justify-between text-[10px] text-[var(--text-faint)] pt-1 border-t border-[var(--border)]">
+                      <div className="flex items-center justify-between text-[10px] text-[var(--text-faint)] pt-1.5 border-t border-[var(--border)]">
                         <span>{new Date(leave.startDate).toLocaleDateString()} – {new Date(leave.endDate).toLocaleDateString()}</span>
                         <span>Updated: {new Date(leave.updatedAt).toLocaleDateString()}</span>
                       </div>
@@ -219,7 +285,7 @@ export default function LeavesPage() {
               </div>
 
               {/* Desktop Table View */}
-              <div className="hidden sm:block overflow-x-auto rounded-lg border border-[var(--border)] crm-table-scroll">
+              <div className="hidden sm:block overflow-x-auto rounded-xl border border-[var(--border)] crm-table-scroll">
                 <table className="min-w-full text-left text-xs">
                   <thead className="bg-[var(--surface-soft)] border-b border-[var(--border)]">
                     <tr className="font-semibold text-[var(--text-soft)]">

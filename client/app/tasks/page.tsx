@@ -21,7 +21,7 @@ import { showToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { StatCard } from "@/components/ui/stat-card";
 import { Sheet } from "@/components/ui/sheet";
-import { PlusIcon, FilterIcon, CheckSquareIcon } from "@/components/ui/icons";
+import { PlusIcon, FilterIcon, CheckSquareIcon, SearchIcon } from "@/components/ui/icons";
 import type { Task, Project, TaskPriority } from "@/types/crm";
 
 type PaginatedResponse<T> = { items: T[]; total: number; hasMore: boolean; nextOffset: number };
@@ -33,7 +33,12 @@ function TasksPageContent() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [selectedProjectId, setSelectedProjectId] = useState("ALL");
   const [statusFilter, setStatusFilter] = useState<"ALL" | Task["status"]>("ALL");
+  const [presetFilter, setPresetFilter] = useState<"ALL" | "MY_TASKS" | "HIGH_PRIORITY" | "OVERDUE">("ALL");
   const [filterOpen, setFilterOpen] = useState(false);
+
+  const activeFilterCount = useMemo(() => {
+    return (presetFilter !== "ALL" ? 1 : 0) + (selectedProjectId !== "ALL" ? 1 : 0);
+  }, [presetFilter, selectedProjectId]);
   const [nameFilter, setNameFilter] = useState("");
   const [tasksTotal, setTasksTotal] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -151,6 +156,18 @@ function TasksPageContent() {
     if (statusFilter !== "ALL") {
       result = result.filter((task) => task.status === statusFilter);
     }
+    if (presetFilter === "MY_TASKS" && user?.id) {
+      result = result.filter((task) => task.assignments.some((a) => a.userId === user.id));
+    } else if (presetFilter === "HIGH_PRIORITY") {
+      result = result.filter((task) => task.priority === "HIGH" || task.priority === "URGENT");
+    } else if (presetFilter === "OVERDUE") {
+      const now = Date.now();
+      result = result.filter((task) => {
+        if (task.status === "DONE") return false;
+        const dl = getTaskDeadline(task);
+        return dl !== null && dl < now;
+      });
+    }
     const query = nameFilter.trim().toLowerCase();
     if (!query) return result;
     return result.filter((task) => {
@@ -159,7 +176,7 @@ function TasksPageContent() {
       const inAssignee = task.assignments.some((a) => a.user.name.toLowerCase().includes(query));
       return inTitle || inDescription || inAssignee;
     });
-  }, [sortedTasks, statusFilter, nameFilter]);
+  }, [sortedTasks, statusFilter, presetFilter, user?.id, nameFilter]);
 
   const loadTasks = async (append = false) => {
     const offset = append ? nextTaskOffset : 0;
@@ -290,133 +307,373 @@ function TasksPageContent() {
   return (
     <CRMShell user={user}>
       <div className="space-y-5 pb-6">
-        {/* Header Action Bar */}
-        <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <h1 className="text-lg font-bold tracking-tight text-[var(--text-main)] sm:text-xl">
-              Tasks
-            </h1>
-            <p className="text-xs text-[var(--text-soft)]">
-              {isAdminRole(user.role)
-                ? "Assign, organize, and monitor workflows across all teams."
-                : "Manage your assigned work and keep progress up to date."}
-            </p>
-          </div>
+        {/* ── MOBILE STREAMLINED WORKSPACE CARD (<lg) ────────────────────────── */}
+        <div className="flex lg:hidden flex-col rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-2.5 sm:p-3 shadow-xs space-y-2">
+          {/* Row 1: Search + Filter Toggle + Add Task (Exact h-9) */}
+          <div className="flex items-center gap-2">
+            {/* Search Input */}
+            <div className="relative min-w-0 flex-1">
+              <SearchIcon size={14} className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-[var(--text-soft)]" />
+              <input
+                type="text"
+                value={nameFilter}
+                onChange={(e) => setNameFilter(e.target.value)}
+                placeholder="Search tasks..."
+                className="h-9 w-full rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] pl-8 pr-7 text-xs text-[var(--text-main)] outline-none focus:border-[var(--accent)] transition-colors placeholder:text-[var(--text-faint)]"
+              />
+              {nameFilter && (
+                <button
+                  type="button"
+                  onClick={() => setNameFilter("")}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-[var(--text-faint)] hover:text-[var(--text-main)] text-xs font-bold p-0.5"
+                >
+                  ✕
+                </button>
+              )}
+            </div>
 
-          <div className="flex items-center gap-1.5 sm:gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              leftIcon={<FilterIcon size={14} />}
+            {/* Filter Toggle */}
+            <button
+              type="button"
               onClick={() => setFilterOpen((prev) => !prev)}
-              className="text-xs"
+              className={`flex h-9 shrink-0 items-center gap-1.5 rounded-lg border px-2.5 text-xs font-semibold transition-all ${
+                filterOpen || activeFilterCount > 0
+                  ? "border-[var(--accent)] bg-[var(--accent)]/10 text-[var(--accent)]"
+                  : "border-[var(--border)] bg-[var(--surface-soft)] text-[var(--text-soft)] hover:bg-[var(--surface-hover)]"
+              }`}
+              title="Filter tasks"
             >
-              {filterOpen ? "Hide Filters" : "Filter"}
-            </Button>
+              <FilterIcon size={13} />
+              <span>Filter</span>
+              {activeFilterCount > 0 && (
+                <span className="flex h-4 min-w-4 items-center justify-center rounded-full bg-[var(--accent)] px-1 text-[10px] font-bold text-white">
+                  {activeFilterCount}
+                </span>
+              )}
+            </button>
 
+            {/* + Task Button */}
             {isAdminRole(user.role) && (
-              <Button
-                variant="primary"
-                size="sm"
-                leftIcon={<PlusIcon size={14} />}
+              <button
+                type="button"
                 onClick={() => setCreateSheetOpen(true)}
-                className="text-xs"
+                className="flex h-9 shrink-0 items-center gap-1 rounded-lg bg-[var(--accent)] hover:bg-[var(--accent-strong)] px-3 text-xs font-semibold text-white shadow-xs transition-colors"
               >
-                New Task
-              </Button>
+                <PlusIcon size={14} />
+                <span>Task</span>
+              </button>
             )}
           </div>
+
+          {/* Row 2: Status Tabs + Done Metric (Exact h-8) */}
+          <div className="flex items-center justify-between gap-2">
+            {/* Status Segmented Bar */}
+            <div className="flex h-8 items-center rounded-lg bg-[var(--surface-soft)] p-0.5 border border-[var(--border)] overflow-x-auto no-scrollbar">
+              {[
+                { key: "ALL", label: "All", count: taskAnalytics.total },
+                { key: "TODO", label: "Pending", count: taskAnalytics.todo },
+                { key: "IN_PROGRESS", label: "Active", count: taskAnalytics.inProgress },
+                { key: "DONE", label: "Done", count: taskAnalytics.done },
+              ].map((tab) => {
+                const isActive = statusFilter === tab.key;
+                return (
+                  <button
+                    key={tab.key}
+                    type="button"
+                    onClick={() => setStatusFilter(tab.key as any)}
+                    className={`flex h-7 items-center gap-1.5 px-2.5 rounded-md text-xs font-semibold transition-all shrink-0 ${
+                      isActive
+                        ? "bg-[var(--surface)] text-[var(--accent)] shadow-xs"
+                        : "text-[var(--text-soft)] hover:text-[var(--text-main)]"
+                    }`}
+                  >
+                    <span>{tab.label}</span>
+                    <span className="text-[10px] opacity-75">
+                      {tab.count}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Metric Summary Badge */}
+            <div className="flex h-8 shrink-0 items-center gap-1.5 rounded-lg border border-emerald-500/20 bg-emerald-500/10 px-2.5 text-xs text-emerald-600 dark:text-emerald-400 font-semibold">
+              <span className="text-[10px] text-emerald-600/80 dark:text-emerald-400/80">Done:</span>
+              <span className="font-bold">{taskAnalytics.completionRate}%</span>
+            </div>
+          </div>
+
+          {/* Active Filter Chips (Only shown when a filter is applied and filter drawer is closed) */}
+          {!filterOpen && activeFilterCount > 0 && (
+            <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pt-0.5 text-xs">
+              <span className="text-[10px] uppercase font-bold text-[var(--text-faint)] shrink-0">Filter:</span>
+              {presetFilter !== "ALL" && (
+                <button
+                  type="button"
+                  onClick={() => setPresetFilter("ALL")}
+                  className="inline-flex h-6.5 shrink-0 items-center gap-1 rounded-full border border-[var(--accent)]/30 bg-[var(--accent)]/10 px-2.5 text-[11px] font-semibold text-[var(--accent)] hover:bg-[var(--accent)]/20 transition-colors"
+                >
+                  <span>
+                    {presetFilter === "MY_TASKS" ? "👤 Assigned to Me" : presetFilter === "HIGH_PRIORITY" ? "⚡ High Priority" : "⏰ Overdue"}
+                  </span>
+                  <span className="text-xs">✕</span>
+                </button>
+              )}
+              {selectedProjectId !== "ALL" && (
+                <button
+                  type="button"
+                  onClick={() => setSelectedProjectId("ALL")}
+                  className="inline-flex h-6.5 shrink-0 items-center gap-1 rounded-full border border-[var(--accent)]/30 bg-[var(--accent)]/10 px-2.5 text-[11px] font-semibold text-[var(--accent)] hover:bg-[var(--accent)]/20 transition-colors"
+                >
+                  <span className="truncate max-w-[140px]">
+                    📁 {projects.find((p) => p.id === selectedProjectId)?.name ?? "Project"}
+                  </span>
+                  <span className="text-xs">✕</span>
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => {
+                  setPresetFilter("ALL");
+                  setSelectedProjectId("ALL");
+                }}
+                className="text-[10px] font-medium text-[var(--text-soft)] hover:underline shrink-0 ml-1"
+              >
+                Clear all
+              </button>
+            </div>
+          )}
+
+          {/* Expandable Filter Drawer (When Filter is toggled open) */}
+          {filterOpen && (
+            <div className="space-y-2.5 border-t border-[var(--border)] pt-2.5 animate-in fade-in duration-150">
+              <div>
+                <label className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-soft)] block mb-1.5">
+                  Quick Views
+                </label>
+                <div className="flex flex-wrap gap-1.5">
+                  {[
+                    { id: "ALL", label: "All Tasks" },
+                    { id: "MY_TASKS", label: "👤 Assigned to Me" },
+                    { id: "HIGH_PRIORITY", label: "⚡ High Priority" },
+                    { id: "OVERDUE", label: "⏰ Overdue" },
+                  ].map((preset) => {
+                    const isSelected = presetFilter === preset.id;
+                    return (
+                      <button
+                        key={preset.id}
+                        type="button"
+                        onClick={() => setPresetFilter(preset.id as any)}
+                        className={`flex h-7 items-center rounded-lg px-2.5 text-xs font-semibold transition-all ${
+                          isSelected
+                            ? "bg-[var(--accent)] text-white shadow-xs"
+                            : "border border-[var(--border)] bg-[var(--surface-soft)] text-[var(--text-soft)] hover:text-[var(--text-main)]"
+                        }`}
+                      >
+                        {preset.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div>
+                <label className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-soft)] block mb-1">
+                  Filter by Project
+                </label>
+                <ResponsiveSelect
+                  value={selectedProjectId}
+                  onChange={(value) => {
+                    setSelectedProjectId(value);
+                    setLoading(true);
+                  }}
+                  options={projectFilterOptions}
+                  ariaLabel="Filter tasks by project"
+                  buttonClassName="h-9 rounded-lg text-xs"
+                />
+              </div>
+
+              <div className="flex items-center justify-between pt-1">
+                {activeFilterCount > 0 ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setPresetFilter("ALL");
+                      setSelectedProjectId("ALL");
+                    }}
+                    className="text-xs font-semibold text-rose-600 hover:underline"
+                  >
+                    Reset filters
+                  </button>
+                ) : <span />}
+                <button
+                  type="button"
+                  onClick={() => setFilterOpen(false)}
+                  className="h-8 rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] px-3 text-xs font-semibold text-[var(--text-main)] hover:bg-[var(--surface-hover)]"
+                >
+                  Done
+                </button>
+              </div>
+            </div>
+          )}
         </div>
 
-        {/* Teams Compact Status Tabs & Metric Summary */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[var(--border)] pb-2.5">
-          {/* Status Filter Chips */}
-          <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar">
+        {/* ── DESKTOP STREAMLINED HEADER (Hidden on mobile <lg) ──────────────── */}
+        <div className="hidden lg:block space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-lg font-bold tracking-tight text-[var(--text-main)] sm:text-xl">
+                Tasks
+              </h1>
+              <p className="text-xs text-[var(--text-soft)]">
+                {isAdminRole(user.role)
+                  ? "Assign, organize, and monitor workflows across all teams."
+                  : "Manage your assigned work and keep progress up to date."}
+              </p>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                leftIcon={<FilterIcon size={14} />}
+                onClick={() => setFilterOpen((prev) => !prev)}
+                className="text-xs"
+              >
+                {filterOpen ? "Hide Filters" : "Filter"}
+              </Button>
+
+              {isAdminRole(user.role) && (
+                <Button
+                  variant="primary"
+                  size="sm"
+                  leftIcon={<PlusIcon size={14} />}
+                  onClick={() => setCreateSheetOpen(true)}
+                  className="text-xs"
+                >
+                  New Task
+                </Button>
+              )}
+            </div>
+          </div>
+
+          {/* Desktop Status Tabs & Metric Summary */}
+          <div className="flex items-center justify-between gap-2 border-b border-[var(--border)] pb-2.5">
+            <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar">
+              {[
+                { key: "ALL", label: "All", count: taskAnalytics.total, badge: "bg-[var(--surface-hover)] text-[var(--text-main)]" },
+                { key: "TODO", label: "Pending", count: taskAnalytics.todo, badge: "bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30" },
+                { key: "IN_PROGRESS", label: "In Progress", count: taskAnalytics.inProgress, badge: "bg-blue-500/15 text-blue-600 dark:text-blue-400 border border-blue-500/30" },
+                { key: "DONE", label: "Completed", count: taskAnalytics.done, badge: "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30" },
+              ].map((tab) => {
+                const isActive = statusFilter === tab.key;
+                return (
+                  <button
+                    key={tab.key}
+                    type="button"
+                    onClick={() => setStatusFilter(tab.key as any)}
+                    className={`flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-bold transition-all shrink-0 ${
+                      isActive
+                        ? "bg-[var(--accent)] text-white shadow-xs"
+                        : "border border-[var(--border)] bg-[var(--surface-strong,#ffffff)] text-[var(--text-soft)] hover:bg-[var(--surface-soft)]"
+                    }`}
+                  >
+                    <span>{tab.label}</span>
+                    <span className={`rounded-full px-1.5 py-0.2 text-[10px] font-extrabold ${isActive ? "bg-white/20 text-white" : tab.badge}`}>
+                      {tab.count}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+
+            <div className="flex items-center gap-2 text-xs shrink-0">
+              <div className="flex items-center gap-1.5 rounded-xl border border-[var(--border)] bg-[var(--surface-strong,#ffffff)] px-2.5 py-1 text-xs shadow-2xs">
+                <span className="font-semibold text-[var(--text-soft)]">Done:</span>
+                <span className="font-extrabold text-emerald-600">{taskAnalytics.completionRate}%</span>
+              </div>
+              <div className="flex items-center gap-1.5 rounded-xl border border-[var(--border)] bg-[var(--surface-strong,#ffffff)] px-2.5 py-1 text-xs shadow-2xs">
+                <span className="font-semibold text-[var(--text-soft)]">Avg:</span>
+                <span className="font-extrabold text-[var(--accent)]">{taskAnalytics.avgProgress}%</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Desktop Fast Filter Pills */}
+          <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-faint)] mr-1 shrink-0">
+              View:
+            </span>
             {[
-              { key: "ALL", label: "All", count: taskAnalytics.total },
-              { key: "TODO", label: "Pending", count: taskAnalytics.todo },
-              { key: "IN_PROGRESS", label: "In Progress", count: taskAnalytics.inProgress },
-              { key: "DONE", label: "Completed", count: taskAnalytics.done },
-            ].map((tab) => {
-              const isActive = statusFilter === tab.key;
+              { id: "ALL", label: "All Tasks" },
+              { id: "MY_TASKS", label: "👤 Assigned to Me" },
+              { id: "HIGH_PRIORITY", label: "⚡ High Priority" },
+              { id: "OVERDUE", label: "⏰ Overdue" },
+            ].map((preset) => {
+              const isSelected = presetFilter === preset.id;
               return (
                 <button
-                  key={tab.key}
+                  key={preset.id}
                   type="button"
-                  onClick={() => setStatusFilter(tab.key as any)}
-                  className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-semibold transition-all shrink-0 ${
-                    isActive
-                      ? "bg-[var(--accent)] text-white shadow-2xs"
+                  onClick={() => setPresetFilter(preset.id as any)}
+                  className={`rounded-full px-3 py-1 text-xs font-bold transition-all shrink-0 ${
+                    isSelected
+                      ? "bg-gradient-to-r from-indigo-600 to-violet-600 text-white shadow-xs"
                       : "border border-[var(--border)] bg-[var(--surface-strong,#ffffff)] text-[var(--text-soft)] hover:bg-[var(--surface-soft)]"
                   }`}
                 >
-                  <span>{tab.label}</span>
-                  <span className={`rounded-full px-1.5 py-0.2 text-[10px] font-bold ${isActive ? "bg-white/20 text-white" : "bg-[var(--surface-soft)] text-[var(--text-main)]"}`}>
-                    {tab.count}
-                  </span>
+                  {preset.label}
                 </button>
               );
             })}
           </div>
 
-          {/* Metric Summary Pill */}
-          <div className="flex items-center gap-2 text-xs shrink-0 self-end sm:self-center">
-            <div className="flex items-center gap-1.5 rounded-lg border border-[var(--border)] bg-[var(--surface-strong,#ffffff)] px-2.5 py-1 text-xs">
-              <span className="font-semibold text-[var(--text-soft)]">Done:</span>
-              <span className="font-bold text-emerald-600">{taskAnalytics.completionRate}%</span>
+          {/* Desktop Filter Bar (When Toggled) */}
+          {filterOpen && (
+            <div className="flex flex-wrap gap-3 rounded-xl border border-[var(--border)] bg-[var(--surface-strong,#ffffff)] p-3 shadow-xs">
+              <div className="w-full sm:w-64">
+                <label className="text-[11px] font-semibold uppercase tracking-wider text-[var(--text-soft)] block mb-1">
+                  Project
+                </label>
+                <ResponsiveSelect
+                  value={selectedProjectId}
+                  onChange={(value) => {
+                    setSelectedProjectId(value);
+                    setLoading(true);
+                  }}
+                  options={projectFilterOptions}
+                  ariaLabel="Filter tasks by project"
+                  buttonClassName="h-9 rounded-lg text-xs"
+                />
+              </div>
+              <div className="flex-1 min-w-[200px]">
+                <label className="text-[11px] font-semibold uppercase tracking-wider text-[var(--text-soft)] block mb-1">
+                  Search Tasks
+                </label>
+                <input
+                  className="h-9 w-full rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] px-3 text-xs outline-none focus:border-[var(--accent)] focus:bg-[var(--surface-strong,#ffffff)] transition-all"
+                  value={nameFilter}
+                  placeholder="Search title, description, assignee..."
+                  onChange={(e) => setNameFilter(e.target.value)}
+                />
+              </div>
             </div>
-            <div className="flex items-center gap-1.5 rounded-lg border border-[var(--border)] bg-[var(--surface-strong,#ffffff)] px-2.5 py-1 text-xs">
-              <span className="font-semibold text-[var(--text-soft)]">Avg:</span>
-              <span className="font-bold text-[var(--accent)]">{taskAnalytics.avgProgress}%</span>
-            </div>
-          </div>
+          )}
         </div>
 
-        {/* Filter Bar */}
-        {filterOpen && (
-          <div className="flex flex-wrap gap-3 rounded-xl border border-[var(--border)] bg-[var(--surface-strong,#ffffff)] p-3 shadow-xs">
-            <div className="w-full sm:w-64">
-              <label className="text-[11px] font-semibold uppercase tracking-wider text-[var(--text-soft)] block mb-1">
-                Project
-              </label>
-              <ResponsiveSelect
-                value={selectedProjectId}
-                onChange={(value) => {
-                  setSelectedProjectId(value);
-                  setLoading(true);
-                }}
-                options={projectFilterOptions}
-                ariaLabel="Filter tasks by project"
-                buttonClassName="h-9 rounded-lg text-xs"
-              />
-            </div>
-            <div className="flex-1 min-w-[200px]">
-              <label className="text-[11px] font-semibold uppercase tracking-wider text-[var(--text-soft)] block mb-1">
-                Search Tasks
-              </label>
-              <input
-                className="h-9 w-full rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] px-3 text-xs outline-none focus:border-[var(--accent)] focus:bg-[var(--surface-strong,#ffffff)] transition-all"
-                value={nameFilter}
-                placeholder="Search title, description, assignee..."
-                onChange={(e) => setNameFilter(e.target.value)}
-              />
-            </div>
-          </div>
-        )}
-
         {/* Main Task List Table / Cards */}
-        <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-strong,#ffffff)] shadow-xs overflow-hidden">
-          <div className="flex items-center justify-between border-b border-[var(--border)] px-4 py-3">
+        <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface-strong,#ffffff)] shadow-xs overflow-hidden">
+          <div className="flex items-center justify-between border-b border-[var(--border)] px-3.5 py-2.5 sm:px-4 sm:py-3">
             <div className="flex items-center gap-2">
-              <CheckSquareIcon size={16} className="text-blue-600" />
-              <h2 className="text-sm font-semibold text-[var(--text-main)]">Task Board</h2>
+              <CheckSquareIcon size={16} className="text-[var(--accent)]" />
+              <h2 className="text-xs sm:text-sm font-bold text-[var(--text-main)]">Task Board</h2>
             </div>
-            <span className="text-xs text-[var(--text-soft)]">
+            <span className="text-xs font-semibold text-[var(--text-soft)]">
               {tasksTotal ? `Showing ${visibleTasks.length} of ${tasksTotal}` : `${visibleTasks.length} tasks`}
             </span>
           </div>
 
-          <div className="p-4">
+          <div className="p-2.5 sm:p-4">
             {loading ? (
               <div className="space-y-3">
                 <Skeleton className="h-12 w-full rounded-lg" />

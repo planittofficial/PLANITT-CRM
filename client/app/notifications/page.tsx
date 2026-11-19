@@ -79,14 +79,14 @@ function NotificationsContent({
   const priorityColor = (priority: string) => {
     switch (priority) {
       case "URGENT":
-        return "var(--danger)";
+        return "bg-rose-500 text-white";
       case "HIGH":
-        return "#ff9800";
+        return "bg-amber-500 text-white";
       case "MEDIUM":
-        return "#2196f3";
+        return "bg-sky-500 text-white";
       case "LOW":
       default:
-        return "var(--text-faint)";
+        return "bg-[var(--surface)] text-[var(--text-soft)] border border-[var(--border)]";
     }
   };
 
@@ -107,65 +107,59 @@ function NotificationsContent({
   ];
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-3 sm:space-y-4">
       {/* Header */}
-      <div
-        className="rounded-lg border p-4"
-        style={{
-          background: "var(--surface)",
-          borderColor: "var(--border)",
-          boxShadow: "var(--shadow-card)",
-        }}
-      >
+      <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-3.5 sm:p-5 shadow-xs">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h2 className="text-lg font-bold text-[var(--text-main)]">Notification Center</h2>
-            <p className="mt-1 text-xs text-[var(--text-faint)]">
+            <div className="flex items-center gap-2">
+              <span className="rounded-md bg-indigo-50 px-2 py-0.5 text-xs font-semibold text-[var(--accent)] border border-indigo-200 dark:bg-indigo-950/40 dark:text-indigo-300 dark:border-indigo-800">
+                Alerts & Activity
+              </span>
+            </div>
+            <h2 className="mt-1 text-xl font-bold text-[var(--text-main)]">Notification Center</h2>
+            <p className="mt-0.5 text-xs text-[var(--text-soft)]">
               {unreadCount > 0 ? `${unreadCount} unread notification${unreadCount !== 1 ? "s" : ""}` : "All caught up!"}
             </p>
           </div>
-          <div className="flex flex-wrap gap-2">
-            <button
-              type="button"
-              onClick={() => setFilter("all")}
-              className={`rounded-md px-3 py-1.5 text-xs font-semibold transition ${
-                filter === "all"
-                  ? "bg-[var(--accent-strong)] text-white"
-                  : "border border-[var(--border)] text-[var(--text-soft)] hover:text-[var(--text-main)]"
-              }`}
-              style={{
-                background: filter === "all" ? "var(--accent-strong)" : undefined,
-              }}
-            >
-              All
-            </button>
-            <button
-              type="button"
-              onClick={() => setFilter("unread")}
-              className={`rounded-md px-3 py-1.5 text-xs font-semibold transition ${
-                filter === "unread"
-                  ? "bg-[var(--accent-strong)] text-white"
-                  : "border border-[var(--border)] text-[var(--text-soft)] hover:text-[var(--text-main)]"
-              }`}
-              style={{
-                background: filter === "unread" ? "var(--accent-strong)" : undefined,
-              }}
-            >
-              Unread
-            </button>
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="flex h-9 items-center gap-1 rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] p-0.5 text-xs">
+              <button
+                type="button"
+                onClick={() => setFilter("all")}
+                className={`flex h-7 items-center rounded-md px-3 font-semibold transition-colors ${
+                  filter === "all"
+                    ? "bg-[var(--surface)] text-[var(--accent)] shadow-xs"
+                    : "text-[var(--text-soft)] hover:text-[var(--text-main)]"
+                }`}
+              >
+                All
+              </button>
+              <button
+                type="button"
+                onClick={() => setFilter("unread")}
+                className={`flex h-7 items-center rounded-md px-3 font-semibold transition-colors ${
+                  filter === "unread"
+                    ? "bg-[var(--surface)] text-[var(--accent)] shadow-xs"
+                    : "text-[var(--text-soft)] hover:text-[var(--text-main)]"
+                }`}
+              >
+                Unread {unreadCount > 0 ? `(${unreadCount})` : ""}
+              </button>
+            </div>
             {items.length > 0 && (
               <>
                 <button
                   type="button"
                   onClick={markAllRead}
-                  className="rounded-md border border-[var(--border)] px-3 py-1.5 text-xs font-semibold text-[var(--text-soft)] transition hover:text-[var(--text-main)]"
+                  className="h-9 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 text-xs font-semibold text-[var(--text-soft)] hover:text-[var(--text-main)] hover:bg-[var(--surface-hover)] transition-colors shadow-xs"
                 >
                   Mark all read
                 </button>
                 <button
                   type="button"
                   onClick={clearAll}
-                  className="rounded-md border border-[var(--danger)] px-3 py-1.5 text-xs font-semibold text-[var(--danger)] transition hover:bg-[var(--danger)]/10"
+                  className="h-9 rounded-lg border border-rose-200 bg-rose-50/50 px-3 text-xs font-semibold text-rose-600 hover:bg-rose-100/60 dark:border-rose-900/60 dark:bg-rose-950/40 dark:text-rose-400 transition-colors shadow-xs"
                 >
                   Clear all
                 </button>
@@ -175,18 +169,11 @@ function NotificationsContent({
         </div>
       </div>
 
-      <div
-        className="rounded-lg border p-4"
-        style={{
-          background: "var(--surface)",
-          borderColor: "var(--border)",
-          boxShadow: "var(--shadow-card)",
-        }}
-      >
-        <div className="mb-3 flex items-center justify-between gap-3">
+      <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-3.5 sm:p-5 shadow-xs">
+        <div className="mb-3 flex items-center justify-between gap-3 border-b border-[var(--border)] pb-2.5">
           <div>
             <h3 className="text-sm font-bold text-[var(--text-main)]">Preferences</h3>
-            <p className="mt-1 text-xs text-[var(--text-faint)]">
+            <p className="mt-0.5 text-xs text-[var(--text-soft)]">
               These settings sync to your {preferences?.role ? preferences.role.toLowerCase() : "user"} account.
             </p>
           </div>
@@ -197,15 +184,14 @@ function NotificationsContent({
             return (
               <label
                 key={row.key}
-                className="flex items-center justify-between gap-3 rounded-md border px-3 py-2 text-xs font-semibold"
-                style={{ borderColor: "var(--border)", color: "var(--text-soft)" }}
+                className="flex items-center justify-between gap-3 rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] px-3 py-2 text-xs font-medium text-[var(--text-soft)] cursor-pointer hover:border-[var(--accent)]/50 transition-colors"
               >
                 <span>{row.label}</span>
                 <input
                   type="checkbox"
                   checked={checked}
                   onChange={(event) => updatePreferences({ [row.key]: event.target.checked })}
-                  className="h-4 w-4 accent-[var(--accent-strong)]"
+                  className="h-4 w-4 rounded accent-[var(--accent)] cursor-pointer"
                 />
               </label>
             );
@@ -213,21 +199,14 @@ function NotificationsContent({
         </div>
       </div>
 
-      <div
-        className="space-y-2 rounded-lg border p-4"
-        style={{
-          background: "var(--surface)",
-          borderColor: "var(--border)",
-          boxShadow: "var(--shadow-card)",
-        }}
-      >
+      <div className="space-y-2.5 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-3.5 sm:p-5 shadow-xs">
         {loading && items.length === 0 ? (
           <div className="flex items-center justify-center py-8">
-            <div className="text-sm text-[var(--text-soft)]">Loading notifications...</div>
+            <div className="text-xs text-[var(--text-soft)]">Loading notifications...</div>
           </div>
         ) : groupedItems.length === 0 ? (
           <div className="flex items-center justify-center py-8">
-            <div className="text-sm text-[var(--text-soft)]">
+            <div className="text-xs text-[var(--text-soft)]">
               {filter === "unread" ? "No unread notifications" : "No notifications yet"}
             </div>
           </div>
@@ -236,9 +215,8 @@ function NotificationsContent({
             <button
               key={notification.id}
               type="button"
-              className="w-full rounded-md border p-4 text-left transition hover:bg-[var(--surface-soft)]"
+              className="w-full rounded-xl border border-[var(--border)] p-3.5 text-left transition hover:border-[var(--accent)]/60 shadow-xs"
               style={{
-                borderColor: "var(--border)",
                 background: notification.read ? "var(--surface)" : "var(--surface-soft)",
               }}
               onClick={() => {
@@ -251,32 +229,19 @@ function NotificationsContent({
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">
-                    <p className="font-semibold text-[var(--text-main)]">{notification.title}</p>
+                    <p className="text-xs font-bold text-[var(--text-main)] truncate">{notification.title}</p>
                     {!notification.read && (
-                      <span
-                        className="h-2 w-2 rounded-full"
-                        style={{ background: "var(--accent-strong)" }}
-                      />
+                      <span className="h-2 w-2 rounded-full bg-[var(--accent)] shrink-0" />
                     )}
                   </div>
-                  <p className="mt-1 text-xs text-[var(--text-soft)]">{notification.message}</p>
-                  <div className="mt-2 flex items-center gap-2">
+                  <p className="mt-1 text-xs text-[var(--text-soft)] line-clamp-2">{notification.message}</p>
+                  <div className="mt-2.5 flex items-center gap-2 flex-wrap">
                     {notification.groupCount > 1 ? (
-                      <span
-                        className="inline-block rounded px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider"
-                        style={{
-                          background: "var(--surface)",
-                          color: "var(--text-soft)",
-                          border: "1px solid var(--border)",
-                        }}
-                      >
+                      <span className="inline-block rounded-md bg-[var(--surface)] border border-[var(--border)] px-2 py-0.5 text-[10px] font-semibold text-[var(--text-soft)]">
                         {notification.groupCount} grouped
                       </span>
                     ) : null}
-                    <span
-                      className="inline-block rounded px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-white"
-                      style={{ background: priorityColor(notification.priority) }}
-                    >
+                    <span className={`inline-block rounded-md px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${priorityColor(notification.priority)}`}>
                       {notification.priority}
                     </span>
                     <span className="text-[10px] text-[var(--text-faint)]">

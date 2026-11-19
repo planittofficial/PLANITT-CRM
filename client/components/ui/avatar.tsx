@@ -1,11 +1,13 @@
 import { useState, useEffect } from "react";
+import type { UserPresenceStatus } from "@/types/crm";
 
 interface AvatarProps {
   name: string;
   avatarUrl?: string | null;
   authProvider?: "google" | "password" | string;
   size?: "xs" | "sm" | "md" | "lg" | "xl";
-  status?: "online" | "offline" | "busy" | "away";
+  status?: "online" | "offline" | "busy" | "away" | UserPresenceStatus;
+  statusTitle?: string;
   className?: string;
 }
 
@@ -25,11 +27,17 @@ const statusSizeMap = {
   xl: "h-3.5 w-3.5 ring-2",
 };
 
-const statusColorMap = {
+const statusColorMap: Record<string, string> = {
   online: "bg-emerald-500",
-  offline: "bg-slate-400",
+  AVAILABLE: "bg-emerald-500",
+  offline: "bg-slate-400 dark:bg-slate-500",
+  OFFLINE: "bg-slate-400 dark:bg-slate-500",
   busy: "bg-rose-500",
+  BUSY: "bg-rose-500",
+  IN_A_MEETING: "bg-rose-500 ring-rose-400 animate-pulse",
   away: "bg-amber-500",
+  AWAY: "bg-amber-500",
+  DND: "bg-red-600 ring-red-300",
 };
 
 const colorPalette = [
@@ -65,6 +73,7 @@ export function Avatar({
   authProvider,
   size = "md",
   status,
+  statusTitle,
   className = "",
 }: AvatarProps) {
   const [imgFailed, setImgFailed] = useState(false);
@@ -77,7 +86,10 @@ export function Avatar({
   const gradient = getGradientByName(name || "User");
 
   return (
-    <div className={`relative inline-flex shrink-0 ${className}`.trim()}>
+    <div
+      className={`relative inline-flex shrink-0 ${className}`.trim()}
+      title={statusTitle || name}
+    >
       {showImage ? (
         <img
           src={avatarUrl as string}
@@ -97,7 +109,7 @@ export function Avatar({
 
       {status && (
         <span
-          className={`absolute bottom-0 right-0 rounded-full ring-[var(--surface-strong,#ffffff)] ${statusSizeMap[size]} ${statusColorMap[status]}`}
+          className={`absolute bottom-0 right-0 rounded-full ring-[var(--surface-strong,#ffffff)] ${statusSizeMap[size]} ${statusColorMap[status] || "bg-slate-400"}`}
           aria-hidden="true"
         />
       )}

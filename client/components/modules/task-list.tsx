@@ -98,9 +98,9 @@ function getTimeLeftLabel(deadline: Date) {
 
 function getDeadlineBadge(deadline: Date) {
   const diffMs = deadline.getTime() - Date.now();
-  if (diffMs <= 0) return { label: "Overdue", className: "bg-rose-100 text-rose-700" };
-  if (diffMs <= 24 * 60 * 60 * 1000) return { label: "Due Soon", className: "bg-amber-100 text-amber-800" };
-  return { label: "Upcoming", className: "bg-emerald-100 text-emerald-700" };
+  if (diffMs <= 0) return { label: "Overdue", className: "bg-rose-100 text-rose-700 dark:bg-rose-950/40 dark:text-rose-300" };
+  if (diffMs <= 24 * 60 * 60 * 1000) return { label: "Due Soon", className: "bg-amber-100 text-amber-800 dark:bg-amber-950/40 dark:text-amber-300" };
+  return { label: "Upcoming", className: "bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300" };
 }
 
 export function TaskList({
@@ -141,6 +141,7 @@ export function TaskList({
   } | null>(null);
   const [assigneePickQuery, setAssigneePickQuery] = useState("");
   const [assigneePickRole, setAssigneePickRole] = useState<MemberRoleFilter>("ALL");
+  const [mobileExpandedTaskId, setMobileExpandedTaskId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!initialIssueTaskId) {
@@ -458,45 +459,114 @@ export function TaskList({
               const formattedDescription = formatDescription(task.description);
               const deadline = getDeadline(task);
               const deadlineBadge = deadline ? getDeadlineBadge(deadline) : null;
+              const isDone = task.status === "DONE";
+              const isMobileExpanded = mobileExpandedTaskId === task.id;
+
               return (
               <article
                 key={task.id}
-                className="rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] p-3 sm:p-4 shadow-xs transition-colors hover:border-[var(--accent)]/40"
+                className={`rounded-2xl border border-[var(--border)] p-3 sm:p-4 shadow-xs transition-all ${
+                  isDone
+                    ? "bg-emerald-500/5 border-emerald-500/25 border-l-4 border-l-emerald-500"
+                    : task.priority === "URGENT"
+                    ? "bg-[var(--surface-strong,#ffffff)] border-l-4 border-l-rose-500"
+                    : task.priority === "HIGH"
+                    ? "bg-[var(--surface-strong,#ffffff)] border-l-4 border-l-amber-500"
+                    : task.status === "IN_PROGRESS"
+                    ? "bg-[var(--surface-strong,#ffffff)] border-l-4 border-l-blue-500"
+                    : "bg-[var(--surface-strong,#ffffff)] border-l-4 border-l-slate-300 dark:border-l-slate-700"
+                }`}
               >
-                <div className="space-y-3">
-                  <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-start">
+                <div className="space-y-2.5">
+                  <div className="grid gap-2.5 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-start">
                     <div className="min-w-0 flex-1">
-                      {deadline ? (
-                        <div className="mb-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
-                          <span className="font-semibold text-(--accent-strong)">
-                            {getTimeLeftLabel(deadline)}
+                      {/* Deadline & Quick Badges Row */}
+                      <div className="mb-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs">
+                        {deadline ? (
+                          <>
+                            <span className="font-bold text-[var(--accent)]">
+                              {getTimeLeftLabel(deadline)}
+                            </span>
+                            <span className="text-[var(--text-soft)] hidden sm:inline">
+                              • Due: {deadline.toLocaleDateString()}
+                            </span>
+                            <span className={`rounded-md px-2 py-0.5 text-[10px] font-bold ${deadlineBadge?.className ?? ""}`}>
+                              {deadlineBadge?.label}
+                            </span>
+                          </>
+                        ) : (
+                          <span className="rounded-md bg-slate-100 dark:bg-slate-800 px-2 py-0.5 text-[10px] font-semibold text-slate-700 dark:text-slate-300">
+                            No Deadline
                           </span>
-                          <span className="text-(--text-soft)">
-                            Deadline: {deadline.toLocaleString()}
-                          </span>
-                          <span className={`rounded-md px-2 py-0.5 text-[10px] font-semibold ${deadlineBadge?.className ?? ""}`}>
-                            {deadlineBadge?.label}
-                          </span>
+                        )}
+
+                        {/* Mobile Details Toggle */}
+                        <button
+                          type="button"
+                          onClick={() => setMobileExpandedTaskId(isMobileExpanded ? null : task.id)}
+                          className="lg:hidden text-[11px] font-bold text-[var(--accent)] hover:underline ml-auto flex items-center gap-0.5 bg-[var(--surface-hover)] px-2 py-0.5 rounded-md"
+                        >
+                          {isMobileExpanded ? "Close ▴" : "Details ▾"}
+                        </button>
+                      </div>
+
+                      {/* Title Row with Completion Toggle Ring */}
+                      <div className="flex items-start gap-2.5">
+                        <button
+                          type="button"
+                          onClick={() => void handleTaskUpdate(task.id, { status: isDone ? "TODO" : "DONE" })}
+                          className={`mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full border transition-all ${
+                            isDone
+                              ? "bg-emerald-600 border-emerald-600 text-white shadow-2xs"
+                              : "border-[var(--border-strong)] hover:border-[var(--accent)] hover:scale-105"
+                          }`}
+                          title={isDone ? "Mark as pending" : "Mark as completed"}
+                        >
+                          {isDone && <span className="text-[10px] font-black leading-none">✓</span>}
+                        </button>
+
+                        <div className="min-w-0 flex-1">
+                          <h3 className={`text-sm sm:text-base font-bold leading-snug break-words ${isDone ? "line-through text-[var(--text-faint)]" : "text-[var(--text-main)]"}`}>
+                            {task.title}
+                          </h3>
+
+                          {/* Mobile Metadata Pills */}
+                          <div className="mt-1 flex flex-wrap items-center gap-1.5 lg:hidden">
+                            <span className={`rounded px-1.5 py-0.5 text-[9px] font-extrabold uppercase ${priorityBadgeClass[task.priority ?? "MEDIUM"]}`}>
+                              {task.priority ?? "MEDIUM"}
+                            </span>
+                            <span className={`rounded px-1.5 py-0.5 text-[10px] font-bold ${statusStyles[task.status]}`}>
+                              {task.status.replace("_", " ")}
+                            </span>
+                            {task.checklistItems.length > 0 && (
+                              <span className="text-[10px] text-[var(--text-soft)] font-semibold">
+                                ☑ {task.checklistItems.filter(c => c.completed).length}/{task.checklistItems.length}
+                              </span>
+                            )}
+                          </div>
                         </div>
-                      ) : (
-                        <div className="mb-2">
-                          <span className="rounded-md bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-700">No Deadline</span>
-                        </div>
-                      )}
-                      <div className="flex flex-wrap items-start gap-x-2 gap-y-2">
-                        <h3 className="line-clamp-2 min-w-0 flex-1 text-base font-semibold leading-snug text-(--text-main)">
-                          {task.title}
-                        </h3>
-                        <div className="flex shrink-0 flex-wrap items-center gap-1.5 lg:hidden">
+                      </div>
+
+                      {/* Description (collapsible on mobile) */}
+                      <div className={`${isMobileExpanded ? "block" : "hidden"} lg:block mt-2 pl-6`}>
+                        <p className="whitespace-pre-wrap wrap-break-word text-xs leading-relaxed text-[var(--text-soft)]">
+                          {formattedDescription}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Actions and Selects (Collapsible on mobile) */}
+                    <div className={`${isMobileExpanded ? "flex" : "hidden"} lg:flex flex-wrap items-center justify-start gap-2 lg:justify-end pt-2 lg:pt-0 border-t lg:border-t-0 border-[var(--border)]`}>
+                      <div className="flex shrink-0 flex-wrap items-center gap-2">
                         {!showPrioritySelect ? (
                           <span
-                            className={`rounded-md px-2 py-0.5 text-[10px] font-semibold uppercase ${priorityBadgeClass[task.priority ?? "MEDIUM"]}`}
+                            className={`rounded-md px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide ${priorityBadgeClass[task.priority ?? "MEDIUM"]}`}
                           >
-                            {task.priority}
+                            {TASK_PRIORITY_OPTIONS.find((o) => o.value === (task.priority ?? "MEDIUM"))?.label ?? "Medium"}
                           </span>
                         ) : null}
                         {!showInlineStatusSelect ? (
-                          <span className={`rounded-md px-2 py-0.5 text-[11px] font-semibold ${statusStyles[task.status]}`}>
+                          <span className={`rounded-md px-2.5 py-1 text-[11px] font-bold ${statusStyles[task.status]}`}>
                             {task.status.replace("_", " ")}
                           </span>
                         ) : null}
@@ -509,7 +579,7 @@ export function TaskList({
                                 priority: event.target.value as TaskPriority,
                               })
                             }
-                            className="rounded-md border border-[var(--border)] bg-[var(--surface)] px-2 py-1 text-xs outline-none"
+                            className="h-8 w-full min-w-0 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-2.5 text-xs outline-none focus:border-[var(--accent)] sm:w-auto"
                             title="Priority"
                           >
                             {TASK_PRIORITY_OPTIONS.map((opt) => (
@@ -528,12 +598,7 @@ export function TaskList({
                                 status: event.target.value as Task["status"],
                               })
                             }
-                            className="w-full min-w-0 rounded-md border px-2 py-1 text-xs outline-none sm:w-auto"
-                            style={{
-                              borderColor: "var(--border)",
-                              background: "var(--surface)",
-                              color: "var(--text-main)",
-                            }}
+                            className="h-8 w-full min-w-0 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-2.5 text-xs outline-none focus:border-[var(--accent)] sm:w-auto"
                           >
                             {statuses.map((status) => (
                               <option key={status} value={status}>
@@ -542,128 +607,55 @@ export function TaskList({
                             ))}
                           </select>
                         ) : null}
-                        </div>
                       </div>
-                      <p className="mt-1 whitespace-pre-wrap wrap-break-word text-sm leading-relaxed text-(--text-soft)">
-                        {formattedDescription}
-                      </p>
-              </div>
-
-              <div className="flex flex-wrap items-center justify-start gap-2 lg:justify-end">
-                <div className="hidden shrink-0 flex-wrap items-center gap-2 lg:flex">
-                {!showPrioritySelect ? (
-                  <span
-                    className={`rounded-md px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide ${priorityBadgeClass[task.priority ?? "MEDIUM"]}`}
-                  >
-                    {TASK_PRIORITY_OPTIONS.find((o) => o.value === (task.priority ?? "MEDIUM"))?.label ??
-                      "Medium"}
-                  </span>
-                ) : null}
-                {!showInlineStatusSelect ? (
-                  <span className={`rounded-md px-2.5 py-1 text-[11px] font-bold ${statusStyles[task.status]}`}>
-                    {task.status.replace("_", " ")}
-                  </span>
-                ) : null}
-                {showPrioritySelect ? (
-                  <select
-                    value={task.priority ?? "MEDIUM"}
-                    disabled={savingId === task.id}
-                    onChange={(event) =>
-                      void handleTaskUpdate(task.id, {
-                        priority: event.target.value as TaskPriority,
-                      })
-                    }
-                    className="w-full min-w-0 rounded-md border px-2 py-1 text-xs outline-none sm:w-auto"
-                    style={{
-                      borderColor: "var(--border)",
-                      background: "var(--surface)",
-                      color: "var(--text-main)",
-                    }}
-                    title="Priority"
-                  >
-                    {TASK_PRIORITY_OPTIONS.map((opt) => (
-                      <option key={opt.value} value={opt.value}>
-                        {opt.label}
-                      </option>
-                    ))}
-                  </select>
-                ) : null}
-                {showInlineStatusSelect ? (
-                  <select
-                    value={task.status}
-                    disabled={savingId === task.id}
-                    onChange={(event) =>
-                      void handleTaskUpdate(task.id, {
-                        status: event.target.value as Task["status"],
-                      })
-                    }
-                    className="w-full min-w-0 rounded-md border px-2 py-1 text-xs outline-none sm:w-auto"
-                    style={{
-                      borderColor: "var(--border)",
-                      background: "var(--surface)",
-                      color: "var(--text-main)",
-                    }}
-                  >
-                    {statuses.map((status) => (
-                      <option key={status} value={status}>
-                        {status.replace("_", " ")}
-                      </option>
-                    ))}
-                  </select>
-                ) : null}
-                </div>
-                {task.issues.some((issue) => Boolean(issue.managerResponse)) ? (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setIssuePanelTaskId(task.id);
-                      const latestRespondedIssue = task.issues.find((issue) => issue.managerResponse);
-                      if (latestRespondedIssue) {
-                        setHighlightedIssueId(latestRespondedIssue.id);
-                        setResponsePreviewIssue({
-                          taskTitle: task.title,
-                          issueTitle: latestRespondedIssue.title,
-                          response: latestRespondedIssue.managerResponse ?? "",
-                        });
-                      }
-                    }}
-                    className="rounded-md border px-2.5 py-1 text-xs font-semibold"
-                    style={{ borderColor: "var(--border)", color: "var(--accent-strong)" }}
-                  >
-                    Responses ({task.issues.filter((issue) => Boolean(issue.managerResponse)).length})
-                  </button>
-                ) : null}
-                {canEditTask ? (
-                  <>
-                    <button
-                      type="button"
-                      onClick={() => openEditTask(task)}
-                      className="rounded-md border px-2.5 py-1 text-xs font-semibold"
-                      style={{ borderColor: "var(--border)", color: "var(--text-soft)" }}
-                    >
-                      Edit
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => void handleDeleteTask(task.id)}
-                      disabled={savingId === task.id}
-                      className="rounded-md border px-2.5 py-1 text-xs font-semibold text-rose-600 disabled:opacity-60"
-                      style={{ borderColor: "var(--border)" }}
-                    >
-                      Delete
-                    </button>
-                  </>
-                ) : null}
-                <button
-                  type="button"
-                  onClick={() => toggleIssuePanel(task.id)}
-                  className="rounded-md border px-2.5 py-1 text-xs font-semibold"
-                  style={{ borderColor: "var(--border)", color: "var(--text-soft)" }}
-                >
-                  {issuePanelTaskId === task.id ? "Minimize Issues" : `Issues (${task.issues.length})`}
-                </button>
-              </div>
-            </div>
+                      {task.issues.some((issue) => Boolean(issue.managerResponse)) ? (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIssuePanelTaskId(task.id);
+                            const latestRespondedIssue = task.issues.find((issue) => issue.managerResponse);
+                            if (latestRespondedIssue) {
+                              setHighlightedIssueId(latestRespondedIssue.id);
+                              setResponsePreviewIssue({
+                                taskTitle: task.title,
+                                issueTitle: latestRespondedIssue.title,
+                                response: latestRespondedIssue.managerResponse ?? "",
+                              });
+                            }
+                          }}
+                          className="h-8 flex items-center rounded-lg border border-[var(--border)] px-2.5 text-xs font-semibold text-[var(--accent)] hover:bg-[var(--surface-soft)]"
+                        >
+                          Responses ({task.issues.filter((issue) => Boolean(issue.managerResponse)).length})
+                        </button>
+                      ) : null}
+                      {canEditTask ? (
+                        <>
+                          <button
+                            type="button"
+                            onClick={() => openEditTask(task)}
+                            className="h-8 flex items-center rounded-lg border border-[var(--border)] px-2.5 text-xs font-semibold text-[var(--text-soft)] hover:bg-[var(--surface-soft)]"
+                          >
+                            Edit
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => void handleDeleteTask(task.id)}
+                            disabled={savingId === task.id}
+                            className="h-8 flex items-center rounded-lg border border-rose-200 dark:border-rose-900/40 px-2.5 text-xs font-semibold text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 disabled:opacity-60"
+                          >
+                            Delete
+                          </button>
+                        </>
+                      ) : null}
+                      <button
+                        type="button"
+                        onClick={() => toggleIssuePanel(task.id)}
+                        className="h-8 flex items-center rounded-lg border border-[var(--border)] px-2.5 text-xs font-semibold text-[var(--text-soft)] hover:bg-[var(--surface-soft)]"
+                      >
+                        {issuePanelTaskId === task.id ? "Minimize Issues" : `Issues (${task.issues.length})`}
+                      </button>
+                    </div>
+                  </div>
 
             <div className="w-full">
               <div className="mb-1 flex items-center justify-between">

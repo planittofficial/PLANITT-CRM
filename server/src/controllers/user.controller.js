@@ -1,18 +1,21 @@
 import bcrypt from "bcrypt";
 import prisma from "../config/db.js";
-import { emitCRMEvent } from "../socket.js";
+import { emitCRMEvent, setLivePresence, getAllLivePresences, getLivePresence } from "../socket.js";
 import { sendSafeError } from "../middleware/error.middleware.js";
 
 const USER_ALLOWED_ROLES = ["SUPERADMIN", "EMPLOYEE", "INTERN", "ADMIN", "MANAGER"];
 const BULK_ALLOWED_ROLES = new Set(["EMPLOYEE", "INTERN"]);
-console.log(toPublicUserSelect());
 
 function toPublicUserSelect() {
   return {
     id: true,
     name: true,
     email: true,
-    // avatarUrl: true,
+    avatarUrl: true,
+    presenceStatus: true,
+    customStatusMessage: true,
+    customStatusExpiresAt: true,
+    inMeetingUntil: true,
     role: true,
     designation: true,
     departmentId: true,
@@ -1139,5 +1142,155 @@ export async function getUserAnalytics(req, res) {
     });
   } catch (err) {
     return sendSafeError(res, err, "Unable to fetch activity metrics");
+  }
+}
+
+const VALID_PRESENCE_STATUSES = ["AVAILABLE", "BUSY", "IN_A_MEETING", "AWAY", "OFFLINE", "DND"];
+
+export async function getUserPresenceStatuses(_req, res) {
+  try {
+    const livePresences = getAllLivePresences();
+    const livePresenceMap = new Map(livePresences.map((p) => [p.userId, p]));
+
+    const users = await prisma.user.findMany({
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        avatarUrl: true,
+        role: true,
+        presenceStatus: true,
+        customStatusMessage: true,
+        inMeetingUntil: true,
+      },
+    });
+
+    const result = users.map((u) => {
+      const live = livePresenceMap.get(u.id);
+      return {
+        userId: u.id,
+        name: u.name,
+        email: u.email,
+        avatarUrl: u.avatarUrl,
+        role: u.role,
+        status: live ? live.status : u.presenceStatus || "OFFLINE",
+        customStatusMessage:
+          live?.customStatusMessage !== undefined ? live.customStatusMessage : u.customStatusMessage,
+        inMeetingUntil: live?.inMeetingUntil || u.inMeetingUntil || null,
+        lastSeen: live?.lastSeen || null,
+      };
+    });
+
+    return res.json(result);
+  } catch (err) {
+    return sendSafeError(res, err, "Unable to fetch user presence statuses");
+  }
+}
+
+export async function updateMyPresence(req, res) {
+  try {
+    const userId = req.user.userId;
+    const { status, customStatusMessage, customStatusExpiresAt } = req.body;
+
+    if (status && !VALID_PRESENCE_STATUSES.includes(status)) {
+      return res
+        .status(400)
+        .json({ error: `Invalid status. Must be one of: ${VALID_PRESENCE_STATUSES.join(", ")}` });
+    }
+
+    const updatedData = {};
+    if (status) updatedData.presenceStatus = status;
+    if (customStatusMessage !== undefined) {
+      updatedData.customStatusMessage = customStatusMessage ? String(customStatusMessage).trim() : null;
+    }
+    if (customStatusExpiresAt !== undefined) {
+      updatedData.customStatusExpiresAt = customStatusExpiresAt ? new Date(customStatusExpiresAt) : null;
+    }
+
+    const user = await prisma.user.update({
+      where: { id: userId },
+      data: updatedData,
+      select: {
+        id: true,
+        presenceStatus: true,
+        customStatusMessage: true,
+        customStatusExpiresAt: true,
+        inMeetingUntil: true,
+      },
+    });
+
+    const live = setLivePresence(userId, {
+      status: user.presenceStatus,
+      customStatusMessage: user.customStatusMessage,
+      customStatusExpiresAt: user.customStatusExpiresAt,
+      inMeetingUntil: user.inMeetingUntil,
+    });
+
+    return res.json({ success: true, presence: live });
+  } catch (err) {
+    return sendSafeError(res, err, "Unable to update presence");
+  }
+}
+
+export async function reportMeetingStarted(req, res) {
+  try {
+    const userId = req.user.userId;
+    const { meetingTitle = "Google Meet", durationMinutes = 45 } = req.body;
+    const until = new Date(Date.now() + durationMinutes * 60000);
+
+    const user = await prisma.user.update({
+      where: { id: userId },
+      data: {
+        presenceStatus: "IN_A_MEETING",
+        customStatusMessage: `In a Meeting: ${meetingTitle}`,
+        inMeetingUntil: until,
+      },
+      select: {
+        id: true,
+        presenceStatus: true,
+        customStatusMessage: true,
+        inMeetingUntil: true,
+      },
+    });
+
+    const live = setLivePresence(userId, {
+      status: "IN_A_MEETING",
+      customStatusMessage: `In a Meeting: ${meetingTitle}`,
+      inMeetingUntil: until.toISOString(),
+    });
+
+    return res.json({ success: true, presence: live });
+  } catch (err) {
+    return sendSafeError(res, err, "Unable to report meeting start");
+  }
+}
+
+export async function reportMeetingEnded(req, res) {
+  try {
+    const userId = req.user.userId;
+    const user = await prisma.user.update({
+      where: { id: userId },
+      data: {
+        presenceStatus: "AVAILABLE",
+        customStatusMessage: null,
+        inMeetingUntil: null,
+      },
+      select: {
+        id: true,
+        presenceStatus: true,
+        customStatusMessage: true,
+        inMeetingUntil: true,
+      },
+    });
+
+    const live = setLivePresence(userId, {
+      status: "AVAILABLE",
+      customStatusMessage: null,
+      inMeetingUntil: null,
+    });
+
+    return res.json({ success: true, presence: live });
+  } catch (err) {
+    return sendSafeError(res, err, "Unable to report meeting end");
   }
 }

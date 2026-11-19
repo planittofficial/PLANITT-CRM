@@ -70,6 +70,14 @@ app.use(express.json());
 app.use(cookieParser());
 app.use(commandBlacklistMiddleware);
 app.use("/uploads", express.static(path.resolve(__dirname, "../uploads")));
+
+// Uptime monitor health endpoints (supports Render health checks, cron bots, and ping monitors)
+app.get("/", (_req, res) => {
+  res.status(200).json({ status: "ok", service: "planitt-crm-backend", timestamp: new Date().toISOString() });
+});
+app.get("/health", (_req, res) => {
+  res.status(200).json({ status: "ok", service: "planitt-crm-backend", timestamp: new Date().toISOString() });
+});
 app.use("/api", apiRouter);
 app.use(notFoundHandler);
 app.use(errorHandler);

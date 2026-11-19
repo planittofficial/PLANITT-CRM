@@ -7,3 +7,6 @@ coverage
 .turbo
 **/.env.local
 **/.env.*.local
+.gradle
+**/build
+*.apk

@@ -33,7 +33,7 @@ export default function ProjectsPage() {
     user, loading, error, sessionGate, projects, departments, team, selectedProjectId, setSelectedProjectId,
     hasMoreProjects, loadingMoreProjects, setLoadingMoreProjects, loadProjects, projectForm, setProjectForm,
     creatingProject, createProject, taskForm, setTaskForm, editTaskForm, setEditTaskForm, editingTaskId, setEditingTaskId,
-    creatingTask, createTask, updateTaskStatus, updateTaskPriority, openTaskEditor, saveTaskEdits, deleteTask,
+    creatingTask, createTask, quickCreateTask, updateTaskStatus, updateTaskPriority, openTaskEditor, saveTaskEdits, deleteTask,
     projectAssignQuery, setProjectAssignQuery, projectAssignRole, setProjectAssignRole, projectAssignRoleOptions, filteredProjectAssignees,
     projectTeamQuery, setProjectTeamQuery, projectTeamRole, setProjectTeamRole, projectTeamRoleOptions, filteredProjectTeamRoster,
     projectMemberDraftIds, toggleProjectMemberDraft, savingProjectMembers, saveProjectMembers,
@@ -46,6 +46,8 @@ export default function ProjectsPage() {
   const [manageTeamOpen, setManageTeamOpen] = useState(false);
   const [mobileProjectPickerOpen, setMobileProjectPickerOpen] = useState(false);
   const [localProjectFilter, setLocalProjectFilter] = useState("");
+  const [listQuickTitle, setListQuickTitle] = useState("");
+  const [isAddingListTask, setIsAddingListTask] = useState(false);
   const [projectSmartPasteText, setProjectSmartPasteText] = useState("");
 
   const departmentOptions = useMemo(
@@ -133,105 +135,169 @@ export default function ProjectsPage() {
   return (
     <CRMShell user={user}>
       <div className="space-y-3.5 pb-6">
-        {/* ── TEAMS COMPACT HEADER & ACTIONS ──────────────────────────────── */}
-        <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <h1 className="text-lg font-bold tracking-tight text-[var(--text-main)] sm:text-xl">
-              Projects
-            </h1>
-            <p className="text-xs text-[var(--text-soft)]">
-              Organize team boards, sprint tasks, and credentials.
-            </p>
-          </div>
-
-          {/* Action Buttons: Responsive, shrink-proof & no overlapping on mobile */}
-          <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap sm:flex-nowrap">
-            {selectedProject && (
-              <>
-                <button
-                  type="button"
-                  onClick={() => setManageTeamOpen(true)}
-                  className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--border)] bg-[var(--surface-strong,#ffffff)] px-2.5 py-1.5 text-xs font-semibold text-[var(--text-main)] hover:bg-[var(--surface-soft)] transition-colors shadow-2xs"
-                  title="Manage project members"
-                >
-                  <UsersIcon size={14} className="text-[var(--text-soft)]" />
-                  <span>Team ({selectedProject.members?.length ?? 0})</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setCreateTaskOpen(true)}
-                  className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--border)] bg-[var(--surface-strong,#ffffff)] px-2.5 py-1.5 text-xs font-semibold text-[var(--text-main)] hover:bg-[var(--surface-soft)] transition-colors shadow-2xs"
-                  title="Add new task"
-                >
-                  <PlusIcon size={14} className="text-[var(--accent)]" />
-                  <span>Add Task</span>
-                </button>
-              </>
-            )}
-            <Button
-              variant="primary"
-              size="sm"
-              leftIcon={<FolderKanbanIcon size={14} />}
-              onClick={() => setCreateProjectOpen(true)}
-              className="text-xs"
-            >
-              New Board
-            </Button>
-          </div>
-        </div>
-
-        {/* ── STREAMLINED METRICS PILL STRIP (Replaces 5 giant bulky cards) ── */}
-        <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar">
-          <div className="flex items-center gap-1.5 rounded-lg border border-[var(--border)] bg-[var(--surface-strong,#ffffff)] px-3 py-1.5 text-xs shadow-2xs shrink-0">
-            <span className="font-semibold text-[var(--text-soft)]">Boards:</span>
-            <span className="font-bold text-[var(--text-main)]">{projectAnalytics.totalProjects}</span>
-          </div>
-          <div className="flex items-center gap-1.5 rounded-lg border border-[var(--border)] bg-[var(--surface-strong,#ffffff)] px-3 py-1.5 text-xs shadow-2xs shrink-0">
-            <span className="font-semibold text-[var(--text-soft)]">Tasks:</span>
-            <span className="font-bold text-[var(--text-main)]">{projectAnalytics.totalTasks}</span>
-          </div>
-          <div className="flex items-center gap-1.5 rounded-lg border border-[var(--border)] bg-[var(--surface-strong,#ffffff)] px-3 py-1.5 text-xs shadow-2xs shrink-0">
-            <span className="font-semibold text-[var(--text-soft)]">Completion:</span>
-            <span className="font-bold text-emerald-600">{projectAnalytics.completionRate}%</span>
-          </div>
-          <div className="flex items-center gap-1.5 rounded-lg border border-[var(--border)] bg-[var(--surface-strong,#ffffff)] px-3 py-1.5 text-xs shadow-2xs shrink-0">
-            <span className="font-semibold text-[var(--text-soft)]">Avg Progress:</span>
-            <span className="font-bold text-[var(--accent)]">{projectAnalytics.avgProgress}%</span>
-          </div>
-          {projectAnalytics.delayedProjects > 0 && (
-            <div className="flex items-center gap-1.5 rounded-lg border border-amber-200 bg-amber-50 dark:border-amber-900/40 dark:bg-amber-950/30 px-3 py-1.5 text-xs shadow-2xs shrink-0 text-amber-700 dark:text-amber-300">
-              <span className="font-semibold">At Risk:</span>
-              <span className="font-bold">{projectAnalytics.delayedProjects}</span>
+        {/* ── DESKTOP HEADER & ACTIONS (Hidden on mobile) ──────────────── */}
+        <div className="hidden lg:block space-y-3.5">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-lg font-bold tracking-tight text-[var(--text-main)] sm:text-xl">
+                Projects
+              </h1>
+              <p className="text-xs text-[var(--text-soft)]">
+                Organize team boards, sprint tasks, and credentials.
+              </p>
             </div>
-          )}
+
+            <div className="flex items-center gap-2">
+              {selectedProject && (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => setManageTeamOpen(true)}
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--border)] bg-[var(--surface-strong,#ffffff)] px-2.5 py-1.5 text-xs font-semibold text-[var(--text-main)] hover:bg-[var(--surface-soft)] transition-colors shadow-2xs"
+                    title="Manage project members"
+                  >
+                    <UsersIcon size={14} className="text-[var(--text-soft)]" />
+                    <span>Team ({selectedProject.members?.length ?? 0})</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setCreateTaskOpen(true)}
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--border)] bg-[var(--surface-strong,#ffffff)] px-2.5 py-1.5 text-xs font-semibold text-[var(--text-main)] hover:bg-[var(--surface-soft)] transition-colors shadow-2xs"
+                    title="Add new task"
+                  >
+                    <PlusIcon size={14} className="text-[var(--accent)]" />
+                    <span>Add Task</span>
+                  </button>
+                </>
+              )}
+              <Button
+                variant="primary"
+                size="sm"
+                leftIcon={<FolderKanbanIcon size={14} />}
+                onClick={() => setCreateProjectOpen(true)}
+                className="text-xs"
+              >
+                New Board
+              </Button>
+            </div>
+          </div>
+
+          {/* Metrics Pill Strip */}
+          <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar">
+            <div className="flex items-center gap-1.5 rounded-lg border border-[var(--border)] bg-[var(--surface-strong,#ffffff)] px-3 py-1.5 text-xs shadow-2xs shrink-0">
+              <span className="font-semibold text-[var(--text-soft)]">Boards:</span>
+              <span className="font-bold text-[var(--text-main)]">{projectAnalytics.totalProjects}</span>
+            </div>
+            <div className="flex items-center gap-1.5 rounded-lg border border-[var(--border)] bg-[var(--surface-strong,#ffffff)] px-3 py-1.5 text-xs shadow-2xs shrink-0">
+              <span className="font-semibold text-[var(--text-soft)]">Tasks:</span>
+              <span className="font-bold text-[var(--text-main)]">{projectAnalytics.totalTasks}</span>
+            </div>
+            <div className="flex items-center gap-1.5 rounded-lg border border-[var(--border)] bg-[var(--surface-strong,#ffffff)] px-3 py-1.5 text-xs shadow-2xs shrink-0">
+              <span className="font-semibold text-[var(--text-soft)]">Completion:</span>
+              <span className="font-bold text-emerald-600">{projectAnalytics.completionRate}%</span>
+            </div>
+            <div className="flex items-center gap-1.5 rounded-lg border border-[var(--border)] bg-[var(--surface-strong,#ffffff)] px-3 py-1.5 text-xs shadow-2xs shrink-0">
+              <span className="font-semibold text-[var(--text-soft)]">Avg Progress:</span>
+              <span className="font-bold text-[var(--accent)]">{projectAnalytics.avgProgress}%</span>
+            </div>
+            {projectAnalytics.delayedProjects > 0 && (
+              <div className="flex items-center gap-1.5 rounded-lg border border-amber-200 bg-amber-50 dark:border-amber-900/40 dark:bg-amber-950/30 px-3 py-1.5 text-xs shadow-2xs shrink-0 text-amber-700 dark:text-amber-300">
+                <span className="font-semibold">At Risk:</span>
+                <span className="font-bold">{projectAnalytics.delayedProjects}</span>
+              </div>
+            )}
+          </div>
         </div>
 
-        {/* ── MOBILE PROJECT SELECTOR BAR (1-Tap Switcher) ────────────────── */}
-        <div className="lg:hidden">
-          <button
-            type="button"
-            onClick={() => setMobileProjectPickerOpen(true)}
-            className="flex w-full items-center justify-between rounded-xl border border-[var(--border)] bg-[var(--surface-strong,#ffffff)] px-3.5 py-2.5 text-left shadow-xs transition-colors hover:bg-[var(--surface-soft)]"
-          >
-            <div className="flex items-center gap-2.5 min-w-0">
-              <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-[var(--accent)]/10 text-[var(--accent)] font-bold text-xs shrink-0">
-                📁
-              </span>
-              <div className="min-w-0">
-                <p className="text-xs font-bold text-[var(--text-main)] truncate">
-                  {selectedProject ? selectedProject.name : "Select a project board"}
+        {/* ── MOBILE STREAMLINED WORKSPACE CARD (<lg) ────────────────────────── */}
+        <div className="flex lg:hidden flex-col rounded-2xl border border-[var(--border)] bg-[var(--surface-strong,#ffffff)] p-2.5 sm:p-3 shadow-xs space-y-2.5">
+          {/* Row 1: Predefined 36px (h-9) Height for All Primary Elements */}
+          <div className="flex items-center justify-between gap-2">
+            {/* Project Switcher Pill Button (Exact h-9) */}
+            <button
+              type="button"
+              onClick={() => setMobileProjectPickerOpen(true)}
+              className="flex h-9 min-w-0 flex-1 items-center gap-2 rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] px-2.5 text-left transition-all active:scale-[0.99] hover:border-[var(--accent)]/50"
+            >
+              <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-[var(--accent)] text-white shadow-2xs">
+                <FolderKanbanIcon size={12} />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-xs font-bold text-[var(--text-main)] truncate leading-tight">
+                  {selectedProject ? selectedProject.name : "Select Board"}
                 </p>
                 {selectedProject && (
-                  <p className="text-[10px] text-[var(--text-soft)] truncate">
-                    {selectedProject.department.name} • {selectedProject.progress}% done
+                  <p className="text-[10px] font-medium text-[var(--text-soft)] truncate leading-none">
+                    {selectedProject.department.name}
                   </p>
                 )}
               </div>
+              <span className="text-[10px] font-bold text-[var(--accent)] shrink-0 bg-[var(--surface-hover)] px-1.5 py-0.5 rounded">
+                Switch ▾
+              </span>
+            </button>
+
+            {/* Actions: + Task & + Board (Both Exact h-9) */}
+            <div className="flex items-center gap-1.5 shrink-0">
+              <button
+                type="button"
+                onClick={() => setCreateTaskOpen(true)}
+                className="flex h-9 items-center gap-1.5 rounded-lg bg-[var(--accent)] px-3 text-xs font-bold text-white shadow-2xs transition-all active:scale-95 hover:bg-[var(--accent-strong)]"
+              >
+                <PlusIcon size={13} />
+                <span>Task</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setCreateProjectOpen(true)}
+                className="flex h-9 w-9 items-center justify-center rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] text-[var(--text-main)] shadow-2xs transition-all active:scale-95 hover:bg-[var(--surface-hover)]"
+                title="New Board"
+              >
+                <FolderKanbanIcon size={14} />
+              </button>
             </div>
-            <span className="text-xs font-semibold text-[var(--accent)] ml-2 shrink-0">
-              Switch ▾
-            </span>
-          </button>
+          </div>
+
+          {/* Row 2: Predefined 32px (h-8) Height for View Tabs & Sprint Meter */}
+          <div className="flex items-center justify-between gap-2 pt-1 border-t border-[var(--border)]">
+            {/* View Switcher Tabs (Exact h-8 container, h-7 tabs) */}
+            <div className="flex h-8 items-center rounded-lg bg-[var(--surface-soft)] p-0.5 border border-[var(--border)]">
+              {[
+                { id: "board", label: "Board", icon: FolderKanbanIcon },
+                { id: "list", label: "List", icon: CheckSquareIcon },
+                { id: "team", label: "Team", icon: UsersIcon },
+                { id: "credentials", label: "Keys", icon: KeyIcon },
+              ].map((tab) => {
+                const isActive = activeTab === tab.id;
+                const Icon = tab.icon;
+                return (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    onClick={() => setActiveTab(tab.id as ActiveTab)}
+                    className={`flex h-7 items-center gap-1 px-2.5 rounded-md text-xs font-bold transition-all ${
+                      isActive
+                        ? "bg-[var(--surface-strong,#ffffff)] text-[var(--accent)] shadow-2xs border border-[var(--border)]"
+                        : "text-[var(--text-soft)] hover:text-[var(--text-main)]"
+                    }`}
+                  >
+                    <Icon size={12} className={isActive ? "text-[var(--accent)]" : "text-[var(--text-soft)]"} />
+                    <span>{tab.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Sprint Progress Meter (Exact h-8) */}
+            {selectedProject && (
+              <div className="flex h-8 items-center gap-1.5 px-2.5 rounded-lg bg-[var(--surface-soft)] border border-[var(--border)]">
+                <span className="text-[10px] font-semibold text-[var(--text-soft)]">Sprint:</span>
+                <span className="text-xs font-black text-emerald-600 dark:text-emerald-400">
+                  {selectedProject.progress}%
+                </span>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* ── 2-COLUMN TEAMS WORKSPACE (Channels sidebar on left, Tabbed workspace on right) ── */}
@@ -317,8 +383,8 @@ export default function ProjectsPage() {
           <div className="space-y-3 min-w-0">
             {selectedProject ? (
               <>
-                {/* Clean Project Header Bar */}
-                <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-strong,#ffffff)] p-3.5 shadow-xs">
+                {/* Clean Project Header Bar (Desktop only, mobile has it in top bar) */}
+                <div className="hidden lg:block rounded-xl border border-[var(--border)] bg-[var(--surface-strong,#ffffff)] p-3.5 shadow-xs">
                   <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                     <div className="min-w-0">
                       <div className="flex items-center gap-2 text-[11px] text-[var(--text-soft)]">
@@ -353,8 +419,8 @@ export default function ProjectsPage() {
                   </div>
                 </div>
 
-                {/* Teams Channel Tabs (Board / List / Credentials / Team) */}
-                <div className="flex items-center gap-1 border-b border-[var(--border)] pb-0.5 overflow-x-auto no-scrollbar">
+                {/* Teams Channel Tabs (Board / List / Credentials / Team) - Desktop only */}
+                <div className="hidden lg:flex items-center gap-1 border-b border-[var(--border)] pb-0.5 overflow-x-auto no-scrollbar">
                   {[
                     { id: "board", label: "Board", icon: FolderKanbanIcon },
                     { id: "list", label: "List", icon: CheckSquareIcon },
@@ -406,6 +472,7 @@ export default function ProjectsPage() {
                         userIds: c.userIds.includes(id) ? c.userIds.filter((x) => x !== id) : [...c.userIds, id],
                       }))
                     }
+                    onQuickCreate={quickCreateTask}
                   />
                 )}
 
@@ -431,62 +498,123 @@ export default function ProjectsPage() {
                       </div>
                     ) : (
                       <div className="space-y-1.5">
-                        {allVisibleTasksList.map((task) => (
-                          <div
-                            key={task.id}
-                            className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] p-2.5 transition-colors hover:border-[var(--accent)]/40"
-                          >
-                            <div className="min-w-0 flex-1">
-                              <div className="flex items-center gap-2">
-                                <span
-                                  className={`h-2 w-2 rounded-full shrink-0 ${
-                                    task.status === "DONE"
-                                      ? "bg-emerald-500"
+                        {allVisibleTasksList.map((task) => {
+                          const isDone = task.status === "DONE";
+                          return (
+                            <div
+                              key={task.id}
+                              className="group flex flex-col sm:flex-row sm:items-center justify-between gap-2 rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] p-2.5 transition-colors hover:border-[var(--accent)]/40 hover:bg-[var(--surface-strong,#ffffff)]"
+                            >
+                              <div className="min-w-0 flex-1 flex items-center gap-2.5">
+                                <button
+                                  type="button"
+                                  onClick={() => void updateTaskStatus(task.id, isDone ? "TODO" : "DONE")}
+                                  className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-full border transition-colors ${
+                                    isDone
+                                      ? "bg-emerald-600 border-emerald-600 text-white"
                                       : task.status === "IN_PROGRESS"
-                                      ? "bg-blue-500"
-                                      : "bg-amber-500"
+                                      ? "border-blue-500 bg-blue-50 dark:bg-blue-950/40 text-blue-600"
+                                      : "border-[var(--border-strong)] hover:border-[var(--accent)]"
                                   }`}
-                                />
-                                <h4 className="text-xs font-bold text-[var(--text-main)] truncate">
-                                  {task.title}
-                                </h4>
-                              </div>
-                              {task.description && (
-                                <p className="text-[11px] text-[var(--text-soft)] line-clamp-1 mt-0.5">
-                                  {task.description}
-                                </p>
-                              )}
-                            </div>
+                                  title={isDone ? "Mark pending" : "Mark completed"}
+                                >
+                                  {isDone && <span className="text-[10px] font-black leading-none">✓</span>}
+                                  {task.status === "IN_PROGRESS" && <span className="h-1.5 w-1.5 rounded-full bg-blue-500" />}
+                                </button>
 
-                            <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
-                              <select
-                                value={task.status}
-                                onChange={(e) => updateTaskStatus(task.id, e.target.value as Task["status"])}
-                                className="h-7 rounded border border-[var(--border)] bg-[var(--surface-strong,#ffffff)] px-1.5 text-[10px] font-medium outline-none"
-                              >
-                                <option value="TODO">Pending</option>
-                                <option value="IN_PROGRESS">In Progress</option>
-                                <option value="DONE">Completed</option>
-                              </select>
-                              <button
-                                type="button"
-                                onClick={() => openTaskEditor(task)}
-                                className="h-7 rounded border border-[var(--border)] bg-[var(--surface-strong,#ffffff)] px-2 text-[10px] font-semibold text-[var(--text-soft)]"
-                              >
-                                Edit
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => deleteTask(task.id)}
-                                className="h-7 rounded border border-rose-200 dark:border-rose-900/40 bg-[var(--surface-strong,#ffffff)] px-1.5 text-[10px] text-rose-600"
-                              >
-                                ✕
-                              </button>
+                                <div className="min-w-0 flex-1 cursor-pointer" onClick={() => openTaskEditor(task)}>
+                                  <h4 className={`text-xs font-semibold truncate hover:text-[var(--accent)] ${isDone ? "line-through text-[var(--text-faint)]" : "text-[var(--text-main)]"}`}>
+                                    {task.title}
+                                  </h4>
+                                  {task.description && (
+                                    <p className="text-[11px] text-[var(--text-soft)] line-clamp-1 mt-0.5">
+                                      {task.description}
+                                    </p>
+                                  )}
+                                </div>
+                              </div>
+
+                              <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
+                                <span className={`rounded px-1.5 py-0.5 text-[10px] font-bold uppercase ${
+                                  task.priority === "URGENT"
+                                    ? "bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-300"
+                                    : task.priority === "HIGH"
+                                    ? "bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300"
+                                    : "bg-[var(--surface-strong,#ffffff)] border border-[var(--border)] text-[var(--text-soft)]"
+                                }`}>
+                                  {task.priority ?? "MEDIUM"}
+                                </span>
+
+                                <select
+                                  value={task.status}
+                                  onChange={(e) => void updateTaskStatus(task.id, e.target.value as Task["status"])}
+                                  className="h-7 rounded border border-[var(--border)] bg-[var(--surface-strong,#ffffff)] px-1.5 text-[10px] font-medium outline-none focus:border-[var(--accent)]"
+                                >
+                                  <option value="TODO">Pending</option>
+                                  <option value="IN_PROGRESS">In Progress</option>
+                                  <option value="DONE">Completed</option>
+                                </select>
+                                <button
+                                  type="button"
+                                  onClick={() => openTaskEditor(task)}
+                                  className="h-7 rounded border border-[var(--border)] bg-[var(--surface-strong,#ffffff)] px-2 text-[10px] font-semibold text-[var(--text-soft)] hover:text-[var(--text-main)]"
+                                >
+                                  Edit
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => void deleteTask(task.id)}
+                                  className="h-7 rounded border border-rose-200 dark:border-rose-900/40 bg-[var(--surface-strong,#ffffff)] px-1.5 text-[10px] text-rose-600 hover:bg-rose-50"
+                                  title="Delete task"
+                                >
+                                  ✕
+                                </button>
+                              </div>
                             </div>
-                          </div>
-                        ))}
+                          );
+                        })}
                       </div>
                     )}
+
+                    {/* Inline Quick Add Task in List View */}
+                    <div className="pt-2 border-t border-[var(--border)]">
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="text"
+                          value={listQuickTitle}
+                          disabled={isAddingListTask}
+                          onChange={(e) => setListQuickTitle(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter" && listQuickTitle.trim()) {
+                              e.preventDefault();
+                              setIsAddingListTask(true);
+                              void quickCreateTask(listQuickTitle.trim(), "TODO").finally(() => {
+                                setListQuickTitle("");
+                                setIsAddingListTask(false);
+                              });
+                            }
+                          }}
+                          placeholder="+ Add a task to this project... (Press Enter)"
+                          className="h-9 w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 text-xs text-[var(--text-main)] outline-none focus:border-[var(--accent)] transition-all"
+                        />
+                        {listQuickTitle.trim() && (
+                          <button
+                            type="button"
+                            disabled={isAddingListTask}
+                            onClick={() => {
+                              setIsAddingListTask(true);
+                              void quickCreateTask(listQuickTitle.trim(), "TODO").finally(() => {
+                                setListQuickTitle("");
+                                setIsAddingListTask(false);
+                              });
+                            }}
+                            className="h-9 px-3.5 rounded-lg bg-[var(--accent)] text-white text-xs font-bold shrink-0 shadow-2xs active:scale-95 transition-all"
+                          >
+                            {isAddingListTask ? "..." : "Add"}
+                          </button>
+                        )}
+                      </div>
+                    </div>
                   </div>
                 )}
 

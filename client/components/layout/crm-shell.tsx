@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useMemo, type ReactNode } from "react";
+import { useEffect, useState, useMemo, useRef, type ReactNode } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { apiGet, apiPost } from "@/lib/api";
@@ -8,6 +8,7 @@ import { clearToken } from "@/lib/auth";
 import { showToast } from "@/hooks/use-toast";
 import { useCrmSearch } from "@/components/providers/crm-search-provider";
 import { useTheme } from "@/components/providers/theme-provider";
+import { usePresence } from "@/components/providers/presence-provider";
 import { useNotificationsBackend } from "@/hooks/use-notifications-backend";
 import { migrateLegacyThemeKeys } from "@/lib/theme-storage";
 import { Avatar } from "@/components/ui/avatar";
@@ -27,8 +28,11 @@ import {
   MoonIcon,
   LogOutIcon,
   ClockIcon,
+  VideoIcon,
+  TrendingUpIcon,
+  HashIcon,
 } from "@/components/ui/icons";
-import type { CRMUser } from "@/types/crm";
+import type { CRMUser, UserPresenceStatus } from "@/types/crm";
 
 type CRMShellProps = {
   children: ReactNode;
@@ -54,7 +58,10 @@ const roleLabels: Record<CRMUser["role"], string> = {
 const pageMetadata: Record<string, { title: string; category: string }> = {
   "/dashboard": { title: "Dashboard", category: "Overview" },
   "/projects": { title: "Projects", category: "Work" },
-  "/tasks": { title: "Tasks", category: "Work" },
+  "/tasks": { title: "Tasks & Planner", category: "Work" },
+  "/teams": { title: "Teams & Channels", category: "Collaboration" },
+  "/calendar": { title: "Calendar & Meet", category: "Google Workspace" },
+  "/crm": { title: "Sales & Deals Pipeline", category: "CRM" },
   "/leaves": { title: "Leaves", category: "HR" },
   "/employees": { title: "Employees", category: "Directory" },
   "/departments": { title: "Departments", category: "Organization" },
@@ -75,6 +82,41 @@ export function CRMShell({ children, user, compactMobileChrome = false }: CRMShe
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const [checkedIn, setCheckedIn] = useState(false);
   const [attendanceLoading, setAttendanceLoading] = useState(false);
+  const searchInputRef = useRef<HTMLInputElement | null>(null);
+
+  const { getUserPresence, updateStatus, setMeetingStatus, clearMeetingStatus } = usePresence();
+  const myLivePresence = getUserPresence(user.id);
+  const currentStatus: UserPresenceStatus =
+    myLivePresence?.status || user.presenceStatus || "AVAILABLE";
+  const currentMessage: string =
+    (myLivePresence?.customStatusMessage !== undefined
+      ? myLivePresence.customStatusMessage
+      : user.customStatusMessage) || "";
+
+  const [statusMessageInput, setStatusMessageInput] = useState(currentMessage);
+
+  useEffect(() => {
+    setStatusMessageInput(currentMessage);
+  }, [currentMessage]);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        if (window.innerWidth < 640) {
+          setMobileSearchOpen((prev) => !prev);
+        } else {
+          searchInputRef.current?.focus();
+          searchInputRef.current?.select();
+        }
+      } else if (e.key === "Escape") {
+        setMobileSearchOpen(false);
+        searchInputRef.current?.blur();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
 
   const { items = [], unreadCount = 0, markAllRead, markRead, clearAll } = useNotificationsBackend(user);
 
@@ -151,22 +193,251 @@ export function CRMShell({ children, user, compactMobileChrome = false }: CRMShe
     setTheme(theme === "light" ? "dark" : "light");
   };
 
+  const handleQuickMeetNow = async () => {
+    try {
+      const res = await apiPost<{ meetUrl: string }>("/calendar/quick-meet", {
+        title: `${user.name} Instant Google Meet`,
+      });
+      if (res.meetUrl) {
+        await setMeetingStatus(`${user.name} Instant Google Meet`);
+        window.open(res.meetUrl, "_blank");
+        await navigator.clipboard.writeText(res.meetUrl).catch(() => {});
+        showToast("Google Meet launched! Status automatically set to In a Meeting (🔴)", "success");
+      }
+    } catch {
+      showToast("Failed to launch Google Meet", "error");
+    }
+  };
+
+  const renderProfileMenu = (placement: "desktop" | "mobile") => (
+    <div
+      className={`w-72 sm:w-80 rounded-2xl border border-[var(--border)] bg-[var(--surface-strong,#ffffff)] p-3.5 shadow-2xl z-50 animate-in fade-in zoom-in-95 duration-100 ${
+        placement === "desktop"
+          ? "absolute bottom-2 left-full ml-3"
+          : "absolute right-0 top-full mt-2"
+      }`}
+      onClick={(e) => e.stopPropagation()}
+    >
+      {/* Header: User Profile with live dot */}
+      <div className="flex items-start gap-3 border-b border-[var(--border)] pb-3">
+        <Avatar
+          name={user.name}
+          avatarUrl={user.avatarUrl}
+          authProvider={user.authProvider}
+          size="md"
+          status={currentStatus}
+        />
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-sm font-bold text-[var(--text-main)]">{user.name}</p>
+          <p className="truncate text-xs text-[var(--text-soft)]">
+            {roleLabels[user.role]} · {user.email}
+          </p>
+          <div className="mt-1 flex items-center gap-1.5 flex-wrap">
+            <span
+              className={`h-2 w-2 rounded-full shrink-0 ${
+                currentStatus === "AVAILABLE"
+                  ? "bg-emerald-500"
+                  : currentStatus === "BUSY"
+                  ? "bg-rose-500"
+                  : currentStatus === "IN_A_MEETING"
+                  ? "bg-rose-500 animate-pulse"
+                  : currentStatus === "AWAY"
+                  ? "bg-amber-500"
+                  : currentStatus === "DND"
+                  ? "bg-red-600"
+                  : "bg-slate-400"
+              }`}
+            />
+            <span className="text-[11px] font-semibold text-[var(--text-main)]">
+              {currentStatus === "AVAILABLE"
+                ? "Available"
+                : currentStatus === "BUSY"
+                ? "Busy"
+                : currentStatus === "IN_A_MEETING"
+                ? "In a Meeting"
+                : currentStatus === "AWAY"
+                ? "Away"
+                : currentStatus === "DND"
+                ? "Do Not Disturb"
+                : "Offline"}
+            </span>
+            {currentMessage && (
+              <span className="truncate text-[11px] italic text-[var(--text-soft)]" title={currentMessage}>
+                — "{currentMessage}"
+              </span>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* In-Meeting Quick Action Banner (if active) */}
+      {currentStatus === "IN_A_MEETING" && (
+        <div className="mt-2.5 flex items-center justify-between rounded-xl bg-rose-500/10 border border-rose-500/20 px-2.5 py-1.5 text-xs text-rose-700 dark:text-rose-300">
+          <span className="flex items-center gap-1.5 font-semibold text-[11px]">
+            <span className="h-2 w-2 rounded-full bg-rose-500 animate-ping" />
+            In a Meeting
+          </span>
+          <button
+            type="button"
+            onClick={async () => {
+              await clearMeetingStatus();
+              showToast("Status returned to Available (🟢)", "success");
+            }}
+            className="rounded bg-rose-600 px-2 py-0.5 text-[10px] font-bold text-white hover:bg-rose-700 transition"
+          >
+            End / Set Available
+          </button>
+        </div>
+      )}
+
+      {/* Presence Status Selector */}
+      <div className="mt-2.5">
+        <p className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-faint)] px-1 mb-1">
+          Set Presence Status
+        </p>
+        <div className="grid grid-cols-2 gap-1">
+          {[
+            { status: "AVAILABLE" as const, label: "Available", dot: "bg-emerald-500" },
+            { status: "BUSY" as const, label: "Busy", dot: "bg-rose-500" },
+            { status: "IN_A_MEETING" as const, label: "In a Meeting", dot: "bg-rose-500 ring-1 ring-rose-400" },
+            { status: "AWAY" as const, label: "Away", dot: "bg-amber-500" },
+            { status: "DND" as const, label: "Do Not Disturb", dot: "bg-red-600" },
+            { status: "OFFLINE" as const, label: "Appear Offline", dot: "bg-slate-400" },
+          ].map((item) => (
+            <button
+              key={item.status}
+              type="button"
+              onClick={async () => {
+                await updateStatus(item.status, currentMessage || null);
+                showToast(`Status updated to ${item.label}`, "info");
+              }}
+              className={`flex items-center gap-2 rounded-lg px-2 py-1.5 text-xs font-medium transition ${
+                currentStatus === item.status
+                  ? "bg-[var(--accent)]/10 text-[var(--accent)] font-semibold border border-[var(--accent)]/30"
+                  : "text-[var(--text-main)] hover:bg-[var(--surface-soft)] border border-transparent"
+              }`}
+            >
+              <span className={`h-2 w-2 rounded-full shrink-0 ${item.dot}`} />
+              <span className="truncate">{item.label}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Custom Status Message Editor */}
+      <div className="mt-2.5 border-t border-[var(--border)] pt-2.5">
+        <div className="flex items-center justify-between mb-1 px-1">
+          <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-faint)]">
+            Custom Status Message
+          </span>
+          {currentMessage && (
+            <button
+              type="button"
+              onClick={async () => {
+                setStatusMessageInput("");
+                await updateStatus(currentStatus, null);
+                showToast("Status message cleared", "info");
+              }}
+              className="text-[10px] text-rose-600 hover:underline"
+            >
+              Clear
+            </button>
+          )}
+        </div>
+
+        <form
+          onSubmit={async (e) => {
+            e.preventDefault();
+            await updateStatus(currentStatus, statusMessageInput.trim() || null);
+            showToast("Status message updated", "success");
+          }}
+          className="space-y-1.5"
+        >
+          <div className="flex items-center gap-1.5">
+            <input
+              type="text"
+              value={statusMessageInput}
+              onChange={(e) => setStatusMessageInput(e.target.value)}
+              placeholder="e.g., Traveling till 4 PM..."
+              maxLength={100}
+              className="flex-1 rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] px-2.5 py-1 text-xs text-[var(--text-main)] outline-none focus:border-[var(--accent)] focus:bg-[var(--surface-strong,#ffffff)] transition"
+            />
+            <button
+              type="submit"
+              className="rounded-lg bg-[var(--accent)] px-2.5 py-1 text-xs font-bold text-white hover:opacity-90 shadow-2xs transition shrink-0"
+            >
+              Save
+            </button>
+          </div>
+
+          {/* Quick Preset Badges */}
+          <div className="flex flex-wrap gap-1 pt-0.5">
+            {[
+              "Traveling till 4 PM",
+              "Working on Q3 Pitch",
+              "Focus time 🎯",
+              "Out of office 🌴",
+            ].map((preset) => (
+              <button
+                key={preset}
+                type="button"
+                onClick={async () => {
+                  setStatusMessageInput(preset);
+                  await updateStatus(currentStatus, preset);
+                  showToast(`Status message: "${preset}"`, "success");
+                }}
+                className="rounded-md border border-[var(--border)] bg-[var(--surface-soft)] px-1.5 py-0.5 text-[10px] text-[var(--text-soft)] hover:border-[var(--accent)] hover:text-[var(--text-main)] transition"
+              >
+                {preset}
+              </button>
+            ))}
+          </div>
+        </form>
+      </div>
+
+      {/* Footer Navigation & Sign out */}
+      <div className="mt-3 border-t border-[var(--border)] pt-2 flex items-center justify-between text-xs">
+        <Link
+          href="/settings"
+          onClick={() => setProfileMenuOpen(false)}
+          className="flex items-center gap-1.5 text-[var(--text-soft)] hover:text-[var(--text-main)] font-medium"
+        >
+          <SettingsIcon size={14} />
+          <span>Settings</span>
+        </Link>
+
+        <button
+          type="button"
+          onClick={handleLogout}
+          className="flex items-center gap-1.5 text-rose-600 hover:text-rose-700 font-medium"
+        >
+          <LogOutIcon size={14} />
+          <span>Sign Out</span>
+        </button>
+      </div>
+    </div>
+  );
+
   const navItems: NavItem[] = useMemo(() => {
     const isLeadership = user.role === "SUPERADMIN" || user.role === "ADMIN" || user.role === "MANAGER";
     const isAdmin = user.role === "SUPERADMIN" || user.role === "ADMIN";
 
     return [
-      { href: "/dashboard", label: "Dashboard", icon: LayoutDashboardIcon },
-      ...(isLeadership ? [{ href: "/projects", label: "Projects", icon: FolderKanbanIcon }] : []),
-      { href: "/tasks", label: "Tasks", icon: CheckSquareIcon },
+      { href: "/notifications", label: "Activity", icon: BellIcon, badge: unreadCount },
       { href: "/chat", label: "Chat", icon: MessageSquareIcon },
-      { href: "/leaves", label: "Leaves", icon: CalendarDaysIcon },
+      { href: "/teams", label: "Teams", icon: HashIcon },
+      { href: "/calendar", label: "Calendar & Meet", icon: CalendarDaysIcon },
+      { href: "/crm", label: "Sales & Deals", icon: TrendingUpIcon },
+      { href: "/tasks", label: "Tasks & Planner", icon: CheckSquareIcon },
+      ...(isLeadership ? [{ href: "/projects", label: "Projects", icon: FolderKanbanIcon }] : []),
+      { href: "/dashboard", label: "Hub & Overview", icon: LayoutDashboardIcon },
       ...(isLeadership ? [{ href: "/employees", label: "People", icon: UsersIcon }] : []),
+      { href: "/leaves", label: "Leaves", icon: ClockIcon },
       ...(isAdmin ? [{ href: "/departments", label: "Depts", icon: Building2Icon }] : []),
       ...(isAdmin ? [{ href: "/logs", label: "Audit", icon: ScrollTextIcon }] : []),
       { href: "/settings", label: "Settings", icon: SettingsIcon },
     ];
-  }, [user.role]);
+  }, [user.role, unreadCount]);
 
   const currentPage = pageMetadata[pathname] ?? {
     title: pathname.startsWith("/leaves") ? "Leaves" : "Planitt CRM",
@@ -208,6 +479,11 @@ export function CRMShell({ children, user, compactMobileChrome = false }: CRMShe
                   title={item.label}
                 >
                   <Icon size={19} />
+                  {typeof item.badge === "number" && item.badge > 0 && (
+                    <span className="absolute -top-1 -right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-rose-600 px-1 text-[9px] font-black text-white shadow-2xs">
+                      {item.badge > 99 ? "99+" : item.badge}
+                    </span>
+                  )}
                   {/* Tooltip flyout on hover */}
                   <span className="pointer-events-none absolute left-full ml-2 hidden whitespace-nowrap rounded-md bg-slate-900 px-2 py-1 text-xs font-semibold text-white shadow-lg group-hover:block z-50">
                     {item.label}
@@ -239,7 +515,7 @@ export function CRMShell({ children, user, compactMobileChrome = false }: CRMShe
             <button
               type="button"
               onClick={() => setProfileMenuOpen((prev) => !prev)}
-              className="flex rounded-full ring-2 ring-transparent transition hover:ring-blue-500 focus:outline-none"
+              className="flex rounded-full ring-2 ring-transparent transition hover:ring-[var(--accent)] focus:outline-none"
               aria-label="User profile menu"
             >
               <Avatar
@@ -247,39 +523,12 @@ export function CRMShell({ children, user, compactMobileChrome = false }: CRMShe
                 avatarUrl={user.avatarUrl}
                 authProvider={user.authProvider}
                 size="sm"
-                status={checkedIn ? "online" : "offline"}
+                status={currentStatus}
+                statusTitle={`${user.name} (${currentStatus})${currentMessage ? ` - "${currentMessage}"` : ""}`}
               />
             </button>
 
-            {profileMenuOpen && (
-              <div
-                className="absolute bottom-2 left-full ml-3 w-56 rounded-xl border border-[var(--border)] bg-[var(--surface-strong,#ffffff)] p-2 shadow-xl z-50 animate-in fade-in zoom-in-95 duration-100"
-                onClick={(e) => e.stopPropagation()}
-              >
-                <div className="border-b border-[var(--border)] px-3 py-2">
-                  <p className="truncate text-sm font-semibold text-[var(--text-main)]">{user.name}</p>
-                  <p className="text-xs text-[var(--text-soft)]">{roleLabels[user.role]} · {user.email}</p>
-                </div>
-                <div className="py-1">
-                  <Link
-                    href="/settings"
-                    onClick={() => setProfileMenuOpen(false)}
-                    className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium text-[var(--text-main)] hover:bg-[var(--surface-soft)] transition-colors"
-                  >
-                    <SettingsIcon size={15} />
-                    <span>Account Settings</span>
-                  </Link>
-                  <button
-                    type="button"
-                    onClick={handleLogout}
-                    className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors"
-                  >
-                    <LogOutIcon size={15} />
-                    <span>Sign Out</span>
-                  </button>
-                </div>
-              </div>
-            )}
+            {profileMenuOpen && renderProfileMenu("desktop")}
           </div>
         </div>
       </aside>
@@ -319,6 +568,7 @@ export function CRMShell({ children, user, compactMobileChrome = false }: CRMShe
             <div className="relative flex items-center">
               <SearchIcon size={15} className="absolute left-3 text-[var(--text-soft)] pointer-events-none" />
               <input
+                ref={searchInputRef}
                 type="search"
                 value={globalSearch}
                 onChange={(e) => {
@@ -361,6 +611,36 @@ export function CRMShell({ children, user, compactMobileChrome = false }: CRMShe
               aria-label="Toggle search"
             >
               <SearchIcon size={15} />
+            </button>
+
+            {/* Live In-Meeting Status Banner in Header */}
+            {currentStatus === "IN_A_MEETING" && (
+              <div className="flex items-center gap-1.5 rounded-lg bg-rose-50 border border-rose-200 px-2 py-1 text-xs font-bold text-rose-700 dark:bg-rose-950/40 dark:border-rose-800 dark:text-rose-300">
+                <span className="h-2 w-2 rounded-full bg-rose-500 animate-pulse" />
+                <span className="hidden sm:inline">In Meeting</span>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    await clearMeetingStatus();
+                    showToast("Meeting ended, status set to Available", "success");
+                  }}
+                  className="rounded bg-rose-600 hover:bg-rose-700 text-white px-1.5 py-0.5 text-[10px] font-semibold transition"
+                  title="End meeting status"
+                >
+                  End
+                </button>
+              </div>
+            )}
+
+            {/* Quick Google Meet Action */}
+            <button
+              type="button"
+              onClick={handleQuickMeetNow}
+              className="inline-flex items-center gap-1.5 rounded-lg bg-purple-600 hover:bg-purple-700 px-2.5 py-1 text-xs font-bold text-white shadow-2xs transition"
+              title="Instant Google Meet"
+            >
+              <VideoIcon size={13} />
+              <span className="hidden sm:inline">Meet</span>
             </button>
 
             {/* Quick Attendance Action */}
@@ -475,47 +755,12 @@ export function CRMShell({ children, user, compactMobileChrome = false }: CRMShe
                   avatarUrl={user.avatarUrl}
                   authProvider={user.authProvider}
                   size="sm"
-                  status={checkedIn ? "online" : "offline"}
+                  status={currentStatus}
+                  statusTitle={`${user.name} (${currentStatus})${currentMessage ? ` - "${currentMessage}"` : ""}`}
                 />
               </button>
 
-              {profileMenuOpen && (
-                <div
-                  className="absolute right-0 top-full mt-2 w-56 rounded-xl border border-[var(--border)] bg-[var(--surface-strong,#ffffff)] p-2 shadow-xl z-50 animate-in fade-in zoom-in-95 duration-100"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  <div className="border-b border-[var(--border)] px-3 py-2">
-                    <p className="truncate text-sm font-semibold text-[var(--text-main)]">{user.name}</p>
-                    <p className="text-xs text-[var(--text-soft)] truncate">{roleLabels[user.role]} · {user.email}</p>
-                  </div>
-                  <div className="py-1">
-                    <button
-                      type="button"
-                      onClick={toggleTheme}
-                      className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium text-[var(--text-main)] hover:bg-[var(--surface-soft)] transition-colors"
-                    >
-                      {theme === "light" ? <MoonIcon size={14} /> : <SunIcon size={14} />}
-                      <span>{theme === "light" ? "Dark Mode" : "Light Mode"}</span>
-                    </button>
-                    <Link
-                      href="/settings"
-                      onClick={() => setProfileMenuOpen(false)}
-                      className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium text-[var(--text-main)] hover:bg-[var(--surface-soft)] transition-colors"
-                    >
-                      <SettingsIcon size={14} />
-                      <span>Settings</span>
-                    </Link>
-                    <button
-                      type="button"
-                      onClick={handleLogout}
-                      className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors"
-                    >
-                      <LogOutIcon size={14} />
-                      <span>Sign Out</span>
-                    </button>
-                  </div>
-                </div>
-              )}
+              {profileMenuOpen && renderProfileMenu("mobile")}
             </div>
           </div>
         </header>

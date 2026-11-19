@@ -153,7 +153,54 @@ export default function EmployeesPage() {
   return (
     <CRMShell user={user}>
       <div className="min-w-0 space-y-5 overflow-x-hidden pb-4">
-        <section className="relative overflow-hidden rounded-2xl border p-5 sm:p-6" style={{ background: "linear-gradient(135deg, color-mix(in srgb, var(--surface) 88%, var(--accent-strong)), var(--surface))", borderColor: "var(--border)", boxShadow: "var(--shadow-soft)" }}>
+        {/* ── MOBILE STREAMLINED WORKSPACE CARD (<sm) ────────────────────────── */}
+        <div className="flex sm:hidden flex-col rounded-2xl border border-[var(--border)] bg-[var(--surface-strong,#ffffff)] p-2.5 shadow-xs space-y-2.5">
+          {/* Row 1: Search + Add Action (Exact h-9) */}
+          <div className="flex items-center justify-between gap-2">
+            <div className="relative min-w-0 flex-1">
+              <input
+                type="text"
+                value={directorySearchQuery}
+                onChange={(e) => setDirectorySearchQuery(e.target.value)}
+                placeholder="Search team members..."
+                className="h-9 w-full rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] px-3 text-xs text-[var(--text-main)] outline-none focus:border-[var(--accent)]/50 transition-all placeholder:text-[var(--text-faint)]"
+              />
+            </div>
+            <div className="flex h-9 items-center gap-1.5 px-3 rounded-lg bg-[var(--accent)] text-white text-xs font-bold shadow-2xs shrink-0">
+              <span>{peopleAnalytics.total} Members</span>
+            </div>
+          </div>
+
+          {/* Row 2: Role Switcher Tabs (Exact h-8 container) */}
+          <div className="flex items-center justify-between gap-2 pt-1 border-t border-[var(--border)]">
+            <div className="flex h-8 items-center rounded-lg bg-[var(--surface-soft)] p-0.5 border border-[var(--border)] overflow-x-auto no-scrollbar">
+              {(["ALL", "EMPLOYEE", "INTERN", "MANAGER", "ADMIN"] as MemberRoleFilter[]).map((r) => {
+                const isActive = directoryRoleFilter === r;
+                return (
+                  <button
+                    key={r}
+                    type="button"
+                    onClick={() => setDirectoryRoleFilter(r)}
+                    className={`flex h-7 items-center px-2 rounded-md text-[11px] font-bold transition-all shrink-0 capitalize ${
+                      isActive
+                        ? "bg-[var(--surface-strong,#ffffff)] text-[var(--accent)] shadow-2xs border border-[var(--border)]"
+                        : "text-[var(--text-soft)] hover:text-[var(--text-main)]"
+                    }`}
+                  >
+                    {r.toLowerCase()}
+                  </button>
+                );
+              })}
+            </div>
+            <div className="flex h-8 items-center gap-1 px-2.5 rounded-lg bg-[var(--surface-soft)] border border-[var(--border)] text-[11px] font-semibold text-[var(--text-soft)] shrink-0">
+              <span>Dept:</span>
+              <span className="font-extrabold text-[var(--accent)]">{peopleAnalytics.departmentCoverage}%</span>
+            </div>
+          </div>
+        </div>
+
+        {/* ── DESKTOP HEADER (Hidden on mobile <sm) ─────────────────────────── */}
+        <section className="hidden sm:block relative overflow-hidden rounded-2xl border p-5 sm:p-6" style={{ background: "linear-gradient(135deg, color-mix(in srgb, var(--surface) 88%, var(--accent-strong)), var(--surface))", borderColor: "var(--border)", boxShadow: "var(--shadow-soft)" }}>
           <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[var(--text-faint)]">Team control</p>
           <h1 className="mt-2 text-2xl font-semibold tracking-tight text-[var(--text-main)] sm:text-3xl">Employees & interns</h1>
           <p className="mt-2 max-w-2xl text-sm leading-relaxed text-[var(--text-soft)]">Create members, assign departments, and connect people to their reporting managers. Edits save immediately.</p>

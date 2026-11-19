@@ -1,5 +1,63 @@
 export type UserRole = "SUPERADMIN" | "ADMIN" | "MANAGER" | "EMPLOYEE" | "INTERN";
 
+export type UserPresenceStatus =
+  | "AVAILABLE"
+  | "BUSY"
+  | "IN_A_MEETING"
+  | "AWAY"
+  | "OFFLINE"
+  | "DND";
+
+export type UserPresence = {
+  userId: string;
+  name?: string;
+  email?: string;
+  avatarUrl?: string | null;
+  role?: UserRole;
+  status: UserPresenceStatus;
+  customStatusMessage?: string | null;
+  customStatusExpiresAt?: string | null;
+  inMeetingUntil?: string | null;
+  lastSeen?: string | null;
+};
+
+export type MessageChannel = "WHATSAPP" | "EMAIL" | "SMS";
+export type MessageDirection = "INBOUND" | "OUTBOUND";
+export type MessageDeliveryStatus = "SENT" | "DELIVERED" | "READ" | "FAILED" | "RECEIVED";
+
+export type LeadCommunication = {
+  id: string;
+  leadId?: string | null;
+  dealId?: string | null;
+  contactId?: string | null;
+  channel: MessageChannel;
+  direction: MessageDirection;
+  sender?: string | null;
+  recipient: string;
+  subject?: string | null;
+  body: string;
+  status: MessageDeliveryStatus;
+  templateName?: string | null;
+  metadata?: string | null;
+  sentById?: string | null;
+  sentBy?: {
+    id: string;
+    name: string;
+    avatarUrl?: string | null;
+  } | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type OmnichannelTemplate = {
+  id: string;
+  name: string;
+  channel: string;
+  category: string;
+  subject?: string;
+  body: string;
+};
+
 export type Department = {
   id: string;
   name: string;
@@ -55,6 +113,10 @@ export type CRMUser = {
   name: string;
   email: string;
   avatarUrl?: string | null;
+  presenceStatus?: UserPresenceStatus;
+  customStatusMessage?: string | null;
+  customStatusExpiresAt?: string | null;
+  inMeetingUntil?: string | null;
   role: UserRole;
   designation?: string | null;
   departmentId?: string | null;
@@ -687,4 +749,190 @@ export type ChecklistActivityResponse = {
   hasMore: boolean;
   nextOffset: number;
 };
+
+// ─────────────────────────────────────────────
+// TEAMS & CHANNELS
+// ─────────────────────────────────────────────
+
+export type ChannelType = "STANDARD" | "ANNOUNCEMENT" | "DEALS" | "TASKS";
+
+export type TeamChannel = {
+  id: string;
+  name: string;
+  description?: string | null;
+  channelType: ChannelType;
+  isDefault: boolean;
+  departmentId?: string | null;
+  projectId?: string | null;
+  createdById?: string | null;
+  createdAt: string;
+  updatedAt: string;
+  _count?: {
+    messages: number;
+  };
+};
+
+export type ChannelMessage = {
+  id: string;
+  channelType: "CHANNEL";
+  content: string;
+  authorId: string;
+  channelId: string;
+  departmentId?: string | null;
+  projectId?: string | null;
+  messageType: "TEXT" | "IMAGE" | "PDF" | "STICKER" | "MEETING";
+  attachmentUrl?: string | null;
+  attachmentFileName?: string | null;
+  attachmentMimeType?: string | null;
+  meetingUrl?: string | null;
+  meetingTitle?: string | null;
+  reactions?: Record<string, string[]>;
+  replyToId?: string | null;
+  createdAt: string;
+  updatedAt: string;
+  author: {
+    id: string;
+    name: string;
+    email: string;
+    role: UserRole;
+    avatarUrl?: string | null;
+  };
+  replies?: ChannelMessage[];
+};
+
+// ─────────────────────────────────────────────
+// CALENDAR & GOOGLE MEET
+// ─────────────────────────────────────────────
+
+export type CalendarItem = {
+  id: string;
+  title: string;
+  description?: string | null;
+  startAt: string;
+  endAt: string;
+  meetUrl?: string | null;
+  type: "MEETING" | "TASK_DEADLINE" | "LEAVE";
+  googleEventId?: string | null;
+  organizer?: {
+    id: string;
+    name: string;
+    email: string;
+    avatarUrl?: string | null;
+  };
+  project?: {
+    id: string;
+    name: string;
+  } | null;
+  deal?: {
+    id: string;
+    title: string;
+  } | null;
+  user?: {
+    id: string;
+    name: string;
+    avatarUrl?: string | null;
+  } | null;
+  attendeeIds?: string[];
+};
+
+// ─────────────────────────────────────────────
+// CRM: LEADS, DEALS, CONTACTS
+// ─────────────────────────────────────────────
+
+export type LeadStatus = "NEW" | "CONTACTED" | "QUALIFIED" | "PROPOSAL_SENT" | "CONVERTED" | "LOST";
+
+export type Lead = {
+  id: string;
+  name: string;
+  email?: string | null;
+  phone?: string | null;
+  company?: string | null;
+  status: LeadStatus;
+  source?: string | null;
+  value?: number | null;
+  notes?: string | null;
+  assignedToId?: string | null;
+  assignedTo?: {
+    id: string;
+    name: string;
+    email: string;
+    role: UserRole;
+    avatarUrl?: string | null;
+  } | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type DealStage = "LEAD" | "CONTACTED" | "PROPOSAL" | "NEGOTIATION" | "WON" | "LOST";
+
+export type Deal = {
+  id: string;
+  title: string;
+  value: number;
+  currency: string;
+  stage: DealStage;
+  probability: number;
+  expectedCloseDate?: string | null;
+  notes?: string | null;
+  leadId?: string | null;
+  contactId?: string | null;
+  assignedToId?: string | null;
+  projectId?: string | null;
+  lead?: {
+    id: string;
+    name: string;
+    company?: string | null;
+    email?: string | null;
+    phone?: string | null;
+  } | null;
+  contact?: {
+    id: string;
+    name: string;
+    email?: string | null;
+    phone?: string | null;
+    company?: string | null;
+  } | null;
+  project?: {
+    id: string;
+    name: string;
+  } | null;
+  assignedTo?: {
+    id: string;
+    name: string;
+    email: string;
+    role: UserRole;
+    avatarUrl?: string | null;
+  } | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type Contact = {
+  id: string;
+  name: string;
+  email?: string | null;
+  phone?: string | null;
+  company?: string | null;
+  designation?: string | null;
+  notes?: string | null;
+  deals?: Array<{
+    id: string;
+    title: string;
+    value: number;
+    stage: DealStage;
+  }>;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type CrmSummary = {
+  totalLeads: number;
+  totalDeals: number;
+  totalContacts: number;
+  totalPipelineValue: number;
+  wonValue: number;
+  stageBreakdown: Record<DealStage, number>;
+  leadStatusBreakdown: Record<LeadStatus, number>;
+};
+
 
