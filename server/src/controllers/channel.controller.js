@@ -70,13 +70,14 @@ export async function createChannel(req, res) {
     }
 
     const cleanName = name.trim().toLowerCase().replace(/[^a-z0-9_-]/g, "-");
+    const userId = req.user?.id || req.user?.userId;
 
     const channel = await prisma.teamChannel.create({
       data: {
         name: cleanName,
         description: description?.trim() || null,
         channelType: channelType || "STANDARD",
-        createdById: req.user.id,
+        createdById: userId,
         departmentId: departmentId || null,
         projectId: projectId || null,
       },
@@ -142,12 +143,17 @@ export async function postChannelMessage(req, res) {
       return res.status(404).json({ error: "Channel not found" });
     }
 
+    const userId = req.user?.id || req.user?.userId;
+    if (!userId) {
+      return res.status(401).json({ error: "User identity missing from session" });
+    }
+
     const message = await prisma.chatMessage.create({
       data: {
         channelType: "CHANNEL",
         content: content?.trim() || (meetingUrl ? `Started Google Meet: ${meetingTitle || "Instant Meeting"}` : ""),
         messageType: meetingUrl ? "MEETING" : messageType,
-        authorId: req.user.id,
+        authorId: userId,
         channelId: channel.id,
         departmentId: channel.departmentId,
         projectId: channel.projectId,
@@ -188,7 +194,7 @@ export async function toggleMessageReaction(req, res) {
   try {
     const { messageId } = req.params;
     const { emoji } = req.body;
-    const userId = req.user.id;
+    const userId = req.user?.id || req.user?.userId;
 
     if (!emoji) {
       return res.status(400).json({ error: "Emoji is required" });
