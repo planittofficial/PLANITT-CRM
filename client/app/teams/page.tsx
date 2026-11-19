@@ -21,6 +21,7 @@ import {
   CheckSquareIcon,
   ChevronDownIcon,
   ChevronRightIcon,
+  ArrowLeftIcon,
 } from "@/components/ui/icons";
 import type { Department, Project, TeamChannel, ChannelMessage, CRMUser, Task } from "@/types/crm";
 
@@ -36,6 +37,7 @@ export default function TeamsPage() {
   const [messages, setMessages] = useState<ChannelMessage[]>([]);
   const [channelTasks, setChannelTasks] = useState<Task[]>([]);
   const [channelTab, setChannelTab] = useState<"posts" | "files" | "tasks">("posts");
+  const [mobileView, setMobileView] = useState<"tree" | "channel">("tree");
 
   const [messageDraft, setMessageDraft] = useState("");
   const [sendingMessage, setSendingMessage] = useState(false);
@@ -202,22 +204,39 @@ export default function TeamsPage() {
   return (
     <CRMShell user={user} fullBleed>
       <div className="flex h-full w-full min-h-0 overflow-hidden bg-[var(--app-bg)]">
-        {/* ── LEFT PANE: TEAMS & CHANNELS TREE (260px) ────────────────────── */}
-        <aside className="w-64 shrink-0 border-r border-[var(--border)] bg-[var(--surface-strong,#ffffff)] flex flex-col justify-between min-h-0">
+        {/* ── LEFT PANE: TEAMS & CHANNELS TREE ────────────────────────────── */}
+        <aside
+          className={`shrink-0 border-r border-[var(--border)] bg-[var(--surface-strong,#ffffff)] flex-col justify-between min-h-0 ${
+            mobileView === "tree" ? "flex w-full flex-1" : "hidden"
+          } md:flex md:w-64 md:shrink-0`}
+        >
           <div className="flex flex-col min-h-0 h-full">
             {/* Header */}
             <div className="flex items-center justify-between border-b border-[var(--border)] px-4 py-3 shrink-0">
               <span className="text-xs font-bold text-[var(--text-main)] uppercase tracking-wider">
                 Teams & Channels
               </span>
-              <button
-                type="button"
-                onClick={() => setCreateChannelOpen(true)}
-                title="Create Channel"
-                className="rounded-lg p-1 text-[var(--text-soft)] hover:bg-[var(--surface-soft)] hover:text-[var(--text-main)]"
-              >
-                <PlusIcon size={16} />
-              </button>
+              <div className="flex items-center gap-1.5">
+                {selectedChannel && (
+                  <button
+                    type="button"
+                    onClick={() => setMobileView("channel")}
+                    className="md:hidden inline-flex items-center gap-1 rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] px-2 py-1 text-[11px] font-semibold text-[var(--accent)] hover:bg-[var(--surface-hover)] active:scale-95 transition"
+                    title="Return to active channel"
+                  >
+                    <span>#{selectedChannel.name}</span>
+                    <ChevronRightIcon size={12} />
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={() => setCreateChannelOpen(true)}
+                  title="Create Channel"
+                  className="rounded-lg p-1.5 text-[var(--text-soft)] hover:bg-[var(--surface-soft)] hover:text-[var(--text-main)] transition"
+                >
+                  <PlusIcon size={16} />
+                </button>
+              </div>
             </div>
 
             {/* Tree Navigation */}
@@ -255,7 +274,10 @@ export default function TeamsPage() {
                               <button
                                 key={ch.id}
                                 type="button"
-                                onClick={() => setSelectedChannel(ch)}
+                                onClick={() => {
+                                  setSelectedChannel(ch);
+                                  setMobileView("channel");
+                                }}
                                 className={`flex w-full items-center gap-2 rounded-md px-2 py-1 text-xs font-medium transition ${
                                   selectedChannel?.id === ch.id
                                     ? "bg-[var(--accent)] text-white shadow-2xs font-semibold"
@@ -307,7 +329,10 @@ export default function TeamsPage() {
                               <button
                                 key={ch.id}
                                 type="button"
-                                onClick={() => setSelectedChannel(ch)}
+                                onClick={() => {
+                                  setSelectedChannel(ch);
+                                  setMobileView("channel");
+                                }}
                                 className={`flex w-full items-center gap-2 rounded-md px-2 py-1 text-xs font-medium transition ${
                                   selectedChannel?.id === ch.id
                                     ? "bg-[var(--accent)] text-white shadow-2xs font-semibold"
@@ -330,22 +355,38 @@ export default function TeamsPage() {
         </aside>
 
         {/* ── RIGHT MAIN PANE: ACTIVE CHANNEL ──────────────────────────────── */}
-        <main className="flex-1 flex flex-col min-w-0 min-h-0 bg-[var(--app-bg)]">
+        <main
+          className={`flex-col min-w-0 min-h-0 bg-[var(--app-bg)] ${
+            mobileView === "channel" ? "flex flex-1 w-full" : "hidden"
+          } md:flex md:flex-1`}
+        >
           {selectedChannel ? (
             <>
               {/* Channel Top Header */}
-              <div className="border-b border-[var(--border)] bg-[var(--surface-strong,#ffffff)] px-6 py-3 shrink-0">
-                <div className="flex items-center justify-between gap-3">
-                  <div className="flex items-center gap-2.5 min-w-0">
+              <div className="border-b border-[var(--border)] bg-[var(--surface-strong,#ffffff)] px-3 sm:px-6 py-2.5 sm:py-3 shrink-0">
+                <div className="flex items-center justify-between gap-2 sm:gap-3">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <button
+                      type="button"
+                      onClick={() => setMobileView("tree")}
+                      aria-label="Back to Teams and Channels"
+                      className="md:hidden inline-flex h-8 items-center gap-1 rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] px-2 text-xs font-semibold text-[var(--text-main)] hover:bg-[var(--surface-hover)] active:scale-95 transition shrink-0"
+                    >
+                      <ArrowLeftIcon size={14} />
+                      <span className="text-[11px]">Teams</span>
+                    </button>
+
                     <HashIcon size={18} className="text-[var(--accent)] shrink-0" />
                     <div className="min-w-0">
-                      <div className="flex items-center gap-2">
-                        <h2 className="text-sm font-bold text-[var(--text-main)] truncate">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <h2 className="text-sm font-bold text-[var(--text-main)] truncate max-w-[130px] sm:max-w-none">
                           {selectedChannel.name}
                         </h2>
-                        <span className="rounded bg-[var(--surface-soft)] border border-[var(--border)] px-1.5 py-0.2 text-[10px] text-[var(--text-soft)]">
-                          {selectedParent?.name}
-                        </span>
+                        {selectedParent && (
+                          <span className="rounded bg-[var(--surface-soft)] border border-[var(--border)] px-1.5 py-0.5 text-[10px] text-[var(--text-soft)] truncate max-w-[110px] sm:max-w-none">
+                            {selectedParent.name}
+                          </span>
+                        )}
                       </div>
                       {selectedChannel.description && (
                         <p className="text-[11px] text-[var(--text-soft)] truncate">
@@ -360,21 +401,22 @@ export default function TeamsPage() {
                     <button
                       type="button"
                       onClick={handleLaunchChannelMeet}
-                      className="inline-flex items-center gap-1.5 rounded-xl bg-purple-600 px-3 py-1.5 text-xs font-bold text-white shadow-xs hover:bg-purple-700 transition"
+                      className="inline-flex items-center gap-1.5 rounded-xl bg-purple-600 px-2.5 sm:px-3 py-1.5 text-xs font-bold text-white shadow-xs hover:bg-purple-700 transition shrink-0"
                       title="Start Google Meet with everyone in this channel"
                     >
                       <VideoIcon size={14} />
-                      <span>Meet Now</span>
+                      <span className="hidden sm:inline">Meet Now</span>
+                      <span className="sm:hidden text-[11px]">Meet</span>
                     </button>
                   </div>
                 </div>
 
                 {/* Channel Navigation Tabs */}
-                <div className="flex gap-4 mt-3 border-t border-[var(--border)] pt-2 text-xs font-semibold">
+                <div className="flex gap-3 sm:gap-4 mt-2 sm:mt-3 border-t border-[var(--border)] pt-2 text-xs font-semibold overflow-x-auto no-scrollbar">
                   <button
                     type="button"
                     onClick={() => setChannelTab("posts")}
-                    className={`transition pb-1 ${
+                    className={`transition pb-1 whitespace-nowrap shrink-0 ${
                       channelTab === "posts"
                         ? "border-b-2 border-[var(--accent)] text-[var(--accent)]"
                         : "text-[var(--text-soft)] hover:text-[var(--text-main)]"
@@ -385,7 +427,7 @@ export default function TeamsPage() {
                   <button
                     type="button"
                     onClick={() => setChannelTab("files")}
-                    className={`transition pb-1 ${
+                    className={`transition pb-1 whitespace-nowrap shrink-0 ${
                       channelTab === "files"
                         ? "border-b-2 border-[var(--accent)] text-[var(--accent)]"
                         : "text-[var(--text-soft)] hover:text-[var(--text-main)]"
@@ -397,7 +439,7 @@ export default function TeamsPage() {
                     <button
                       type="button"
                       onClick={() => setChannelTab("tasks")}
-                      className={`transition pb-1 ${
+                      className={`transition pb-1 whitespace-nowrap shrink-0 ${
                         channelTab === "tasks"
                           ? "border-b-2 border-[var(--accent)] text-[var(--accent)]"
                           : "text-[var(--text-soft)] hover:text-[var(--text-main)]"
@@ -413,7 +455,7 @@ export default function TeamsPage() {
               {channelTab === "posts" && (
                 <div className="flex-1 flex flex-col min-h-0">
                   {/* Messages Feed */}
-                  <div ref={messagesContainerRef} className="flex-1 overflow-y-auto p-6 space-y-4 min-h-0">
+                  <div ref={messagesContainerRef} className="flex-1 overflow-y-auto p-3 sm:p-6 space-y-3 sm:space-y-4 min-h-0">
                     {loadingMessages ? (
                       <div className="py-12 text-center text-xs text-[var(--text-soft)]">
                         Loading messages...
@@ -439,7 +481,7 @@ export default function TeamsPage() {
                         return (
                           <div
                             key={msg.id}
-                            className={`flex gap-3 rounded-2xl border p-4 shadow-2xs transition ${
+                            className={`flex gap-2.5 sm:gap-3 rounded-2xl border p-3 sm:p-4 shadow-2xs transition ${
                               isMeeting
                                 ? "border-purple-200 bg-purple-50/60 dark:border-purple-900 dark:bg-purple-950/20"
                                 : "border-[var(--border)] bg-[var(--surface-strong,#ffffff)]"
@@ -459,7 +501,7 @@ export default function TeamsPage() {
                                   {msg.author.name}
                                 </span>
                                 {authorCustomMsg && (
-                                  <span className="rounded bg-[var(--surface-soft)] px-1.5 py-0.5 text-[10px] text-[var(--text-soft)] italic truncate max-w-[200px]" title={authorCustomMsg}>
+                                  <span className="rounded bg-[var(--surface-soft)] px-1.5 py-0.5 text-[10px] text-[var(--text-soft)] italic truncate max-w-[140px] sm:max-w-[200px]" title={authorCustomMsg}>
                                     "{authorCustomMsg}"
                                   </span>
                                 )}
@@ -495,13 +537,13 @@ export default function TeamsPage() {
                                   </div>
                                 </div>
                               ) : (
-                                <p className="mt-1 text-xs text-[var(--text-main)] whitespace-pre-wrap leading-relaxed">
+                                <p className="mt-1 text-xs text-[var(--text-main)] whitespace-pre-wrap leading-relaxed break-words">
                                   {msg.content}
                                 </p>
                               )}
 
                               {/* Emoji Reactions Bar */}
-                              <div className="mt-2 flex items-center gap-1.5">
+                              <div className="mt-2 flex items-center gap-1.5 flex-wrap">
                                 {["👍", "❤️", "🚀", "🎉"].map((emoji) => {
                                   const count = msg.reactions?.[emoji]?.length || 0;
                                   return (
@@ -527,7 +569,7 @@ export default function TeamsPage() {
                   </div>
 
                   {/* Channel Message Composer */}
-                  <div className="border-t border-[var(--border)] bg-[var(--surface-strong,#ffffff)] p-4 shrink-0">
+                  <div className="border-t border-[var(--border)] bg-[var(--surface-strong,#ffffff)] p-3 sm:p-4 shrink-0">
                     <form onSubmit={handleSendMessage} className="space-y-2">
                       <div className="relative">
                         <textarea
@@ -540,12 +582,12 @@ export default function TeamsPage() {
                               handleSendMessage(e);
                             }
                           }}
-                          placeholder={`Message #${selectedChannel.name}... (Press Enter to send)`}
-                          className="w-full rounded-xl border border-[var(--border)] bg-[var(--surface-soft)] p-3 text-xs text-[var(--text-main)] outline-none focus:border-[var(--accent)] resize-none"
+                          placeholder={`Message #${selectedChannel.name}...`}
+                          className="w-full rounded-xl border border-[var(--border)] bg-[var(--surface-soft)] p-2.5 sm:p-3 text-xs text-[var(--text-main)] outline-none focus:border-[var(--accent)] resize-none"
                         />
                       </div>
 
-                      <div className="flex items-center justify-between">
+                      <div className="flex items-center justify-between gap-2">
                         <div className="flex items-center gap-1 text-[var(--text-soft)]">
                           <button
                             type="button"
@@ -561,7 +603,7 @@ export default function TeamsPage() {
                         <button
                           type="submit"
                           disabled={sendingMessage || !messageDraft.trim()}
-                          className="inline-flex items-center gap-1.5 rounded-xl bg-[var(--accent)] px-3.5 py-1.5 text-xs font-bold text-white hover:opacity-90 transition disabled:opacity-40"
+                          className="inline-flex items-center gap-1.5 rounded-xl bg-[var(--accent)] px-3.5 py-1.5 text-xs font-bold text-white hover:opacity-90 transition disabled:opacity-40 shrink-0"
                         >
                           <SendIcon size={13} />
                           <span>Send</span>
@@ -574,9 +616,9 @@ export default function TeamsPage() {
 
               {/* ── TAB 2: GOOGLE DRIVE FILES ──────────────────────────────── */}
               {channelTab === "files" && (
-                <div className="flex-1 min-h-0 p-6 overflow-y-auto">
-                  <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface-strong,#ffffff)] p-6 shadow-2xs">
-                    <div className="flex items-center justify-between border-b border-[var(--border)] pb-4 mb-4">
+                <div className="flex-1 min-h-0 p-3 sm:p-6 overflow-y-auto">
+                  <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface-strong,#ffffff)] p-4 sm:p-6 shadow-2xs">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[var(--border)] pb-4 mb-4">
                       <div>
                         <h3 className="text-sm font-bold text-[var(--text-main)]">Google Drive Workspace</h3>
                         <p className="text-xs text-[var(--text-soft)]">
@@ -587,7 +629,7 @@ export default function TeamsPage() {
                         href="https://drive.google.com"
                         target="_blank"
                         rel="noreferrer"
-                        className="rounded-xl bg-blue-600 px-3.5 py-2 text-xs font-bold text-white shadow-xs hover:bg-blue-700 transition"
+                        className="inline-flex items-center justify-center rounded-xl bg-blue-600 px-3.5 py-2 text-xs font-bold text-white shadow-xs hover:bg-blue-700 transition"
                       >
                         Open Google Drive
                       </a>
@@ -602,7 +644,7 @@ export default function TeamsPage() {
 
               {/* ── TAB 3: PROJECT TASKS ───────────────────────────────────── */}
               {channelTab === "tasks" && (
-                <div className="flex-1 min-h-0 p-6 overflow-y-auto space-y-3">
+                <div className="flex-1 min-h-0 p-3 sm:p-6 overflow-y-auto space-y-3">
                   <div className="flex items-center justify-between mb-2">
                     <h3 className="text-sm font-bold text-[var(--text-main)]">Linked Project Tasks</h3>
                     <span className="text-xs text-[var(--text-soft)]">{channelTasks.length} tasks</span>
@@ -616,16 +658,16 @@ export default function TeamsPage() {
                     channelTasks.map((t) => (
                       <div
                         key={t.id}
-                        className="flex items-center justify-between rounded-xl border border-[var(--border)] bg-[var(--surface-strong,#ffffff)] p-3.5 shadow-2xs"
+                        className="flex items-center justify-between rounded-xl border border-[var(--border)] bg-[var(--surface-strong,#ffffff)] p-3 sm:p-3.5 shadow-2xs gap-3"
                       >
-                        <div className="flex items-center gap-3">
-                          <CheckSquareIcon size={16} className="text-[var(--accent)]" />
-                          <div>
-                            <p className="text-xs font-bold text-[var(--text-main)]">{t.title}</p>
+                        <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+                          <CheckSquareIcon size={16} className="text-[var(--accent)] shrink-0" />
+                          <div className="min-w-0">
+                            <p className="text-xs font-bold text-[var(--text-main)] truncate">{t.title}</p>
                             <span className="text-[10px] text-[var(--text-soft)]">Progress: {t.progress}%</span>
                           </div>
                         </div>
-                        <span className="rounded bg-[var(--surface-soft)] border border-[var(--border)] px-2 py-0.5 text-[10px] font-bold">
+                        <span className="rounded bg-[var(--surface-soft)] border border-[var(--border)] px-2 py-0.5 text-[10px] font-bold shrink-0">
                           {t.status}
                         </span>
                       </div>
@@ -635,12 +677,20 @@ export default function TeamsPage() {
               )}
             </>
           ) : (
-            <div className="flex-1 flex flex-col items-center justify-center p-8 text-center">
+            <div className="flex-1 flex flex-col items-center justify-center p-6 sm:p-8 text-center">
               <UsersIcon size={40} className="text-[var(--text-soft)] opacity-30 mb-3" />
               <p className="text-sm font-bold text-[var(--text-main)]">Select a Team & Channel</p>
-              <p className="text-xs text-[var(--text-soft)] mt-1">
-                Choose a Department or Project channel from the left sidebar to collaborate with your team.
+              <p className="text-xs text-[var(--text-soft)] mt-1 max-w-sm">
+                Choose a Department or Project channel from the list to collaborate with your team.
               </p>
+              <button
+                type="button"
+                onClick={() => setMobileView("tree")}
+                className="mt-4 md:hidden inline-flex items-center gap-1.5 rounded-xl bg-[var(--accent)] px-3.5 py-2 text-xs font-semibold text-white shadow-xs active:scale-95 transition"
+              >
+                <ArrowLeftIcon size={14} />
+                <span>Browse Teams & Channels</span>
+              </button>
             </div>
           )}
         </main>
