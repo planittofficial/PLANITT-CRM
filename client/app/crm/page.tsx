@@ -4,6 +4,7 @@ import { useEffect, useState, useMemo } from "react";
 import { CRMShell } from "@/components/layout/crm-shell";
 import { useSession } from "@/hooks/use-session";
 import { renderSessionGate } from "@/components/shared/session-gate";
+import { CrmSkeleton } from "@/components/shared/skeleton";
 import { OmnichannelDrawer } from "@/components/crm/omnichannel-drawer";
 import { apiGet, apiPost, apiPut, apiDelete } from "@/lib/api";
 import { showToast } from "@/hooks/use-toast";
@@ -188,6 +189,14 @@ export default function CrmPage() {
 
   if (sessionLoading || sessionError || !user) {
     return renderSessionGate({ loading: sessionLoading, user, error: sessionError, retry: retrySession });
+  }
+
+  if (loading) {
+    return (
+      <CRMShell user={user} fullBleed>
+        <CrmSkeleton />
+      </CRMShell>
+    );
   }
 
   return (

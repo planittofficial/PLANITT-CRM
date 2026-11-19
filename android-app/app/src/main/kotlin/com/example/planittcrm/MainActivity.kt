@@ -38,10 +38,12 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.app.ActivityCompat
 import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
+import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 
 class MainActivity : ComponentActivity() {
 
     private lateinit var webView: WebView
+    private lateinit var swipeRefreshLayout: SwipeRefreshLayout
     private lateinit var progressBar: ProgressBar
     private var fileUploadCallback: ValueCallback<Array<Uri>>? = null
     private lateinit var fileChooserLauncher: ActivityResultLauncher<Intent>
@@ -49,11 +51,18 @@ class MainActivity : ComponentActivity() {
     private val CHANNEL_ID = "planitt_crm_high_importance"
     private val PREFS_NAME = "planitt_crm_prefs"
     private val PREF_SERVER_URL = "server_url"
-    private val DEFAULT_URL = "http://192.168.1.5:3000"
+    private val DEFAULT_URL = "https://crm.planitt.in"
 
     @SuppressLint("SetJavaScriptEnabled")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        // Native System Bars Styling (Matches Dark Indigo Brand Theme #0f172a)
+        window.statusBarColor = Color.parseColor("#0f172a")
+        window.navigationBarColor = Color.parseColor("#0f172a")
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            window.decorView.systemUiVisibility = window.decorView.systemUiVisibility and View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR.inv()
+        }
 
         createNotificationChannel()
 
@@ -87,23 +96,48 @@ class MainActivity : ComponentActivity() {
             setBackgroundColor(Color.parseColor("#0f172a"))
         }
 
-        // Setup WebView
+        // Setup WebView with Hardware Acceleration
         webView = WebView(this).apply {
             layoutParams = ViewGroup.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.MATCH_PARENT
             )
             setBackgroundColor(Color.parseColor("#0f172a"))
+            setLayerType(View.LAYER_TYPE_HARDWARE, null)
+            isVerticalScrollBarEnabled = false
+            isHorizontalScrollBarEnabled = false
         }
 
         configureWebSettings(webView.settings)
         webView.addJavascriptInterface(WebAppInterface(this), "AndroidApp")
 
+        // Setup SwipeRefreshLayout (Pull-to-refresh)
+        swipeRefreshLayout = SwipeRefreshLayout(this).apply {
+            layoutParams = ViewGroup.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.MATCH_PARENT
+            )
+            setColorSchemeColors(
+                Color.parseColor("#6366f1"),
+                Color.parseColor("#3b82f6"),
+                Color.parseColor("#10b981")
+            )
+            setProgressBackgroundColorSchemeColor(Color.parseColor("#1e293b"))
+            setOnRefreshListener {
+                webView.reload()
+            }
+            // Only trigger refresh when page is scrolled to the absolute top
+            setOnChildScrollUpCallback { _, _ ->
+                webView.scrollY > 0
+            }
+        }
+        swipeRefreshLayout.addView(webView)
+
         // Setup Progress Bar
         progressBar = ProgressBar(this, null, android.R.attr.progressBarStyleHorizontal).apply {
             layoutParams = FrameLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
-                10
+                8
             ).apply {
                 gravity = Gravity.TOP
             }
@@ -121,6 +155,7 @@ class MainActivity : ComponentActivity() {
             override fun onPageFinished(view: WebView?, url: String?) {
                 super.onPageFinished(view, url)
                 progressBar.visibility = View.GONE
+                swipeRefreshLayout.isRefreshing = false
             }
 
             override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest?): Boolean {
@@ -143,6 +178,7 @@ class MainActivity : ComponentActivity() {
                 progressBar.progress = newProgress
                 if (newProgress >= 100) {
                     progressBar.visibility = View.GONE
+                    swipeRefreshLayout.isRefreshing = false
                 }
             }
 
@@ -167,18 +203,18 @@ class MainActivity : ComponentActivity() {
             }
         }
 
-        rootLayout.addView(webView)
+        rootLayout.addView(swipeRefreshLayout)
         rootLayout.addView(progressBar)
 
-        // Floating Server Settings Button (bottom-right corner)
+        // Floating Server Settings Button (compact bottom-right pill)
         val configButton = ImageButton(this).apply {
-            layoutParams = FrameLayout.LayoutParams(110, 110).apply {
+            layoutParams = FrameLayout.LayoutParams(84, 84).apply {
                 gravity = Gravity.BOTTOM or Gravity.END
-                setMargins(0, 0, 40, 60)
+                setMargins(0, 0, 32, 180) // positioned above bottom navigation bar
             }
             setImageResource(android.R.drawable.ic_menu_preferences)
-            setBackgroundColor(Color.parseColor("#3b82f6"))
-            alpha = 0.85f
+            setBackgroundColor(Color.parseColor("#475569"))
+            alpha = 0.55f
             setOnClickListener {
                 showServerUrlDialog()
             }
@@ -215,6 +251,7 @@ class MainActivity : ComponentActivity() {
         settings.builtInZoomControls = true
         settings.displayZoomControls = false
         settings.mediaPlaybackRequiresUserGesture = false
+        settings.cacheMode = WebSettings.LOAD_DEFAULT
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
             settings.mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
         }
@@ -304,18 +341,18 @@ class MainActivity : ComponentActivity() {
         val currentUrl = getSavedServerUrl()
         val input = EditText(this).apply {
             setText(currentUrl)
-            hint = "e.g. http://192.168.1.5:3000 or https://your-crm.vercel.app"
+            hint = "e.g. https://crm.planitt.in or http://192.168.1.5:3000"
         }
 
         AlertDialog.Builder(this)
             .setTitle("Connect to Planitt CRM Server")
-            .setMessage("Enter your frontend server URL (Local Wi-Fi IP or Production):")
+            .setMessage("Enter your frontend server URL (Cloud Production or Local Dev):")
             .setView(input)
             .setPositiveButton("Connect") { _, _ ->
                 val newUrl = input.text.toString().trim()
                 if (newUrl.isNotEmpty()) {
                     val normalized = if (!newUrl.startsWith("http://") && !newUrl.startsWith("https://")) {
-                        "http://$newUrl"
+                        "https://$newUrl"
                     } else {
                         newUrl
                     }

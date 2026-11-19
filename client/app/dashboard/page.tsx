@@ -9,7 +9,7 @@ import { Surface, buildLinePath, SummaryStatCard, LineChartCard, ActivityBarsCar
 import { GoogleWorkspacePanel } from "@/components/dashboard/google-workspace-panel";
 import { TaskSummaryList } from "@/components/dashboard/data-panels";
 import { useCrmSearch } from "@/components/providers/crm-search-provider";
-import { Skeleton } from "@/components/shared/skeleton";
+import { Skeleton, DashboardSkeleton } from "@/components/shared/skeleton";
 import { canUseGoogleWorkspace, useDashboardData } from "@/hooks/use-dashboard-data";
 import { apiGet } from "@/lib/api";
 import type { EmployeeDashboardSummary, UserAnalyticsSummary } from "@/types/crm";
@@ -95,26 +95,12 @@ export default function DashboardPage() {
   if (!user) return null;
 
   if (!summary) {
-
-  return (
-
-    <CRMShell user={user}>
-
-      <div className="space-y-4 p-4">
-
-        <Skeleton className="h-40 w-full" />
-
-        <Skeleton className="h-64 w-full" />
-
-        <Skeleton className="h-64 w-full" />
-
-      </div>
-
-    </CRMShell>
-
-  );
-
-}
+    return (
+      <CRMShell user={user}>
+        <DashboardSkeleton />
+      </CRMShell>
+    );
+  }
 
   if (error ) {
     return (

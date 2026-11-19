@@ -298,3 +298,49 @@ select option {
     animation: none !important;
   }
 }
+
+/* ── SKELETON SHIMMER & PERFORMANCE LAZY LOADING ────────────────── */
+@keyframes crm-shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.crm-skeleton-shimmer {
+  position: relative;
+  overflow: hidden;
+  background-color: var(--surface-soft);
+}
+
+.crm-skeleton-shimmer::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.45) 50%,
+    transparent 100%
+  );
+  animation: crm-shimmer 1.8s infinite;
+}
+
+:root[data-theme="dark"] .crm-skeleton-shimmer::after {
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.08) 50%,
+    transparent 100%
+  );
+}
+
+/* Defer rendering below-the-fold content for fast mobile scrolling and instant initial paint */
+.crm-defer-render {
+  content-visibility: auto;
+  contain-intrinsic-size: auto none auto 240px;
+}
+

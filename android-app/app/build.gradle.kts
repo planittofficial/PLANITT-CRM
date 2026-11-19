@@ -64,5 +64,6 @@ dependencies {
   implementation(libs.androidx.core.ktx)
   implementation(libs.androidx.activity)
   implementation(libs.androidx.appcompat)
+  implementation(libs.androidx.swiperefreshlayout)
   implementation(libs.androidx.lifecycle.runtime.ktx)
 }
