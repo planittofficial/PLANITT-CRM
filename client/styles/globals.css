@@ -99,6 +99,15 @@ body {
   min-height: 0;
 }
 
+/* Hide scrollbars while keeping scroll functionality */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
 @media (min-width: 1024px) {
   .crm-chat-viewport {
     height: calc(100vh - 7.5rem);

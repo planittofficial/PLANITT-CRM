@@ -46,6 +46,13 @@ export default function TeamsPage() {
   const [loadingMessages, setLoadingMessages] = useState(false);
 
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
+  const messagesContainerRef = useRef<HTMLDivElement | null>(null);
+
+  const scrollToBottom = () => {
+    if (messagesContainerRef.current) {
+      messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
+    }
+  };
 
   // Load Departments and Projects on start
   useEffect(() => {
@@ -102,7 +109,7 @@ export default function TeamsPage() {
     apiGet<ChannelMessage[]>(`/channels/${selectedChannel.id}/messages`)
       .then((msgs) => {
         setMessages(msgs);
-        setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }), 100);
+        setTimeout(scrollToBottom, 60);
       })
       .catch(() => {})
       .finally(() => setLoadingMessages(false));
@@ -127,7 +134,7 @@ export default function TeamsPage() {
       });
       setMessages((prev) => [...prev, newMsg]);
       setMessageDraft("");
-      setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }), 50);
+      setTimeout(scrollToBottom, 30);
     } catch (err) {
       showToast("Failed to send message", "error");
     } finally {
@@ -193,13 +200,13 @@ export default function TeamsPage() {
   }
 
   return (
-    <CRMShell user={user}>
-      <div className="flex h-full overflow-hidden bg-[var(--app-bg)]">
+    <CRMShell user={user} fullBleed>
+      <div className="flex h-full w-full min-h-0 overflow-hidden bg-[var(--app-bg)]">
         {/* ── LEFT PANE: TEAMS & CHANNELS TREE (260px) ────────────────────── */}
-        <aside className="w-64 shrink-0 border-r border-[var(--border)] bg-[var(--surface-strong,#ffffff)] flex flex-col justify-between">
-          <div>
+        <aside className="w-64 shrink-0 border-r border-[var(--border)] bg-[var(--surface-strong,#ffffff)] flex flex-col justify-between min-h-0">
+          <div className="flex flex-col min-h-0 h-full">
             {/* Header */}
-            <div className="flex items-center justify-between border-b border-[var(--border)] px-4 py-3">
+            <div className="flex items-center justify-between border-b border-[var(--border)] px-4 py-3 shrink-0">
               <span className="text-xs font-bold text-[var(--text-main)] uppercase tracking-wider">
                 Teams & Channels
               </span>
@@ -214,7 +221,7 @@ export default function TeamsPage() {
             </div>
 
             {/* Tree Navigation */}
-            <div className="overflow-y-auto p-2 space-y-4 max-h-[calc(100vh-140px)]">
+            <div className="overflow-y-auto p-2 space-y-4 flex-1 min-h-0">
               {/* Departments Section */}
               <div>
                 <p className="px-2 text-[10px] font-bold uppercase tracking-wider text-[var(--text-faint)] mb-1">
@@ -323,11 +330,11 @@ export default function TeamsPage() {
         </aside>
 
         {/* ── RIGHT MAIN PANE: ACTIVE CHANNEL ──────────────────────────────── */}
-        <main className="flex-1 flex flex-col min-w-0 bg-[var(--app-bg)]">
+        <main className="flex-1 flex flex-col min-w-0 min-h-0 bg-[var(--app-bg)]">
           {selectedChannel ? (
             <>
               {/* Channel Top Header */}
-              <div className="border-b border-[var(--border)] bg-[var(--surface-strong,#ffffff)] px-6 py-3">
+              <div className="border-b border-[var(--border)] bg-[var(--surface-strong,#ffffff)] px-6 py-3 shrink-0">
                 <div className="flex items-center justify-between gap-3">
                   <div className="flex items-center gap-2.5 min-w-0">
                     <HashIcon size={18} className="text-[var(--accent)] shrink-0" />
@@ -406,7 +413,7 @@ export default function TeamsPage() {
               {channelTab === "posts" && (
                 <div className="flex-1 flex flex-col min-h-0">
                   {/* Messages Feed */}
-                  <div className="flex-1 overflow-y-auto p-6 space-y-4">
+                  <div ref={messagesContainerRef} className="flex-1 overflow-y-auto p-6 space-y-4 min-h-0">
                     {loadingMessages ? (
                       <div className="py-12 text-center text-xs text-[var(--text-soft)]">
                         Loading messages...
@@ -520,7 +527,7 @@ export default function TeamsPage() {
                   </div>
 
                   {/* Channel Message Composer */}
-                  <div className="border-t border-[var(--border)] bg-[var(--surface-strong,#ffffff)] p-4">
+                  <div className="border-t border-[var(--border)] bg-[var(--surface-strong,#ffffff)] p-4 shrink-0">
                     <form onSubmit={handleSendMessage} className="space-y-2">
                       <div className="relative">
                         <textarea
@@ -567,7 +574,7 @@ export default function TeamsPage() {
 
               {/* ── TAB 2: GOOGLE DRIVE FILES ──────────────────────────────── */}
               {channelTab === "files" && (
-                <div className="flex-1 p-6 overflow-y-auto">
+                <div className="flex-1 min-h-0 p-6 overflow-y-auto">
                   <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface-strong,#ffffff)] p-6 shadow-2xs">
                     <div className="flex items-center justify-between border-b border-[var(--border)] pb-4 mb-4">
                       <div>
@@ -595,7 +602,7 @@ export default function TeamsPage() {
 
               {/* ── TAB 3: PROJECT TASKS ───────────────────────────────────── */}
               {channelTab === "tasks" && (
-                <div className="flex-1 p-6 overflow-y-auto space-y-3">
+                <div className="flex-1 min-h-0 p-6 overflow-y-auto space-y-3">
                   <div className="flex items-center justify-between mb-2">
                     <h3 className="text-sm font-bold text-[var(--text-main)]">Linked Project Tasks</h3>
                     <span className="text-xs text-[var(--text-soft)]">{channelTasks.length} tasks</span>

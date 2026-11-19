@@ -146,10 +146,10 @@ export default function CalendarPage() {
   }
 
   return (
-    <CRMShell user={user}>
-      <div className="flex h-full flex-col overflow-hidden bg-[var(--app-bg)]">
+    <CRMShell user={user} fullBleed>
+      <div className="flex h-full w-full min-h-0 flex-col overflow-hidden bg-[var(--app-bg)]">
         {/* Top Action Bar */}
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--border)] bg-[var(--surface-strong,#ffffff)] px-6 py-4">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--border)] bg-[var(--surface-strong,#ffffff)] px-6 py-4 shrink-0">
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-violet-600 text-white shadow-xs">
               <CalendarDaysIcon size={20} />

@@ -38,6 +38,7 @@ type CRMShellProps = {
   children: ReactNode;
   user: CRMUser;
   compactMobileChrome?: boolean;
+  fullBleed?: boolean;
 };
 
 type NavItem = {
@@ -71,8 +72,9 @@ const pageMetadata: Record<string, { title: string; category: string }> = {
   "/notifications": { title: "Notifications", category: "Alerts" },
 };
 
-export function CRMShell({ children, user, compactMobileChrome = false }: CRMShellProps) {
+export function CRMShell({ children, user, compactMobileChrome = false, fullBleed = false }: CRMShellProps) {
   const pathname = usePathname();
+  const isFullBleed = fullBleed || pathname === "/teams" || pathname === "/calendar" || pathname === "/crm";
   const router = useRouter();
   const { theme, setTheme } = useTheme();
   const { globalSearch, setGlobalSearch, submitSearch, searchNoResult, setSearchNoResult } = useCrmSearch();
@@ -445,24 +447,24 @@ export function CRMShell({ children, user, compactMobileChrome = false }: CRMShe
   };
 
   return (
-    <div className="flex h-screen w-screen overflow-hidden bg-[var(--app-bg)] text-[var(--text-main)] font-sans antialiased">
+    <div className="flex h-screen max-h-screen w-screen overflow-hidden bg-[var(--app-bg)] text-[var(--text-main)] font-sans antialiased">
       {/* ── TEAMS ACTIVITY RAIL (Left: 60px) ─────────────────────────────────── */}
       <aside
-        className="hidden md:flex h-full w-[60px] shrink-0 flex-col items-center justify-between border-r border-[var(--border)] bg-[var(--surface-strong,#ffffff)] py-3 z-30 select-none shadow-[1px_0_4px_rgba(0,0,0,0.02)]"
+        className="hidden md:flex h-full max-h-screen w-[60px] shrink-0 flex-col items-center justify-between border-r border-[var(--border)] bg-[var(--surface-strong,#ffffff)] py-2.5 z-30 select-none shadow-[1px_0_4px_rgba(0,0,0,0.02)] min-h-0 overflow-hidden"
         aria-label="Activity Rail"
       >
         {/* Top: Brand Logo */}
-        <div className="flex flex-col items-center gap-4">
+        <div className="flex flex-col items-center gap-2.5 w-full min-h-0 flex-1 overflow-hidden">
           <Link
             href="/dashboard"
-            className="group flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--accent)] text-white font-black text-sm shadow-xs transition-transform hover:scale-105"
+            className="group flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[var(--accent)] text-white font-black text-sm shadow-xs transition-transform hover:scale-105"
             title="Planitt CRM"
           >
             P
           </Link>
 
           {/* Navigation Items */}
-          <nav className="flex flex-col items-center gap-1.5" aria-label="Main Navigation">
+          <nav className="flex flex-col items-center gap-1 w-full overflow-y-auto no-scrollbar py-1" aria-label="Main Navigation">
             {navItems.map((item) => {
               const isActive = pathname === item.href;
               const Icon = item.icon;
@@ -471,14 +473,14 @@ export function CRMShell({ children, user, compactMobileChrome = false }: CRMShe
                 <Link
                   key={item.href}
                   href={item.href}
-                  className={`group relative flex h-10 w-10 items-center justify-center rounded-xl transition-all ${
+                  className={`group relative flex h-9 w-9 shrink-0 items-center justify-center rounded-xl transition-all ${
                     isActive
                       ? "bg-[var(--accent)] text-white shadow-xs"
                       : "text-[var(--text-soft)] hover:bg-[var(--surface-soft)] hover:text-[var(--text-main)]"
                   }`}
                   title={item.label}
                 >
-                  <Icon size={19} />
+                  <Icon size={18} />
                   {typeof item.badge === "number" && item.badge > 0 && (
                     <span className="absolute -top-1 -right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-rose-600 px-1 text-[9px] font-black text-white shadow-2xs">
                       {item.badge > 99 ? "99+" : item.badge}
@@ -495,16 +497,16 @@ export function CRMShell({ children, user, compactMobileChrome = false }: CRMShe
         </div>
 
         {/* Bottom: Utility Controls */}
-        <div className="flex flex-col items-center gap-2">
+        <div className="flex flex-col items-center gap-1.5 shrink-0 pt-2 border-t border-[var(--border)] w-full">
           {/* Theme switch */}
           <button
             type="button"
             onClick={toggleTheme}
-            className="group relative flex h-9 w-9 items-center justify-center rounded-xl text-[var(--text-soft)] hover:bg-[var(--surface-soft)] hover:text-[var(--text-main)] transition-colors"
+            className="group relative flex h-8 w-8 items-center justify-center rounded-xl text-[var(--text-soft)] hover:bg-[var(--surface-soft)] hover:text-[var(--text-main)] transition-colors"
             aria-label={`Switch to ${theme === "light" ? "dark" : "light"} mode`}
             title={`Switch to ${theme === "light" ? "dark" : "light"} mode`}
           >
-            {theme === "light" ? <MoonIcon size={17} /> : <SunIcon size={17} />}
+            {theme === "light" ? <MoonIcon size={16} /> : <SunIcon size={16} />}
             <span className="pointer-events-none absolute left-full ml-2 hidden whitespace-nowrap rounded-md bg-slate-900 px-2 py-1 text-xs font-semibold text-white shadow-lg group-hover:block z-50">
               {theme === "light" ? "Dark Mode" : "Light Mode"}
             </span>
@@ -865,11 +867,19 @@ export function CRMShell({ children, user, compactMobileChrome = false }: CRMShe
         )}
 
         {/* ── CONTENT BODY VIEWPORT ─────────────────────────────────────────── */}
-        <main className="flex-1 overflow-y-auto overflow-x-hidden p-3 sm:p-5 lg:p-6">
-          <div className="mx-auto max-w-7xl w-full">
-            {children}
-          </div>
-        </main>
+        {isFullBleed ? (
+          <main className="flex-1 min-h-0 overflow-hidden flex flex-col w-full">
+            <div className="flex-1 min-h-0 w-full flex flex-col">
+              {children}
+            </div>
+          </main>
+        ) : (
+          <main className="flex-1 overflow-y-auto overflow-x-hidden p-3 sm:p-5 lg:p-6">
+            <div className="mx-auto max-w-7xl w-full">
+              {children}
+            </div>
+          </main>
+        )}
 
         {/* ── MOBILE BOTTOM NAVIGATION BAR ─────────────────────────────────────── */}
         <nav
