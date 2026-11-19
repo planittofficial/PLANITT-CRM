@@ -202,7 +202,7 @@ export default function TeamsPage() {
   }
 
   return (
-    <CRMShell user={user} fullBleed>
+    <CRMShell user={user} fullBleed compactMobileChrome>
       <div className="flex h-full w-full min-h-0 overflow-hidden bg-[var(--app-bg)]">
         {/* ── LEFT PANE: TEAMS & CHANNELS TREE ────────────────────────────── */}
         <aside
@@ -212,27 +212,32 @@ export default function TeamsPage() {
         >
           <div className="flex flex-col min-h-0 h-full">
             {/* Header */}
-            <div className="flex items-center justify-between border-b border-[var(--border)] px-4 py-3 shrink-0">
-              <span className="text-xs font-bold text-[var(--text-main)] uppercase tracking-wider">
-                Teams & Channels
-              </span>
-              <div className="flex items-center gap-1.5">
+            <div className="flex h-12 shrink-0 items-center justify-between border-b border-[var(--border)] bg-[var(--surface-strong,#ffffff)] px-4">
+              <div className="flex items-center gap-2">
+                <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-[var(--accent)] text-white shadow-2xs">
+                  <UsersIcon size={15} />
+                </div>
+                <span className="text-sm font-bold text-[var(--text-main)]">
+                  Teams & Channels
+                </span>
+              </div>
+              <div className="flex items-center gap-1">
                 {selectedChannel && (
                   <button
                     type="button"
                     onClick={() => setMobileView("channel")}
-                    className="md:hidden inline-flex items-center gap-1 rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] px-2 py-1 text-[11px] font-semibold text-[var(--accent)] hover:bg-[var(--surface-hover)] active:scale-95 transition"
+                    className="md:hidden inline-flex items-center gap-1 rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] px-2.5 py-1 text-xs font-semibold text-[var(--accent)] hover:bg-[var(--surface-hover)] active:scale-95 transition"
                     title="Return to active channel"
                   >
                     <span>#{selectedChannel.name}</span>
-                    <ChevronRightIcon size={12} />
+                    <ChevronRightIcon size={13} />
                   </button>
                 )}
                 <button
                   type="button"
                   onClick={() => setCreateChannelOpen(true)}
                   title="Create Channel"
-                  className="rounded-lg p-1.5 text-[var(--text-soft)] hover:bg-[var(--surface-soft)] hover:text-[var(--text-main)] transition"
+                  className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-[var(--border)] text-[var(--text-soft)] hover:bg-[var(--surface-soft)] hover:text-[var(--text-main)] transition"
                 >
                   <PlusIcon size={16} />
                 </button>
@@ -362,90 +367,90 @@ export default function TeamsPage() {
         >
           {selectedChannel ? (
             <>
-              {/* Channel Top Header */}
-              <div className="border-b border-[var(--border)] bg-[var(--surface-strong,#ffffff)] px-3 sm:px-6 py-2.5 sm:py-3 shrink-0">
-                <div className="flex items-center justify-between gap-2 sm:gap-3">
-                  <div className="flex items-center gap-2 min-w-0">
+              {/* Channel Header (Microsoft Teams Native Style) */}
+              <div className="border-b border-[var(--border)] bg-[var(--surface-strong,#ffffff)] px-3 sm:px-5 pt-2 sm:pt-2.5 pb-0 shrink-0">
+                <div className="flex items-center justify-between gap-2 h-10 sm:h-11">
+                  {/* Left: Back Arrow + Channel Info */}
+                  <div className="flex items-center gap-2 sm:gap-3 min-w-0">
                     <button
                       type="button"
                       onClick={() => setMobileView("tree")}
-                      aria-label="Back to Teams and Channels"
-                      className="md:hidden inline-flex h-8 items-center gap-1 rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] px-2 text-xs font-semibold text-[var(--text-main)] hover:bg-[var(--surface-hover)] active:scale-95 transition shrink-0"
+                      aria-label="Back to Teams"
+                      className="md:hidden inline-flex h-8 w-8 items-center justify-center rounded-lg text-[var(--text-soft)] hover:text-[var(--text-main)] hover:bg-[var(--surface-soft)] active:scale-95 transition shrink-0"
                     >
-                      <ArrowLeftIcon size={14} />
-                      <span className="text-[11px]">Teams</span>
+                      <ArrowLeftIcon size={18} />
                     </button>
 
-                    <HashIcon size={18} className="text-[var(--accent)] shrink-0" />
+                    <div className="flex h-7 w-7 sm:h-8 sm:w-8 items-center justify-center rounded-lg bg-[var(--accent)]/10 text-[var(--accent)] shrink-0 font-bold text-xs sm:text-sm">
+                      <HashIcon size={15} />
+                    </div>
+
                     <div className="min-w-0">
-                      <div className="flex items-center gap-1.5 flex-wrap">
-                        <h2 className="text-sm font-bold text-[var(--text-main)] truncate max-w-[130px] sm:max-w-none">
+                      <div className="flex items-center gap-1.5 min-w-0">
+                        <h2 className="text-xs sm:text-sm font-bold text-[var(--text-main)] truncate">
                           {selectedChannel.name}
                         </h2>
                         {selectedParent && (
-                          <span className="rounded bg-[var(--surface-soft)] border border-[var(--border)] px-1.5 py-0.5 text-[10px] text-[var(--text-soft)] truncate max-w-[110px] sm:max-w-none">
+                          <span className="hidden sm:inline-block rounded bg-[var(--surface-soft)] border border-[var(--border)] px-1.5 py-0.2 text-[10px] text-[var(--text-soft)] truncate max-w-[120px]">
                             {selectedParent.name}
                           </span>
                         )}
                       </div>
-                      {selectedChannel.description && (
-                        <p className="text-[11px] text-[var(--text-soft)] truncate">
-                          {selectedChannel.description}
-                        </p>
-                      )}
+                      <p className="text-[10px] sm:text-[11px] text-[var(--text-soft)] truncate max-w-[180px] sm:max-w-md">
+                        {selectedChannel.description || selectedParent?.name || "General discussion"}
+                      </p>
                     </div>
                   </div>
 
-                  {/* Top Action: Meet Now */}
-                  <div className="flex items-center gap-2 shrink-0">
+                  {/* Right: Instant Meet Action */}
+                  <div className="flex items-center gap-1.5 shrink-0">
                     <button
                       type="button"
                       onClick={handleLaunchChannelMeet}
-                      className="inline-flex items-center gap-1.5 rounded-xl bg-purple-600 px-2.5 sm:px-3 py-1.5 text-xs font-bold text-white shadow-xs hover:bg-purple-700 transition shrink-0"
+                      className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-purple-600 px-2.5 text-xs font-bold text-white shadow-xs hover:bg-purple-700 active:scale-95 transition shrink-0"
                       title="Start Google Meet with everyone in this channel"
                     >
                       <VideoIcon size={14} />
-                      <span className="hidden sm:inline">Meet Now</span>
-                      <span className="sm:hidden text-[11px]">Meet</span>
+                      <span className="text-[11px] sm:text-xs">Meet</span>
                     </button>
                   </div>
                 </div>
 
-                {/* Channel Navigation Tabs */}
-                <div className="flex gap-3 sm:gap-4 mt-2 sm:mt-3 border-t border-[var(--border)] pt-2 text-xs font-semibold overflow-x-auto no-scrollbar">
+                {/* Microsoft Teams Tabs Strip */}
+                <div className="flex gap-4 sm:gap-6 mt-1 text-xs font-semibold overflow-x-auto no-scrollbar">
                   <button
                     type="button"
                     onClick={() => setChannelTab("posts")}
-                    className={`transition pb-1 whitespace-nowrap shrink-0 ${
+                    className={`relative pb-1.5 transition whitespace-nowrap shrink-0 text-xs ${
                       channelTab === "posts"
-                        ? "border-b-2 border-[var(--accent)] text-[var(--accent)]"
+                        ? "text-[var(--accent)] font-bold after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-[var(--accent)] after:rounded-full"
                         : "text-[var(--text-soft)] hover:text-[var(--text-main)]"
                     }`}
                   >
-                    Posts & Chat
+                    Posts
                   </button>
                   <button
                     type="button"
                     onClick={() => setChannelTab("files")}
-                    className={`transition pb-1 whitespace-nowrap shrink-0 ${
+                    className={`relative pb-1.5 transition whitespace-nowrap shrink-0 text-xs ${
                       channelTab === "files"
-                        ? "border-b-2 border-[var(--accent)] text-[var(--accent)]"
+                        ? "text-[var(--accent)] font-bold after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-[var(--accent)] after:rounded-full"
                         : "text-[var(--text-soft)] hover:text-[var(--text-main)]"
                     }`}
                   >
-                    Google Drive Files
+                    Files
                   </button>
                   {selectedChannel.projectId && (
                     <button
                       type="button"
                       onClick={() => setChannelTab("tasks")}
-                      className={`transition pb-1 whitespace-nowrap shrink-0 ${
+                      className={`relative pb-1.5 transition whitespace-nowrap shrink-0 text-xs ${
                         channelTab === "tasks"
-                          ? "border-b-2 border-[var(--accent)] text-[var(--accent)]"
+                          ? "text-[var(--accent)] font-bold after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-[var(--accent)] after:rounded-full"
                           : "text-[var(--text-soft)] hover:text-[var(--text-main)]"
                       }`}
                     >
-                      Project Tasks ({channelTasks.length})
+                      Tasks ({channelTasks.length})
                     </button>
                   )}
                 </div>
@@ -455,19 +460,21 @@ export default function TeamsPage() {
               {channelTab === "posts" && (
                 <div className="flex-1 flex flex-col min-h-0">
                   {/* Messages Feed */}
-                  <div ref={messagesContainerRef} className="flex-1 overflow-y-auto p-3 sm:p-6 space-y-3 sm:space-y-4 min-h-0">
+                  <div ref={messagesContainerRef} className="flex-1 overflow-y-auto px-3 sm:px-6 py-3 sm:py-4 space-y-2.5 sm:space-y-3 min-h-0">
                     {loadingMessages ? (
                       <div className="py-12 text-center text-xs text-[var(--text-soft)]">
                         Loading messages...
                       </div>
                     ) : messages.length === 0 ? (
-                      <div className="py-12 text-center">
-                        <HashIcon size={32} className="mx-auto text-[var(--text-soft)] opacity-40 mb-2" />
+                      <div className="py-8 sm:py-12 text-center max-w-sm mx-auto px-4">
+                        <div className="mx-auto flex h-11 w-11 items-center justify-center rounded-2xl bg-[var(--surface-soft)] text-[var(--accent)] mb-2.5">
+                          <HashIcon size={22} />
+                        </div>
                         <p className="text-sm font-bold text-[var(--text-main)]">
                           Welcome to #{selectedChannel.name}
                         </p>
-                        <p className="text-xs text-[var(--text-soft)] mt-1">
-                          This is the start of the #{selectedChannel.name} channel. Start the discussion or click &quot;Meet Now&quot; to begin a team video huddle.
+                        <p className="text-xs text-[var(--text-soft)] mt-1 leading-relaxed">
+                          This is the beginning of the #{selectedChannel.name} channel. Start the conversation or begin a video huddle.
                         </p>
                       </div>
                     ) : (
@@ -481,7 +488,7 @@ export default function TeamsPage() {
                         return (
                           <div
                             key={msg.id}
-                            className={`flex gap-2.5 sm:gap-3 rounded-2xl border p-3 sm:p-4 shadow-2xs transition ${
+                            className={`flex gap-2.5 sm:gap-3 rounded-xl border p-2.5 sm:p-3.5 shadow-2xs transition ${
                               isMeeting
                                 ? "border-purple-200 bg-purple-50/60 dark:border-purple-900 dark:bg-purple-950/20"
                                 : "border-[var(--border)] bg-[var(--surface-strong,#ffffff)]"
@@ -490,7 +497,7 @@ export default function TeamsPage() {
                             <Avatar
                               name={msg.author.name}
                               avatarUrl={msg.author.avatarUrl}
-                              size="md"
+                              size="sm"
                               status={authorStatus}
                               statusTitle={`${msg.author.name}${authorStatus ? ` (${authorStatus})` : ""}${authorCustomMsg ? ` - "${authorCustomMsg}"` : ""}`}
                             />
@@ -501,7 +508,7 @@ export default function TeamsPage() {
                                   {msg.author.name}
                                 </span>
                                 {authorCustomMsg && (
-                                  <span className="rounded bg-[var(--surface-soft)] px-1.5 py-0.5 text-[10px] text-[var(--text-soft)] italic truncate max-w-[140px] sm:max-w-[200px]" title={authorCustomMsg}>
+                                  <span className="rounded bg-[var(--surface-soft)] px-1.5 py-0.2 text-[10px] text-[var(--text-soft)] italic truncate max-w-[130px] sm:max-w-[200px]" title={authorCustomMsg}>
                                     "{authorCustomMsg}"
                                   </span>
                                 )}
@@ -512,15 +519,15 @@ export default function TeamsPage() {
 
                               {/* Google Meet Meeting Card */}
                               {isMeeting && msg.meetingUrl ? (
-                                <div className="mt-2 rounded-xl border border-purple-300 dark:border-purple-800 bg-[var(--surface-strong,#ffffff)] p-3.5">
+                                <div className="mt-2 rounded-xl border border-purple-300 dark:border-purple-800 bg-[var(--surface-strong,#ffffff)] p-3">
                                   <div className="flex items-center gap-2 text-purple-700 dark:text-purple-300 font-bold text-xs">
-                                    <VideoIcon size={16} />
-                                    <span>{msg.meetingTitle || "Instant Google Meet Session"}</span>
+                                    <VideoIcon size={15} />
+                                    <span>{msg.meetingTitle || "Google Meet Session"}</span>
                                   </div>
-                                  <p className="text-[11px] text-[var(--text-soft)] mt-1">
+                                  <p className="text-[11px] text-[var(--text-soft)] mt-0.5">
                                     Google Meet video call started. Click to join the room.
                                   </p>
-                                  <div className="mt-3 flex items-center gap-2">
+                                  <div className="mt-2.5 flex items-center gap-2">
                                     <a
                                       href={msg.meetingUrl}
                                       target="_blank"
@@ -529,21 +536,21 @@ export default function TeamsPage() {
                                         await setMeetingStatus(msg.meetingTitle || "Google Meet Session");
                                         showToast("Joined meeting! Status automatically set to In a Meeting (🔴)", "success");
                                       }}
-                                      className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-bold text-white hover:bg-emerald-700 transition"
+                                      className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-1 text-xs font-bold text-white hover:bg-emerald-700 transition"
                                     >
                                       <VideoIcon size={13} />
-                                      <span>Join Google Meet</span>
+                                      <span>Join Meeting</span>
                                     </a>
                                   </div>
                                 </div>
                               ) : (
-                                <p className="mt-1 text-xs text-[var(--text-main)] whitespace-pre-wrap leading-relaxed break-words">
+                                <p className="mt-0.5 text-xs text-[var(--text-main)] whitespace-pre-wrap leading-relaxed break-words">
                                   {msg.content}
                                 </p>
                               )}
 
                               {/* Emoji Reactions Bar */}
-                              <div className="mt-2 flex items-center gap-1.5 flex-wrap">
+                              <div className="mt-1.5 flex items-center gap-1 flex-wrap">
                                 {["👍", "❤️", "🚀", "🎉"].map((emoji) => {
                                   const count = msg.reactions?.[emoji]?.length || 0;
                                   return (
@@ -551,7 +558,7 @@ export default function TeamsPage() {
                                       key={emoji}
                                       type="button"
                                       onClick={() => handleReaction(msg.id, emoji)}
-                                      className={`rounded-full border border-[var(--border)] px-2 py-0.5 text-[11px] transition ${
+                                      className={`rounded-full border border-[var(--border)] px-2 py-0.2 text-[10px] transition ${
                                         count > 0 ? "bg-[var(--surface-soft)] font-bold text-[var(--accent)]" : "text-[var(--text-soft)] hover:bg-[var(--surface-soft)]"
                                       }`}
                                     >
@@ -568,47 +575,36 @@ export default function TeamsPage() {
                     <div ref={messagesEndRef} />
                   </div>
 
-                  {/* Channel Message Composer */}
-                  <div className="border-t border-[var(--border)] bg-[var(--surface-strong,#ffffff)] p-3 sm:p-4 shrink-0">
-                    <form onSubmit={handleSendMessage} className="space-y-2">
-                      <div className="relative">
-                        <textarea
-                          rows={2}
+                  {/* Channel Message Composer (Microsoft Teams Style) */}
+                  <div className="border-t border-[var(--border)] bg-[var(--surface-strong,#ffffff)] px-2.5 sm:px-4 py-2 shrink-0">
+                    <form onSubmit={handleSendMessage} className="flex items-center gap-1.5 sm:gap-2">
+                      <button
+                        type="button"
+                        onClick={handleLaunchChannelMeet}
+                        className="inline-flex h-9 w-9 items-center justify-center rounded-xl text-[var(--text-soft)] hover:text-purple-600 hover:bg-purple-50 dark:hover:bg-purple-950/30 active:scale-95 transition shrink-0"
+                        title="Start Instant Google Meet"
+                      >
+                        <VideoIcon size={17} />
+                      </button>
+
+                      <div className="flex-1 flex items-center min-w-0 rounded-2xl border border-[var(--border)] bg-[var(--surface-soft)] px-3 py-1.5 focus-within:border-[var(--accent)] transition">
+                        <input
+                          type="text"
                           value={messageDraft}
                           onChange={(e) => setMessageDraft(e.target.value)}
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter" && !e.shiftKey) {
-                              e.preventDefault();
-                              handleSendMessage(e);
-                            }
-                          }}
-                          placeholder={`Message #${selectedChannel.name}...`}
-                          className="w-full rounded-xl border border-[var(--border)] bg-[var(--surface-soft)] p-2.5 sm:p-3 text-xs text-[var(--text-main)] outline-none focus:border-[var(--accent)] resize-none"
+                          placeholder={`Reply in #${selectedChannel.name}...`}
+                          className="w-full bg-transparent text-xs text-[var(--text-main)] outline-none placeholder:text-[var(--text-faint)]"
                         />
                       </div>
 
-                      <div className="flex items-center justify-between gap-2">
-                        <div className="flex items-center gap-1 text-[var(--text-soft)]">
-                          <button
-                            type="button"
-                            onClick={handleLaunchChannelMeet}
-                            className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs hover:bg-[var(--surface-soft)] hover:text-purple-600 transition"
-                            title="Start Instant Google Meet"
-                          >
-                            <VideoIcon size={14} />
-                            <span className="font-semibold text-[11px]">Meet</span>
-                          </button>
-                        </div>
-
-                        <button
-                          type="submit"
-                          disabled={sendingMessage || !messageDraft.trim()}
-                          className="inline-flex items-center gap-1.5 rounded-xl bg-[var(--accent)] px-3.5 py-1.5 text-xs font-bold text-white hover:opacity-90 transition disabled:opacity-40 shrink-0"
-                        >
-                          <SendIcon size={13} />
-                          <span>Send</span>
-                        </button>
-                      </div>
+                      <button
+                        type="submit"
+                        disabled={sendingMessage || !messageDraft.trim()}
+                        className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-[var(--accent)] text-white shadow-xs hover:opacity-95 active:scale-95 transition disabled:opacity-30 disabled:pointer-events-none shrink-0"
+                        title="Send message"
+                      >
+                        <SendIcon size={15} />
+                      </button>
                     </form>
                   </div>
                 </div>
