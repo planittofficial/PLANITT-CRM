@@ -19,6 +19,7 @@ import { ChatsSkeleton } from "@/components/shared/skeleton";
 import { roomKey } from "@/components/chat/chat-utils";
 import type { CRMUser, ChatRoom, ChatRoomsResponse } from "@/types/crm";
 import { showToast } from "@/hooks/use-toast";
+import { ArrowLeftIcon, PlusIcon, MessageSquareIcon } from "@/components/ui/icons";
 
 type MobilePane = "rooms" | "conversation";
 
@@ -197,33 +198,33 @@ export default function ChatPage() {
                       setDirectTargetUserId("");
                       setShowStartDirectModal(true);
                     }}
-                    className="h-9 rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] px-2.5 text-xs font-medium text-[var(--text-main)] hover:bg-[var(--surface)] hover:border-[var(--accent)] transition-colors shadow-xs"
+                    className="h-10 rounded-xl border border-[var(--border)] bg-[var(--surface-soft)] px-2.5 text-xs font-semibold text-[var(--text-main)] hover:bg-[var(--surface)] hover:border-[var(--accent)] transition-colors shadow-2xs flex items-center justify-center gap-1.5 active:scale-95"
                   >
-                    + Direct Chat
+                    <MessageSquareIcon size={14} className="text-[var(--accent)]" />
+                    <span>Direct Chat</span>
                   </button>
                   <button
                     type="button"
                     onClick={() => groups_.setShowCreateGroup(true)}
-                    className="h-9 rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] px-2.5 text-xs font-medium text-[var(--text-main)] hover:bg-[var(--surface)] hover:border-[var(--accent)] transition-colors shadow-xs"
+                    className="h-10 rounded-xl border border-[var(--border)] bg-[var(--surface-soft)] px-2.5 text-xs font-semibold text-[var(--text-main)] hover:bg-[var(--surface)] hover:border-[var(--accent)] transition-colors shadow-2xs flex items-center justify-center gap-1.5 active:scale-95"
                   >
-                    + New Channel
+                    <PlusIcon size={14} className="text-[var(--accent)]" />
+                    <span>New Channel</span>
                   </button>
                 </div>
               ) : null}
 
-              <div className="mt-3 grid grid-cols-2 gap-2">
-                {[
-                  { label: "Active Channels", value: chatAnalytics.totalRooms },
-                  { label: "Unread", value: chatAnalytics.unreadTotal },
-                ].map((item) => (
-                  <div
-                    key={item.label}
-                    className="rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] px-3 py-1.5"
-                  >
-                    <p className="text-[10px] text-[var(--text-faint)]">{item.label}</p>
-                    <p className="mt-0.5 text-xs font-bold text-[var(--text-main)]">{item.value}</p>
-                  </div>
-                ))}
+              <div className="mt-2.5 grid grid-cols-2 gap-2">
+                <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-soft)] px-3 py-2 flex items-center justify-between">
+                  <p className="text-[11px] font-medium text-[var(--text-soft)]">Channels</p>
+                  <p className="text-xs font-bold text-[var(--text-main)]">{chatAnalytics.totalRooms}</p>
+                </div>
+                <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-soft)] px-3 py-2 flex items-center justify-between">
+                  <p className="text-[11px] font-medium text-[var(--text-soft)]">Unread</p>
+                  <p className={`text-xs font-bold ${chatAnalytics.unreadTotal > 0 ? "text-[var(--accent)] font-black" : "text-[var(--text-main)]"}`}>
+                    {chatAnalytics.unreadTotal}
+                  </p>
+                </div>
               </div>
 
               {error ? (
@@ -255,11 +256,11 @@ export default function ChatPage() {
                         <button
                           type="button"
                           onClick={() => setMobilePane("rooms")}
-                          className="crm-touch-target flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border text-sm font-semibold"
+                          className="crm-touch-target flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border text-sm font-semibold active:scale-95 transition"
                           style={{ borderColor: "var(--border)", color: "var(--text-main)", background: "var(--surface-soft)" }}
                           aria-label="Back to rooms"
                         >
-                          ←
+                          <ArrowLeftIcon size={18} />
                         </button>
                         <div className="min-w-0 flex-1">
                           <p className="truncate text-sm font-semibold text-[var(--text-main)]">{selectedRoom.name}</p>

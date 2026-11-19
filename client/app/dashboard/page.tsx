@@ -155,8 +155,8 @@ export default function DashboardPage() {
       <CRMShell user={user}>
         <div className="space-y-4">
           {/* Teams Header Banner */}
-          <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-3.5 sm:p-5 shadow-xs">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4 sm:p-5 shadow-xs">
+            <div className="flex flex-col gap-3.5 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <div className="flex items-center gap-2">
                   <span className="rounded-md bg-indigo-50 px-2 py-0.5 text-xs font-semibold text-[var(--accent)] border border-indigo-200 dark:bg-indigo-950/40 dark:text-indigo-300 dark:border-indigo-800">
@@ -164,7 +164,7 @@ export default function DashboardPage() {
                   </span>
                   <span className="text-xs text-[var(--text-soft)]">Personal Workspace</span>
                 </div>
-                <h1 className="mt-1 text-xl font-bold tracking-tight text-[var(--text-main)] sm:text-2xl">
+                <h1 className="mt-1.5 text-xl font-bold tracking-tight text-[var(--text-main)] sm:text-2xl">
                   Welcome back, {user.name.split(" ")[0]}
                 </h1>
                 <p className="mt-0.5 text-xs text-[var(--text-soft)]">
@@ -172,18 +172,18 @@ export default function DashboardPage() {
                 </p>
               </div>
 
-              <div className="flex items-center gap-2">
-                <div className="rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] px-3 py-1.5 text-center min-w-[70px]">
-                  <p className="text-[10px] font-medium uppercase tracking-wider text-[var(--text-faint)]">
+              <div className="grid grid-cols-2 sm:flex sm:items-center gap-2 sm:gap-3">
+                <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-soft)] p-2.5 sm:px-3.5 sm:py-2 text-center min-w-[76px]">
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-[var(--text-faint)]">
                     My Tasks
                   </p>
-                  <p className="text-base font-bold text-[var(--text-main)]">{employeeSummary.metrics.myTasks}</p>
+                  <p className="mt-0.5 text-base font-black text-[var(--text-main)]">{employeeSummary.metrics.myTasks}</p>
                 </div>
-                <div className="rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] px-3 py-1.5 text-center min-w-[70px]">
-                  <p className="text-[10px] font-medium uppercase tracking-wider text-[var(--text-faint)]">
+                <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-soft)] p-2.5 sm:px-3.5 sm:py-2 text-center min-w-[76px]">
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-[var(--text-faint)]">
                     Completion
                   </p>
-                  <p className="text-base font-bold text-emerald-600">{completionRate}%</p>
+                  <p className="mt-0.5 text-base font-black text-emerald-600">{completionRate}%</p>
                 </div>
               </div>
             </div>
@@ -211,8 +211,8 @@ export default function DashboardPage() {
     <CRMShell user={user}>
       <div className="space-y-4">
         {/* Teams Header Banner */}
-        <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-3.5 sm:p-5 shadow-xs">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4 sm:p-5 shadow-xs">
+          <div className="flex flex-col gap-3.5 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <div className="flex items-center gap-2">
                 <span className="rounded-md bg-indigo-50 px-2 py-0.5 text-xs font-semibold text-[var(--accent)] border border-indigo-200 dark:bg-indigo-950/40 dark:text-indigo-300 dark:border-indigo-800">
@@ -226,7 +226,7 @@ export default function DashboardPage() {
                     : "Team Overview"}
                 </span>
               </div>
-              <h1 className="mt-1 text-xl font-bold tracking-tight text-[var(--text-main)] sm:text-2xl">
+              <h1 className="mt-1.5 text-xl font-bold tracking-tight text-[var(--text-main)] sm:text-2xl">
                 Welcome back, {user.name.split(" ")[0]}
               </h1>
               <p className="mt-0.5 text-xs text-[var(--text-soft)]">
@@ -236,18 +236,18 @@ export default function DashboardPage() {
               </p>
             </div>
 
-            <div className="flex items-center gap-2">
-              <div className="rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] px-3 py-1.5 text-center min-w-[70px]">
-                <p className="text-[10px] font-medium uppercase tracking-wider text-[var(--text-faint)]">
+            <div className="grid grid-cols-2 sm:flex sm:items-center gap-2 sm:gap-3">
+              <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-soft)] p-2.5 sm:px-3.5 sm:py-2 text-center min-w-[76px]">
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-[var(--text-faint)]">
                   Completion
                 </p>
-                <p className="text-base font-bold text-emerald-600">{completionRate}%</p>
+                <p className="mt-0.5 text-base font-black text-emerald-600">{completionRate}%</p>
               </div>
-              <div className="rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] px-3 py-1.5 text-center min-w-[70px]">
-                <p className="text-[10px] font-medium uppercase tracking-wider text-[var(--text-faint)]">
+              <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-soft)] p-2.5 sm:px-3.5 sm:py-2 text-center min-w-[76px]">
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-[var(--text-faint)]">
                   Work Hours
                 </p>
-                <p className="text-base font-bold text-[var(--text-main)]">{heroHoursValue}h</p>
+                <p className="mt-0.5 text-base font-black text-[var(--text-main)]">{heroHoursValue}h</p>
               </div>
             </div>
           </div>
