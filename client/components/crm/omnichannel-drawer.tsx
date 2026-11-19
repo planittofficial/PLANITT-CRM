@@ -183,6 +183,32 @@ export function OmnichannelDrawer({
     }
   };
 
+  // Handle Open in Gmail Web
+  const handleOpenInGmail = async () => {
+    if (!target || !target.email) {
+      showToast("This lead does not have an email address configured.", "error");
+      return;
+    }
+    const subj = emailSubject.trim() || `Planitt Solutions Update for ${target.name}`;
+    const body = messageBody.trim();
+    const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(target.email)}&su=${encodeURIComponent(subj)}&body=${encodeURIComponent(body)}`;
+    window.open(gmailUrl, "_blank");
+
+    try {
+      await apiPost("/crm/omnichannel/send-email", {
+        leadId: target.type === "LEAD" ? target.id : null,
+        dealId: target.type === "DEAL" ? target.id : null,
+        recipientEmail: target.email,
+        subject: subj,
+        body: body || "(Opened in Gmail compose window)",
+        templateName: selectedTemplateId || "custom_gmail",
+      });
+      showToast("Opened in Gmail & logged to timeline!", "success");
+    } catch {
+      // Logged
+    }
+  };
+
   if (!isOpen || !target) return null;
 
   return (
@@ -388,14 +414,26 @@ export function OmnichannelDrawer({
                   </button>
                 </>
               ) : (
-                <button
-                  type="button"
-                  onClick={handleSendEmail}
-                  disabled={sending || !target.email}
-                  className="inline-flex items-center gap-1.5 rounded-xl bg-blue-600 px-4 py-1.5 text-xs font-bold text-white hover:bg-blue-700 transition shadow-xs disabled:opacity-50"
-                >
-                  <span>{sending ? "Sending..." : "Send Email"}</span>
-                </button>
+                <>
+                  <button
+                    type="button"
+                    onClick={handleOpenInGmail}
+                    disabled={sending || !target.email}
+                    className="inline-flex items-center gap-1.5 rounded-xl border border-blue-300 dark:border-blue-800 bg-blue-50 px-3 py-1.5 text-xs font-bold text-blue-700 hover:bg-blue-100 dark:bg-blue-950/40 dark:text-blue-300 transition shadow-2xs disabled:opacity-50"
+                    title="Opens Gmail web composer with pre-filled lead details"
+                  >
+                    <span>Open in Gmail</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleSendEmail}
+                    disabled={sending || !target.email}
+                    className="inline-flex items-center gap-1.5 rounded-xl bg-blue-600 px-4 py-1.5 text-xs font-bold text-white hover:bg-blue-700 transition shadow-xs disabled:opacity-50"
+                  >
+                    <span>{sending ? "Sending..." : "Send Email"}</span>
+                  </button>
+                </>
               )}
             </div>
           </div>

@@ -14,6 +14,27 @@ import { canUseGoogleWorkspace, useDashboardData } from "@/hooks/use-dashboard-d
 import { apiGet } from "@/lib/api";
 import type { EmployeeDashboardSummary, UserAnalyticsSummary } from "@/types/crm";
 
+function getGreeting(): string {
+  const h = new Date().getHours();
+  if (h >= 5 && h < 12) return "Good Morning";
+  if (h >= 12 && h < 17) return "Good Afternoon";
+  if (h >= 17 && h < 21) return "Good Evening";
+  return "Good Night";
+}
+
+function getMarketStatus(): { isOpen: boolean; label: string } {
+  const now = new Date();
+  const utc = now.getTime() + now.getTimezoneOffset() * 60000;
+  const ist = new Date(utc + 3600000 * 5.5);
+  const istDay = ist.getDay();
+  const mins = ist.getHours() * 60 + ist.getMinutes();
+  const isOpen = istDay >= 1 && istDay <= 5 && mins >= 555 && mins <= 930;
+  return {
+    isOpen,
+    label: isOpen ? "NSE/BSE Market Open" : "Office Session Active",
+  };
+}
+
 export default function DashboardPage() {
   const { globalSearch, searchSubmitted } = useCrmSearch();
   const {
@@ -135,6 +156,8 @@ export default function DashboardPage() {
     { label: "Throughput forecast", value: `${forecastCompleted} completed by next week`, tone: (forecastCompletionRate >= completionRate ? "positive" : "neutral") as "neutral" | "positive" | "warning" },
   ];
 
+  const marketStatus = getMarketStatus();
+
   if (summary.scope === "employee") {
     const employeeSummary = summary as EmployeeDashboardSummary;
     return (
@@ -144,17 +167,25 @@ export default function DashboardPage() {
           <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4 sm:p-5 shadow-xs">
             <div className="flex flex-col gap-3.5 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <div className="flex items-center gap-2">
-                  <span className="rounded-md bg-indigo-50 px-2 py-0.5 text-xs font-semibold text-[var(--accent)] border border-indigo-200 dark:bg-indigo-950/40 dark:text-indigo-300 dark:border-indigo-800">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="rounded-md crm-gold-badge px-2 py-0.5 text-xs font-semibold">
                     {formatRole(user.role)}
                   </span>
                   <span className="text-xs text-[var(--text-soft)]">Personal Workspace</span>
+                  <span className="inline-flex items-center gap-1.5 rounded-full border border-[var(--border)] bg-[var(--surface-soft)] px-2.5 py-0.5 text-[11px] font-medium text-[var(--text-main)] shadow-2xs">
+                    <span
+                      className={`h-2 w-2 rounded-full shrink-0 ${
+                        marketStatus.isOpen ? "bg-emerald-500 animate-pulse" : "bg-[var(--accent)]"
+                      }`}
+                    />
+                    {marketStatus.label}
+                  </span>
                 </div>
-                <h1 className="mt-1.5 text-xl font-bold tracking-tight text-[var(--text-main)] sm:text-2xl">
-                  Welcome back, {user.name.split(" ")[0]}
+                <h1 className="mt-2 text-xl font-bold tracking-tight text-[var(--text-main)] sm:text-2xl">
+                  {getGreeting()}, {user.name.split(" ")[0]}
                 </h1>
                 <p className="mt-0.5 text-xs text-[var(--text-soft)]">
-                  Your work summary and daily attendance status.
+                  Your daily operational summary and deliverables.
                 </p>
               </div>
 
@@ -169,7 +200,7 @@ export default function DashboardPage() {
                   <p className="text-[10px] font-semibold uppercase tracking-wider text-[var(--text-faint)]">
                     Completion
                   </p>
-                  <p className="mt-0.5 text-base font-black text-emerald-600">{completionRate}%</p>
+                  <p className="mt-0.5 text-base font-black text-[var(--accent)]">{completionRate}%</p>
                 </div>
               </div>
             </div>
@@ -200,8 +231,8 @@ export default function DashboardPage() {
         <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4 sm:p-5 shadow-xs">
           <div className="flex flex-col gap-3.5 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <div className="flex items-center gap-2">
-                <span className="rounded-md bg-indigo-50 px-2 py-0.5 text-xs font-semibold text-[var(--accent)] border border-indigo-200 dark:bg-indigo-950/40 dark:text-indigo-300 dark:border-indigo-800">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="rounded-md crm-gold-badge px-2 py-0.5 text-xs font-semibold">
                   {formatRole(user.role)}
                 </span>
                 <span className="text-xs text-[var(--text-soft)]">
@@ -211,9 +242,17 @@ export default function DashboardPage() {
                     ? "Admin Dashboard"
                     : "Team Overview"}
                 </span>
+                <span className="inline-flex items-center gap-1.5 rounded-full border border-[var(--border)] bg-[var(--surface-soft)] px-2.5 py-0.5 text-[11px] font-medium text-[var(--text-main)] shadow-2xs">
+                  <span
+                    className={`h-2 w-2 rounded-full shrink-0 ${
+                      marketStatus.isOpen ? "bg-emerald-500 animate-pulse" : "bg-[var(--accent)]"
+                    }`}
+                  />
+                  {marketStatus.label}
+                </span>
               </div>
-              <h1 className="mt-1.5 text-xl font-bold tracking-tight text-[var(--text-main)] sm:text-2xl">
-                Welcome back, {user.name.split(" ")[0]}
+              <h1 className="mt-2 text-xl font-bold tracking-tight text-[var(--text-main)] sm:text-2xl">
+                {getGreeting()}, {user.name.split(" ")[0]}
               </h1>
               <p className="mt-0.5 text-xs text-[var(--text-soft)]">
                 {leadershipView
@@ -227,7 +266,7 @@ export default function DashboardPage() {
                 <p className="text-[10px] font-semibold uppercase tracking-wider text-[var(--text-faint)]">
                   Completion
                 </p>
-                <p className="mt-0.5 text-base font-black text-emerald-600">{completionRate}%</p>
+                <p className="mt-0.5 text-base font-black text-[var(--accent)]">{completionRate}%</p>
               </div>
               <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-soft)] p-2.5 sm:px-3.5 sm:py-2 text-center min-w-[76px]">
                 <p className="text-[10px] font-semibold uppercase tracking-wider text-[var(--text-faint)]">

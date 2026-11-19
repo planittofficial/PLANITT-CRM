@@ -12,6 +12,7 @@ import { usePresence } from "@/components/providers/presence-provider";
 import { useNotificationsBackend } from "@/hooks/use-notifications-backend";
 import { migrateLegacyThemeKeys } from "@/lib/theme-storage";
 import { Avatar } from "@/components/ui/avatar";
+import { FloatingQuickAction } from "@/components/layout/floating-quick-action";
 import {
   LayoutDashboardIcon,
   FolderKanbanIcon,
@@ -787,6 +788,29 @@ export function CRMShell({ children, user, compactMobileChrome = false, fullBlee
           </div>
         </header>
 
+        {/* ── ACTIVE MEETING BANNER (TEAMS AUTO-MEET STATUS) ────────────────── */}
+        {currentStatus === "IN_A_MEETING" && (
+          <div className="flex items-center justify-between bg-gradient-to-r from-rose-600 to-rose-700 px-4 py-2 text-xs font-semibold text-white shadow-sm z-30 select-none animate-in fade-in duration-150">
+            <div className="flex items-center gap-2.5">
+              <span className="flex h-2.5 w-2.5 relative">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75" />
+                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-white" />
+              </span>
+              <span className="tracking-wide">In a Google Meet · Teams Status: In a Meeting (🔴)</span>
+            </div>
+            <button
+              type="button"
+              onClick={async () => {
+                await clearMeetingStatus();
+                showToast("Meeting ended. Teams status restored to Available (🟢)", "success");
+              }}
+              className="rounded-lg bg-white/20 hover:bg-white/30 px-3 py-1 text-xs font-bold transition-colors active:scale-95"
+            >
+              End Call · Set Available
+            </button>
+          </div>
+        )}
+
         {/* ── EXPANDABLE MOBILE SEARCH BAR ────────────────────────────────────── */}
         {mobileSearchOpen && (
           <div className="flex sm:hidden items-center px-3 py-2 bg-[var(--surface-strong,#ffffff)] border-b border-[var(--border)] gap-2 animate-in fade-in duration-100 z-20">
@@ -1025,6 +1049,9 @@ export function CRMShell({ children, user, compactMobileChrome = false, fullBlee
             </div>
           </main>
         )}
+
+        {/* ── PLANITT CRM FLOATING QUICK ACTION HUB (COPILOT) ────────────────── */}
+        <FloatingQuickAction user={user} />
 
         {/* ── MOBILE BOTTOM NAVIGATION BAR ─────────────────────────────────────── */}
         <nav
