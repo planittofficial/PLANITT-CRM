@@ -45,4 +45,9 @@ export function applyDocumentTheme(mode: CRMThemeMode) {
   }
   document.documentElement.dataset.theme = mode;
   document.documentElement.classList.toggle("dark", mode === "dark");
+  try {
+    if (typeof window !== "undefined" && (window as any).AndroidApp?.setStatusBarTheme) {
+      (window as any).AndroidApp.setStatusBarTheme(mode === "dark");
+    }
+  } catch (_) {}
 }

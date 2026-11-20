@@ -38,10 +38,14 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.app.ActivityCompat
 import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 
 class MainActivity : ComponentActivity() {
 
+    private lateinit var rootLayout: FrameLayout
     private lateinit var webView: WebView
     private lateinit var swipeRefreshLayout: SwipeRefreshLayout
     private lateinit var progressBar: ProgressBar
@@ -57,12 +61,8 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // Native System Bars Styling (Matches Dark Indigo Brand Theme #0f172a)
-        window.statusBarColor = Color.parseColor("#0f172a")
-        window.navigationBarColor = Color.parseColor("#0f172a")
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            window.decorView.systemUiVisibility = window.decorView.systemUiVisibility and View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR.inv()
-        }
+        // Enable edge-to-edge window setup with safe window insets
+        WindowCompat.setDecorFitsSystemWindows(window, false)
 
         createNotificationChannel()
 
@@ -88,12 +88,22 @@ class MainActivity : ComponentActivity() {
         // Request Camera & Audio permissions for Google Meet
         requestAppPermissions()
 
-        val rootLayout = FrameLayout(this).apply {
+        rootLayout = FrameLayout(this).apply {
             layoutParams = ViewGroup.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.MATCH_PARENT
             )
-            setBackgroundColor(Color.parseColor("#0f172a"))
+            fitsSystemWindows = false
+            setBackgroundColor(Color.parseColor("#ffffff"))
+        }
+
+        // Apply Window Insets so WebView content is NEVER overlapped by status bar, camera notch, or navigation bar
+        ViewCompat.setOnApplyWindowInsetsListener(rootLayout) { view, windowInsets ->
+            val insets = windowInsets.getInsets(
+                WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.displayCutout()
+            )
+            view.setPadding(insets.left, insets.top, insets.right, insets.bottom)
+            windowInsets
         }
 
         // Setup WebView with Hardware Acceleration
@@ -102,7 +112,7 @@ class MainActivity : ComponentActivity() {
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.MATCH_PARENT
             )
-            setBackgroundColor(Color.parseColor("#0f172a"))
+            setBackgroundColor(Color.parseColor("#ffffff"))
             setLayerType(View.LAYER_TYPE_HARDWARE, null)
             isVerticalScrollBarEnabled = false
             isHorizontalScrollBarEnabled = false
@@ -156,6 +166,7 @@ class MainActivity : ComponentActivity() {
                 super.onPageFinished(view, url)
                 progressBar.visibility = View.GONE
                 swipeRefreshLayout.isRefreshing = false
+                applyThemeFromWeb(view)
             }
 
             override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest?): Boolean {
@@ -306,6 +317,36 @@ class MainActivity : ComponentActivity() {
         @JavascriptInterface
         fun getPlatform(): String {
             return "ANDROID_NATIVE"
+        }
+
+        @JavascriptInterface
+        fun setStatusBarTheme(isDark: Boolean) {
+            updateSystemBarsTheme(isDark)
+        }
+    }
+
+    fun applyThemeFromWeb(view: WebView?) {
+        view?.evaluateJavascript("document.documentElement.dataset.theme || (document.documentElement.classList.contains('dark') ? 'dark' : 'light')") { rawTheme ->
+            val theme = rawTheme?.replace("\"", "")?.trim()
+            val isDark = theme == "dark"
+            updateSystemBarsTheme(isDark)
+        }
+    }
+
+    fun updateSystemBarsTheme(isDark: Boolean) {
+        runOnUiThread {
+            try {
+                val insetsController = WindowCompat.getInsetsController(window, window.decorView)
+                insetsController.isAppearanceLightStatusBars = !isDark
+                insetsController.isAppearanceLightNavigationBars = !isDark
+
+                val bgColor = if (isDark) Color.parseColor("#0f172a") else Color.parseColor("#ffffff")
+                window.statusBarColor = bgColor
+                window.navigationBarColor = bgColor
+                if (::rootLayout.isInitialized) {
+                    rootLayout.setBackgroundColor(bgColor)
+                }
+            } catch (_: Exception) {}
         }
     }
 

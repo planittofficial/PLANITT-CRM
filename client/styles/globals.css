@@ -41,7 +41,8 @@
   --shadow-card: 0 2px 8px rgba(212, 175, 55, 0.06);
 }
 
-:root[data-theme="dark"], :root.dark {
+:root[data-theme="dark"],
+:root.dark {
   --app-bg: #070b14;
   --app-bg-accent: #0c1220;
   --surface: #0f172a;
@@ -95,6 +96,7 @@ body {
   min-height: 100vh;
   min-height: 100dvh;
   overflow-x: hidden;
+  padding-top: var(--crm-safe-top);
   padding-left: var(--crm-safe-left);
   padding-right: var(--crm-safe-right);
 }
@@ -117,6 +119,7 @@ body {
 .no-scrollbar::-webkit-scrollbar {
   display: none;
 }
+
 .no-scrollbar {
   -ms-overflow-style: none;
   scrollbar-width: none;
@@ -191,6 +194,7 @@ select option {
 }
 
 @media (max-width: 767px) {
+
   button,
   select,
   input,
@@ -242,6 +246,7 @@ select option {
     opacity: 0;
     transform: translateY(18px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -249,13 +254,16 @@ select option {
 }
 
 @keyframes landing-blob {
+
   0%,
   100% {
     transform: translate(0, 0) scale(1);
   }
+
   33% {
     transform: translate(8%, -6%) scale(1.06);
   }
+
   66% {
     transform: translate(-6%, 5%) scale(0.96);
   }
@@ -265,6 +273,7 @@ select option {
   0% {
     background-position: 200% 0;
   }
+
   100% {
     background-position: -200% 0;
   }
@@ -284,18 +293,17 @@ select option {
 }
 
 .landing-shimmer-border {
-  background: linear-gradient(
-    110deg,
-    transparent 0%,
-    color-mix(in srgb, var(--accent) 35%, transparent) 45%,
-    color-mix(in srgb, var(--accent-alt) 40%, transparent) 55%,
-    transparent 100%
-  );
+  background: linear-gradient(110deg,
+      transparent 0%,
+      color-mix(in srgb, var(--accent) 35%, transparent) 45%,
+      color-mix(in srgb, var(--accent-alt) 40%, transparent) 55%,
+      transparent 100%);
   background-size: 200% 100%;
   animation: landing-shimmer 6s linear infinite;
 }
 
 @media (prefers-reduced-motion: reduce) {
+
   .landing-in-up,
   .landing-blob,
   .landing-blob-delayed,
@@ -318,6 +326,7 @@ select option {
   0% {
     transform: translateX(-100%);
   }
+
   100% {
     transform: translateX(100%);
   }
@@ -334,22 +343,18 @@ select option {
   position: absolute;
   inset: 0;
   transform: translateX(-100%);
-  background: linear-gradient(
-    90deg,
-    transparent 0%,
-    rgba(255, 255, 255, 0.45) 50%,
-    transparent 100%
-  );
+  background: linear-gradient(90deg,
+      transparent 0%,
+      rgba(255, 255, 255, 0.45) 50%,
+      transparent 100%);
   animation: crm-shimmer 1.8s infinite;
 }
 
 :root[data-theme="dark"] .crm-skeleton-shimmer::after {
-  background: linear-gradient(
-    90deg,
-    transparent 0%,
-    rgba(255, 255, 255, 0.08) 50%,
-    transparent 100%
-  );
+  background: linear-gradient(90deg,
+      transparent 0%,
+      rgba(255, 255, 255, 0.08) 50%,
+      transparent 100%);
 }
 
 /* Defer rendering below-the-fold content for fast mobile scrolling and instant initial paint */
@@ -377,4 +382,3 @@ select option {
   transform: translateY(-1px);
   box-shadow: 0 4px 16px var(--gold-glow);
 }
-
