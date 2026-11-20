@@ -219,69 +219,71 @@ export function CRMShell({ children, user, compactMobileChrome = false, fullBlee
   };
 
   const renderProfileContent = (isMobile: boolean) => (
-    <div className="space-y-4">
+    <div className="space-y-3">
       {/* Header: User Profile with live dot */}
-      <div className="flex items-start gap-3 border-b border-[var(--border)] pb-3">
-        <Avatar
-          name={user.name}
-          avatarUrl={user.avatarUrl}
-          authProvider={user.authProvider}
-          size={isMobile ? "lg" : "md"}
-          status={currentStatus}
-        />
-        <div className="min-w-0 flex-1">
-          <p className="truncate text-sm sm:text-base font-bold text-[var(--text-main)]">{user.name}</p>
-          <p className="truncate text-xs text-[var(--text-soft)]">
-            {roleLabels[user.role]} · {user.email}
-          </p>
-          <div className="mt-1.5 flex items-center gap-1.5 flex-wrap">
-            <span
-              className={`h-2.5 w-2.5 rounded-full shrink-0 ${currentStatus === "AVAILABLE"
-                ? "bg-emerald-500"
-                : currentStatus === "BUSY"
-                  ? "bg-rose-500"
-                  : currentStatus === "IN_A_MEETING"
-                    ? "bg-rose-500 animate-pulse"
-                    : currentStatus === "AWAY"
-                      ? "bg-amber-500"
-                      : currentStatus === "DND"
-                        ? "bg-red-600"
-                        : "bg-slate-400"
-                }`}
-            />
-            <span className="text-xs font-semibold text-[var(--text-main)]">
-              {currentStatus === "AVAILABLE"
-                ? "Available"
-                : currentStatus === "BUSY"
-                  ? "Busy"
-                  : currentStatus === "IN_A_MEETING"
-                    ? "In a Meeting"
-                    : currentStatus === "AWAY"
-                      ? "Away"
-                      : currentStatus === "DND"
-                        ? "Do Not Disturb"
-                        : "Offline"}
-            </span>
-            {currentMessage && (
-              <span className="truncate text-xs italic text-[var(--text-soft)]" title={currentMessage}>
-                — "{currentMessage}"
+      <div className="flex items-start justify-between gap-2.5 border-b border-[var(--border)] pb-2.5">
+        <div className="flex items-center gap-2.5 min-w-0">
+          <Avatar
+            name={user.name}
+            avatarUrl={user.avatarUrl}
+            authProvider={user.authProvider}
+            size={isMobile ? "lg" : "md"}
+            status={currentStatus}
+          />
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-sm font-bold text-[var(--text-main)]">{user.name}</p>
+            <p className="truncate text-xs text-[var(--text-soft)]">
+              {roleLabels[user.role]} · {user.email}
+            </p>
+            <div className="mt-1 flex items-center gap-1.5 flex-wrap">
+              <span
+                className={`h-2 w-2 rounded-full shrink-0 ${currentStatus === "AVAILABLE"
+                  ? "bg-emerald-500"
+                  : currentStatus === "BUSY"
+                    ? "bg-rose-500"
+                    : currentStatus === "IN_A_MEETING"
+                      ? "bg-rose-500 animate-pulse"
+                      : currentStatus === "AWAY"
+                        ? "bg-amber-500"
+                        : currentStatus === "DND"
+                          ? "bg-red-600"
+                          : "bg-slate-400"
+                  }`}
+              />
+              <span className="text-xs font-semibold text-[var(--text-main)]">
+                {currentStatus === "AVAILABLE"
+                  ? "Available"
+                  : currentStatus === "BUSY"
+                    ? "Busy"
+                    : currentStatus === "IN_A_MEETING"
+                      ? "In a Meeting"
+                      : currentStatus === "AWAY"
+                        ? "Away"
+                        : currentStatus === "DND"
+                          ? "Do Not Disturb"
+                          : "Offline"}
               </span>
-            )}
+              {currentMessage && (
+                <span className="truncate text-xs italic text-[var(--text-soft)] max-w-[150px]" title={currentMessage}>
+                  — "{currentMessage}"
+                </span>
+              )}
+            </div>
           </div>
         </div>
         <button
           type="button"
           onClick={() => setProfileMenuOpen(false)}
-          className="flex h-8 w-8 items-center justify-center rounded-lg text-[var(--text-soft)] hover:bg-[var(--surface-soft)] hover:text-[var(--text-main)] transition-colors shrink-0"
+          className="flex h-7 w-7 items-center justify-center rounded-lg text-[var(--text-soft)] hover:bg-[var(--surface-soft)] hover:text-[var(--text-main)] transition-colors shrink-0"
           aria-label="Close profile menu"
         >
-          <XIcon size={18} />
+          <XIcon size={16} />
         </button>
       </div>
 
       {/* In-Meeting Quick Action Banner (if active) */}
       {currentStatus === "IN_A_MEETING" && (
-        <div className="flex items-center justify-between rounded-xl bg-rose-500/10 border border-rose-500/20 px-3 py-2 text-xs text-rose-700 dark:text-rose-300">
+        <div className="flex items-center justify-between rounded-xl bg-rose-500/10 border border-rose-500/20 px-3 py-1.5 text-xs text-rose-700 dark:text-rose-300">
           <span className="flex items-center gap-1.5 font-semibold text-xs">
             <span className="h-2 w-2 rounded-full bg-rose-500 animate-ping" />
             In a Meeting
@@ -301,10 +303,10 @@ export function CRMShell({ children, user, compactMobileChrome = false, fullBlee
 
       {/* Presence Status Selector */}
       <div>
-        <p className="text-[11px] font-bold uppercase tracking-wider text-[var(--text-faint)] px-1 mb-2">
+        <p className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-faint)] px-1 mb-1.5">
           Set Presence Status
         </p>
-        <div className="grid grid-cols-2 gap-2">
+        <div className="grid grid-cols-2 gap-1.5">
           {[
             { status: "AVAILABLE" as const, label: "Available", dot: "bg-emerald-500" },
             { status: "BUSY" as const, label: "Busy", dot: "bg-rose-500" },
@@ -321,7 +323,7 @@ export function CRMShell({ children, user, compactMobileChrome = false, fullBlee
                 showToast(`Status updated to ${item.label}`, "info");
                 if (isMobile) setProfileMenuOpen(false);
               }}
-              className={`flex items-center gap-2 rounded-xl px-2.5 py-2.5 min-h-[44px] text-xs font-medium transition text-left ${currentStatus === item.status
+              className={`flex items-center gap-2 rounded-xl px-2.5 py-2 min-h-[38px] text-xs font-medium transition text-left ${currentStatus === item.status
                 ? "bg-[var(--accent)]/10 text-[var(--accent)] font-bold border border-[var(--accent)]/40 shadow-xs"
                 : "text-[var(--text-main)] hover:bg-[var(--surface-soft)] border border-[var(--border)]"
                 }`}
@@ -334,9 +336,9 @@ export function CRMShell({ children, user, compactMobileChrome = false, fullBlee
       </div>
 
       {/* Custom Status Message Editor */}
-      <div className="border-t border-[var(--border)] pt-3">
-        <div className="flex items-center justify-between mb-1.5 px-1">
-          <span className="text-[11px] font-bold uppercase tracking-wider text-[var(--text-faint)]">
+      <div className="border-t border-[var(--border)] pt-2.5">
+        <div className="flex items-center justify-between mb-1 px-1">
+          <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-faint)]">
             Custom Status Message
           </span>
           {currentMessage && (
@@ -347,7 +349,7 @@ export function CRMShell({ children, user, compactMobileChrome = false, fullBlee
                 await updateStatus(currentStatus, null);
                 showToast("Status message cleared", "info");
               }}
-              className="text-xs text-rose-600 hover:underline font-semibold"
+              className="text-[11px] text-rose-600 hover:underline font-semibold"
             >
               Clear
             </button>
@@ -361,27 +363,27 @@ export function CRMShell({ children, user, compactMobileChrome = false, fullBlee
             showToast("Status message updated", "success");
             if (isMobile) setProfileMenuOpen(false);
           }}
-          className="space-y-2"
+          className="space-y-1.5"
         >
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5">
             <input
               type="text"
               value={statusMessageInput}
               onChange={(e) => setStatusMessageInput(e.target.value)}
               placeholder="e.g., Traveling till 4 PM..."
               maxLength={100}
-              className="flex-1 rounded-xl border border-[var(--border)] bg-[var(--surface-soft)] px-3 py-2 text-xs text-[var(--text-main)] outline-none focus:border-[var(--accent)] focus:bg-[var(--surface-strong,#ffffff)] transition min-h-[42px]"
+              className="flex-1 rounded-xl border border-[var(--border)] bg-[var(--surface-soft)] px-3 py-1.5 text-xs text-[var(--text-main)] outline-none focus:border-[var(--accent)] focus:bg-[var(--surface-strong,#ffffff)] transition min-h-[36px]"
             />
             <button
               type="submit"
-              className="rounded-xl bg-[var(--accent)] px-3.5 py-2 text-xs font-bold text-white hover:opacity-90 shadow-xs transition shrink-0 min-h-[42px]"
+              className="rounded-xl bg-[var(--accent)] px-3 py-1.5 text-xs font-bold text-white hover:opacity-90 shadow-xs transition shrink-0 min-h-[36px]"
             >
               Save
             </button>
           </div>
 
           {/* Quick Preset Badges */}
-          <div className="flex flex-wrap gap-1.5 pt-0.5">
+          <div className="flex flex-wrap gap-1 pt-0.5">
             {[
               "Traveling till 4 PM",
               "Working on Q3 Pitch",
@@ -407,22 +409,22 @@ export function CRMShell({ children, user, compactMobileChrome = false, fullBlee
       </div>
 
       {/* Footer Navigation & Sign out */}
-      <div className="border-t border-[var(--border)] pt-3 flex items-center justify-between text-xs sm:text-sm">
+      <div className="border-t border-[var(--border)] pt-2.5 flex items-center justify-between text-xs">
         <Link
           href="/settings"
           onClick={() => setProfileMenuOpen(false)}
-          className="flex items-center gap-2 text-[var(--text-soft)] hover:text-[var(--text-main)] font-semibold p-2 rounded-lg hover:bg-[var(--surface-soft)]"
+          className="flex items-center gap-1.5 text-[var(--text-soft)] hover:text-[var(--text-main)] font-semibold p-1.5 rounded-lg hover:bg-[var(--surface-soft)] transition-colors"
         >
-          <SettingsIcon size={16} />
+          <SettingsIcon size={15} />
           <span>Settings</span>
         </Link>
 
         <button
           type="button"
           onClick={handleLogout}
-          className="flex items-center gap-2 text-rose-600 hover:text-rose-700 font-semibold p-2 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/40"
+          className="flex items-center gap-1.5 text-rose-600 hover:text-rose-700 font-semibold p-1.5 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors"
         >
-          <LogOutIcon size={16} />
+          <LogOutIcon size={15} />
           <span>Sign Out</span>
         </button>
       </div>
@@ -577,7 +579,7 @@ export function CRMShell({ children, user, compactMobileChrome = false, fullBlee
 
             {profileMenuOpen && profileMenuPosition === "rail" && (
               <div
-                className="hidden md:block w-80 sm:w-88 rounded-2xl border border-[var(--border)] bg-[var(--surface-strong,#ffffff)] p-4 shadow-2xl z-50 animate-in fade-in zoom-in-95 duration-100 absolute bottom-0 left-full ml-3"
+                className="hidden md:block w-80 sm:w-88 max-h-[calc(100dvh-2.5rem)] overflow-y-auto overscroll-contain rounded-2xl border border-[var(--border)] bg-[var(--surface-strong,#ffffff)] p-3.5 sm:p-4 shadow-2xl z-50 animate-in fade-in zoom-in-95 duration-100 absolute bottom-0 left-full ml-3"
                 onClick={(e) => e.stopPropagation()}
               >
                 {renderProfileContent(false)}
@@ -792,7 +794,7 @@ export function CRMShell({ children, user, compactMobileChrome = false, fullBlee
               {/* Desktop Header Profile Popover */}
               {profileMenuOpen && profileMenuPosition === "header" && (
                 <div
-                  className="hidden md:block absolute right-0 top-full mt-2 w-80 sm:w-88 rounded-2xl border border-[var(--border)] bg-[var(--surface-strong,#ffffff)] p-4 shadow-2xl z-50 animate-in fade-in zoom-in-95 duration-100"
+                  className="hidden md:block absolute right-0 top-full mt-2 w-80 sm:w-88 max-h-[calc(100dvh-4.5rem)] overflow-y-auto overscroll-contain rounded-2xl border border-[var(--border)] bg-[var(--surface-strong,#ffffff)] p-3.5 sm:p-4 shadow-2xl z-50 animate-in fade-in zoom-in-95 duration-100"
                   onClick={(e) => e.stopPropagation()}
                 >
                   {renderProfileContent(false)}
