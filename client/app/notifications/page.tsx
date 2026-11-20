@@ -143,7 +143,7 @@ function NotificationsContent({
 
             <div>
               <div className="flex items-center gap-2">
-                <span className="rounded-md bg-indigo-50 px-2 py-0.5 text-xs font-semibold text-[var(--accent)] border border-indigo-200 dark:bg-indigo-950/40 dark:text-indigo-300 dark:border-indigo-800">
+                <span className="rounded-md crm-gold-badge px-2 py-0.5 text-xs font-semibold">
                   Alerts & Activity
                 </span>
                 <span className="text-xs text-[var(--text-soft)]">Notification Center</span>

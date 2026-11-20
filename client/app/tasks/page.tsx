@@ -397,8 +397,8 @@ function TasksPageContent() {
             </div>
 
             {/* Metric Summary Badge */}
-            <div className="flex h-8 shrink-0 items-center gap-1.5 rounded-lg border border-emerald-500/20 bg-emerald-500/10 px-2.5 text-xs text-emerald-600 dark:text-emerald-400 font-semibold">
-              <span className="text-[10px] text-emerald-600/80 dark:text-emerald-400/80">Done:</span>
+            <div className="flex h-8 shrink-0 items-center gap-1.5 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-2.5 text-xs text-emerald-700 dark:text-emerald-400 font-semibold">
+              <span className="text-[10px] text-emerald-700/80 dark:text-emerald-400/80 font-bold">Done:</span>
               <span className="font-bold">{taskAnalytics.completionRate}%</span>
             </div>
           </div>
@@ -618,7 +618,7 @@ function TasksPageContent() {
                   onClick={() => setPresetFilter(preset.id as any)}
                   className={`rounded-full px-3 py-1 text-xs font-bold transition-all shrink-0 ${
                     isSelected
-                      ? "bg-gradient-to-r from-indigo-600 to-violet-600 text-white shadow-xs"
+                      ? "bg-[var(--accent)] text-white shadow-xs"
                       : "border border-[var(--border)] bg-[var(--surface-strong,#ffffff)] text-[var(--text-soft)] hover:bg-[var(--surface-soft)]"
                   }`}
                 >

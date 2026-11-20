@@ -181,12 +181,11 @@ export default function CredentialsPage() {
                         key={chip.key}
                         type="button"
                         onClick={() => setFilter(chip.key)}
-                        className="rounded-full px-2.5 py-1 text-[11px] font-semibold"
-                        style={
+                        className={`rounded-full px-2.5 py-1 text-[11px] font-semibold transition-colors ${
                           active
-                            ? { background: "#0f172a", color: "#fff" }
-                            : { background: "var(--surface)", color: "var(--text-soft)" }
-                        }
+                            ? "bg-[var(--accent)] text-white shadow-2xs"
+                            : "bg-[var(--surface)] text-[var(--text-soft)] hover:text-[var(--text-main)]"
+                        }`}
                       >
                         {chip.label}
                       </button>

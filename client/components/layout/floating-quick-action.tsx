@@ -199,7 +199,7 @@ export function FloatingQuickAction({ user }: FloatingQuickActionProps) {
                 disabled={actionLoading}
                 className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-xs font-semibold text-[var(--text-main)] hover:bg-[var(--gold-subtle)] transition-colors"
               >
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-500 shrink-0">
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-purple-500/15 text-purple-600 dark:text-purple-400 shrink-0">
                   <VideoIcon size={16} />
                 </div>
                 <div>
@@ -216,7 +216,7 @@ export function FloatingQuickAction({ user }: FloatingQuickActionProps) {
                 className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-xs font-semibold text-[var(--text-main)] hover:bg-[var(--gold-subtle)] transition-colors"
               >
                 <div className={`flex h-8 w-8 items-center justify-center rounded-lg shrink-0 ${
-                  checkedIn ? "bg-amber-500/10 text-amber-500" : "bg-emerald-500/10 text-emerald-500"
+                  checkedIn ? "bg-rose-500/15 text-rose-600 dark:text-rose-400" : "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400"
                 }`}>
                   <ClockIcon size={16} />
                 </div>
@@ -255,7 +255,7 @@ export function FloatingQuickAction({ user }: FloatingQuickActionProps) {
                 }}
                 className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-xs font-semibold text-[var(--text-main)] hover:bg-[var(--gold-subtle)] transition-colors"
               >
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-500/10 text-blue-500 shrink-0">
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-500/15 text-blue-600 dark:text-blue-400 shrink-0">
                   <CheckSquareIcon size={16} />
                 </div>
                 <div>

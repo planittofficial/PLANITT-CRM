@@ -107,7 +107,7 @@ export function AttendanceCard({ initialCheckedIn = false }: AttendanceCardProps
             onClick={handleAttendance}
             disabled={loading}
             loading={loading}
-            variant={checkedIn ? "outline" : "primary"}
+            variant={checkedIn ? "danger" : "primary"}
             size="md"
             className={`w-full sm:w-auto min-h-[42px] font-bold rounded-xl shadow-xs ${
               checkedIn

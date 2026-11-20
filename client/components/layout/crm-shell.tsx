@@ -956,7 +956,7 @@ export function CRMShell({ children, user, compactMobileChrome = false, fullBlee
                 {canUseAttendance && (
                   <div className="mt-3.5 flex items-center justify-between rounded-xl border border-[var(--border)] bg-[var(--surface-strong,#ffffff)] p-2.5">
                     <div className="flex items-center gap-2">
-                      <ClockIcon size={15} className={checkedIn ? "text-emerald-600" : "text-slate-400"} />
+                      <ClockIcon size={15} className={checkedIn ? "text-emerald-600 dark:text-emerald-400" : "text-slate-500 dark:text-slate-400"} />
                       <span className="text-xs font-semibold text-[var(--text-main)]">
                         {checkedIn ? "Checked In" : "Not Checked In"}
                       </span>

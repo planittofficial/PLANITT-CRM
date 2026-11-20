@@ -22,12 +22,12 @@ import {
 import type { Lead, Deal, Contact, CrmSummary, CRMUser, Project, DealStage, LeadStatus } from "@/types/crm";
 
 const DEAL_STAGES: { id: DealStage; label: string; color: string }[] = [
-  { id: "LEAD", label: "Lead In", color: "border-slate-400 bg-slate-50 dark:bg-slate-900/30" },
-  { id: "CONTACTED", label: "Contacted", color: "border-blue-400 bg-blue-50/50 dark:bg-blue-950/20" },
-  { id: "PROPOSAL", label: "Proposal", color: "border-purple-400 bg-purple-50/50 dark:bg-purple-950/20" },
-  { id: "NEGOTIATION", label: "Negotiation", color: "border-amber-400 bg-amber-50/50 dark:bg-amber-950/20" },
-  { id: "WON", label: "Closed Won 🎉", color: "border-emerald-500 bg-emerald-50/60 dark:bg-emerald-950/30" },
-  { id: "LOST", label: "Closed Lost", color: "border-rose-400 bg-rose-50/50 dark:bg-rose-950/20" },
+  { id: "LEAD", label: "Lead In", color: "border-slate-300 bg-slate-50 dark:border-slate-800 dark:bg-slate-900/30" },
+  { id: "CONTACTED", label: "Contacted", color: "border-blue-300 bg-blue-50/50 dark:border-blue-800 dark:bg-blue-950/20" },
+  { id: "PROPOSAL", label: "Proposal", color: "border-purple-300 bg-purple-50/50 dark:border-purple-800 dark:bg-purple-950/20" },
+  { id: "NEGOTIATION", label: "Negotiation", color: "border-amber-300 bg-amber-50/50 dark:border-amber-800 dark:bg-amber-950/20" },
+  { id: "WON", label: "Closed Won 🎉", color: "border-emerald-400 bg-emerald-50/60 dark:border-emerald-800 dark:bg-emerald-950/30" },
+  { id: "LOST", label: "Closed Lost", color: "border-rose-300 bg-rose-50/50 dark:border-rose-800 dark:bg-rose-950/20" },
 ];
 
 export default function CrmPage() {
