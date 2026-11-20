@@ -275,7 +275,7 @@ export default function LeaveDetailPage() {
                   type="button"
                   onClick={() => void handleCancel()}
                   disabled={submitting}
-                  className="mt-4 inline-flex items-center justify-center rounded-2xl bg-slate-800 px-4 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
+                  className="mt-4 inline-flex items-center justify-center rounded-2xl border border-rose-300 bg-rose-50 px-4 py-2.5 text-sm font-bold text-rose-700 hover:bg-rose-100 dark:border-rose-800 dark:bg-rose-950/40 dark:text-rose-300 dark:hover:bg-rose-900/60 disabled:cursor-not-allowed disabled:opacity-60 transition shadow-2xs"
                 >
                   Cancel request
                 </button>

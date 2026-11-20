@@ -668,7 +668,7 @@ export function CRMShell({ children, user, compactMobileChrome = false, fullBlee
 
             {/* Live In-Meeting Status Banner in Header (Desktop) */}
             {currentStatus === "IN_A_MEETING" && (
-              <div className="hidden sm:flex items-center gap-1.5 rounded-xl bg-rose-50 border border-rose-200 px-2.5 py-1 text-xs font-bold text-rose-700 dark:bg-rose-950/40 dark:border-rose-800 dark:text-rose-300">
+              <div className="hidden sm:flex items-center gap-1.5 rounded-xl bg-rose-100 border border-rose-300 px-2.5 py-1 text-xs font-bold text-rose-800 dark:bg-rose-950/60 dark:border-rose-800 dark:text-rose-200">
                 <span className="h-2 w-2 rounded-full bg-rose-500 animate-pulse" />
                 <span>In Meeting</span>
                 <button
@@ -703,10 +703,10 @@ export function CRMShell({ children, user, compactMobileChrome = false, fullBlee
                 type="button"
                 onClick={handleAttendanceToggle}
                 disabled={attendanceLoading}
-                className={`hidden sm:inline-flex items-center gap-1.5 rounded-xl px-2.5 py-1.5 text-xs font-semibold transition-all shadow-2xs ${
+                className={`hidden sm:inline-flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-bold transition-all shadow-xs active:scale-95 ${
                   checkedIn
-                    ? "bg-rose-50 text-rose-700 border border-rose-200 hover:bg-rose-100 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-800"
-                    : "bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800"
+                    ? "bg-rose-600 hover:bg-rose-700 text-white"
+                    : "bg-emerald-600 hover:bg-emerald-700 text-white"
                 }`}
                 title={checkedIn ? "Click to check out" : "Click to check in"}
               >
@@ -965,9 +965,9 @@ export function CRMShell({ children, user, compactMobileChrome = false, fullBlee
                       type="button"
                       onClick={handleAttendanceToggle}
                       disabled={attendanceLoading}
-                      className={`rounded-lg px-2.5 py-1 text-xs font-bold transition shadow-2xs ${
+                      className={`rounded-lg px-3 py-1 text-xs font-bold transition shadow-xs ${
                         checkedIn
-                          ? "bg-rose-50 text-rose-700 hover:bg-rose-100 dark:bg-rose-950/50 dark:text-rose-300"
+                          ? "bg-rose-600 text-white hover:bg-rose-700"
                           : "bg-emerald-600 text-white hover:bg-emerald-700"
                       }`}
                     >

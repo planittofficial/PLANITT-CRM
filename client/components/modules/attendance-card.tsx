@@ -111,8 +111,8 @@ export function AttendanceCard({ initialCheckedIn = false }: AttendanceCardProps
             size="md"
             className={`w-full sm:w-auto min-h-[42px] font-bold rounded-xl shadow-xs ${
               checkedIn
-                ? "border-rose-200 text-rose-700 hover:bg-rose-50 dark:border-rose-800 dark:text-rose-300 dark:hover:bg-rose-950/40"
-                : "bg-[var(--accent)] hover:opacity-90 text-white"
+                ? "bg-rose-600 hover:bg-rose-700 text-white"
+                : "bg-emerald-600 hover:bg-emerald-700 text-white"
             }`}
           >
             {checkedIn ? "Check Out" : "Check In Now"}
