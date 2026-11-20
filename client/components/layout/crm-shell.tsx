@@ -85,6 +85,7 @@ export function CRMShell({ children, user, compactMobileChrome = false, fullBlee
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
+  const [profileMenuPosition, setProfileMenuPosition] = useState<"header" | "rail">("header");
   const [checkedIn, setCheckedIn] = useState(false);
   const [attendanceLoading, setAttendanceLoading] = useState(false);
   const searchInputRef = useRef<HTMLInputElement | null>(null);
@@ -116,6 +117,8 @@ export function CRMShell({ children, user, compactMobileChrome = false, fullBlee
         }
       } else if (e.key === "Escape") {
         setMobileSearchOpen(false);
+        setProfileMenuOpen(false);
+        setNotificationsOpen(false);
         searchInputRef.current?.blur();
       }
     };
@@ -176,8 +179,8 @@ export function CRMShell({ children, user, compactMobileChrome = false, fullBlee
         err instanceof Error
           ? err.message
           : checkedIn
-          ? "Failed to check out"
-          : "Failed to check in",
+            ? "Failed to check out"
+            : "Failed to check in",
         "error"
       );
     } finally {
@@ -207,7 +210,7 @@ export function CRMShell({ children, user, compactMobileChrome = false, fullBlee
       if (res.meetUrl) {
         await setMeetingStatus(`${user.name} Instant Google Meet`);
         window.open(res.meetUrl, "_blank");
-        await navigator.clipboard.writeText(res.meetUrl).catch(() => {});
+        await navigator.clipboard.writeText(res.meetUrl).catch(() => { });
         showToast("Google Meet launched! Status automatically set to In a Meeting (🔴)", "success");
       }
     } catch {
@@ -233,32 +236,31 @@ export function CRMShell({ children, user, compactMobileChrome = false, fullBlee
           </p>
           <div className="mt-1.5 flex items-center gap-1.5 flex-wrap">
             <span
-              className={`h-2.5 w-2.5 rounded-full shrink-0 ${
-                currentStatus === "AVAILABLE"
-                  ? "bg-emerald-500"
-                  : currentStatus === "BUSY"
+              className={`h-2.5 w-2.5 rounded-full shrink-0 ${currentStatus === "AVAILABLE"
+                ? "bg-emerald-500"
+                : currentStatus === "BUSY"
                   ? "bg-rose-500"
                   : currentStatus === "IN_A_MEETING"
-                  ? "bg-rose-500 animate-pulse"
-                  : currentStatus === "AWAY"
-                  ? "bg-amber-500"
-                  : currentStatus === "DND"
-                  ? "bg-red-600"
-                  : "bg-slate-400"
-              }`}
+                    ? "bg-rose-500 animate-pulse"
+                    : currentStatus === "AWAY"
+                      ? "bg-amber-500"
+                      : currentStatus === "DND"
+                        ? "bg-red-600"
+                        : "bg-slate-400"
+                }`}
             />
             <span className="text-xs font-semibold text-[var(--text-main)]">
               {currentStatus === "AVAILABLE"
                 ? "Available"
                 : currentStatus === "BUSY"
-                ? "Busy"
-                : currentStatus === "IN_A_MEETING"
-                ? "In a Meeting"
-                : currentStatus === "AWAY"
-                ? "Away"
-                : currentStatus === "DND"
-                ? "Do Not Disturb"
-                : "Offline"}
+                  ? "Busy"
+                  : currentStatus === "IN_A_MEETING"
+                    ? "In a Meeting"
+                    : currentStatus === "AWAY"
+                      ? "Away"
+                      : currentStatus === "DND"
+                        ? "Do Not Disturb"
+                        : "Offline"}
             </span>
             {currentMessage && (
               <span className="truncate text-xs italic text-[var(--text-soft)]" title={currentMessage}>
@@ -267,16 +269,14 @@ export function CRMShell({ children, user, compactMobileChrome = false, fullBlee
             )}
           </div>
         </div>
-        {isMobile && (
-          <button
-            type="button"
-            onClick={() => setProfileMenuOpen(false)}
-            className="flex h-8 w-8 items-center justify-center rounded-lg text-[var(--text-soft)] hover:bg-[var(--surface-soft)]"
-            aria-label="Close"
-          >
-            <XIcon size={18} />
-          </button>
-        )}
+        <button
+          type="button"
+          onClick={() => setProfileMenuOpen(false)}
+          className="flex h-8 w-8 items-center justify-center rounded-lg text-[var(--text-soft)] hover:bg-[var(--surface-soft)] hover:text-[var(--text-main)] transition-colors shrink-0"
+          aria-label="Close profile menu"
+        >
+          <XIcon size={18} />
+        </button>
       </div>
 
       {/* In-Meeting Quick Action Banner (if active) */}
@@ -321,11 +321,10 @@ export function CRMShell({ children, user, compactMobileChrome = false, fullBlee
                 showToast(`Status updated to ${item.label}`, "info");
                 if (isMobile) setProfileMenuOpen(false);
               }}
-              className={`flex items-center gap-2 rounded-xl px-2.5 py-2.5 min-h-[44px] text-xs font-medium transition text-left ${
-                currentStatus === item.status
-                  ? "bg-[var(--accent)]/10 text-[var(--accent)] font-bold border border-[var(--accent)]/40 shadow-xs"
-                  : "text-[var(--text-main)] hover:bg-[var(--surface-soft)] border border-[var(--border)]"
-              }`}
+              className={`flex items-center gap-2 rounded-xl px-2.5 py-2.5 min-h-[44px] text-xs font-medium transition text-left ${currentStatus === item.status
+                ? "bg-[var(--accent)]/10 text-[var(--accent)] font-bold border border-[var(--accent)]/40 shadow-xs"
+                : "text-[var(--text-main)] hover:bg-[var(--surface-soft)] border border-[var(--border)]"
+                }`}
             >
               <span className={`h-2.5 w-2.5 rounded-full shrink-0 ${item.dot}`} />
               <span className="truncate">{item.label}</span>
@@ -444,11 +443,10 @@ export function CRMShell({ children, user, compactMobileChrome = false, fullBlee
               setNotificationsOpen(false);
               if (item.href) router.push(item.href);
             }}
-            className={`w-full rounded-xl border p-3 text-left text-xs transition-colors ${
-              item.read
-                ? "border-[var(--border)]/50 hover:bg-[var(--surface-soft)] text-[var(--text-soft)]"
-                : "border-[var(--accent)]/30 bg-[var(--accent)]/5 text-[var(--text-main)] shadow-2xs"
-            }`}
+            className={`w-full rounded-xl border p-3 text-left text-xs transition-colors ${item.read
+              ? "border-[var(--border)]/50 hover:bg-[var(--surface-soft)] text-[var(--text-soft)]"
+              : "border-[var(--accent)]/30 bg-[var(--accent)]/5 text-[var(--text-main)] shadow-2xs"
+              }`}
           >
             <div className="flex items-start justify-between gap-2">
               <p className="font-semibold text-[var(--text-main)]">{item.title}</p>
@@ -494,7 +492,7 @@ export function CRMShell({ children, user, compactMobileChrome = false, fullBlee
     <div className="flex h-screen max-h-screen w-screen overflow-hidden bg-[var(--app-bg)] text-[var(--text-main)] font-sans antialiased">
       {/* ── TEAMS ACTIVITY RAIL (Left: 60px) ─────────────────────────────────── */}
       <aside
-        className="hidden md:flex h-full max-h-screen w-[60px] shrink-0 flex-col items-center justify-between border-r border-[var(--border)] bg-[var(--surface-strong,#ffffff)] py-2.5 z-30 select-none shadow-[1px_0_4px_rgba(0,0,0,0.02)] min-h-0 overflow-hidden"
+        className="hidden md:flex h-full max-h-screen w-[60px] shrink-0 flex-col items-center justify-between border-r border-[var(--border)] bg-[var(--surface-strong,#ffffff)] py-2.5 z-30 select-none shadow-[1px_0_4px_rgba(0,0,0,0.02)] min-h-0 overflow-visible"
         aria-label="Activity Rail"
       >
         {/* Top: Brand Logo */}
@@ -517,11 +515,10 @@ export function CRMShell({ children, user, compactMobileChrome = false, fullBlee
                 <Link
                   key={item.href}
                   href={item.href}
-                  className={`group relative flex h-9 w-9 shrink-0 items-center justify-center rounded-xl transition-all ${
-                    isActive
-                      ? "bg-[var(--accent)] text-white shadow-xs"
-                      : "text-[var(--text-soft)] hover:bg-[var(--surface-soft)] hover:text-[var(--text-main)]"
-                  }`}
+                  className={`group relative flex h-9 w-9 shrink-0 items-center justify-center rounded-xl transition-all ${isActive
+                    ? "bg-[var(--accent)] text-white shadow-xs"
+                    : "text-[var(--text-soft)] hover:bg-[var(--surface-soft)] hover:text-[var(--text-main)]"
+                    }`}
                   title={item.label}
                 >
                   <Icon size={18} />
@@ -560,8 +557,12 @@ export function CRMShell({ children, user, compactMobileChrome = false, fullBlee
           <div className="relative">
             <button
               type="button"
-              onClick={() => setProfileMenuOpen((prev) => !prev)}
-              className="flex rounded-full ring-2 ring-transparent transition hover:ring-[var(--accent)] focus:outline-none"
+              onClick={() => {
+                setProfileMenuPosition("rail");
+                setProfileMenuOpen((prev) => !prev);
+                setNotificationsOpen(false);
+              }}
+              className="flex rounded-full ring-2 ring-transparent transition hover:ring-[var(--accent)] focus:outline-none cursor-pointer"
               aria-label="User profile menu"
             >
               <Avatar
@@ -574,9 +575,9 @@ export function CRMShell({ children, user, compactMobileChrome = false, fullBlee
               />
             </button>
 
-            {profileMenuOpen && (
+            {profileMenuOpen && profileMenuPosition === "rail" && (
               <div
-                className="w-80 rounded-2xl border border-[var(--border)] bg-[var(--surface-strong,#ffffff)] p-4 shadow-2xl z-50 animate-in fade-in zoom-in-95 duration-100 absolute bottom-2 left-full ml-3"
+                className="hidden md:block w-80 sm:w-88 rounded-2xl border border-[var(--border)] bg-[var(--surface-strong,#ffffff)] p-4 shadow-2xl z-50 animate-in fade-in zoom-in-95 duration-100 absolute bottom-0 left-full ml-3"
                 onClick={(e) => e.stopPropagation()}
               >
                 {renderProfileContent(false)}
@@ -590,9 +591,8 @@ export function CRMShell({ children, user, compactMobileChrome = false, fullBlee
       <div className="flex flex-1 flex-col min-w-0 overflow-hidden">
         {/* ── TOP NAV BAR ──────────────────────────────────────────────────── */}
         <header
-          className={`flex h-14 shrink-0 items-center justify-between border-b border-[var(--border)] bg-[var(--surface-strong,#ffffff)] px-3 sm:px-4 z-20 gap-2 sm:gap-3 select-none ${
-            compactMobileChrome ? "hidden md:flex" : ""
-          }`}
+          className={`flex h-14 shrink-0 items-center justify-between border-b border-[var(--border)] bg-[var(--surface-strong,#ffffff)] px-3 sm:px-4 z-20 gap-2 sm:gap-3 select-none ${compactMobileChrome ? "hidden md:flex" : ""
+            }`}
         >
           {/* Left: Hamburger & Page Title */}
           <div className="flex items-center gap-2 sm:gap-3 min-w-0">
@@ -703,11 +703,10 @@ export function CRMShell({ children, user, compactMobileChrome = false, fullBlee
                 type="button"
                 onClick={handleAttendanceToggle}
                 disabled={attendanceLoading}
-                className={`hidden sm:inline-flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-bold transition-all shadow-xs active:scale-95 ${
-                  checkedIn
-                    ? "bg-rose-600 hover:bg-rose-700 text-white"
-                    : "bg-emerald-600 hover:bg-emerald-700 text-white"
-                }`}
+                className={`hidden sm:inline-flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-bold transition-all shadow-xs active:scale-95 ${checkedIn
+                  ? "bg-rose-600 hover:bg-rose-700 text-white"
+                  : "bg-emerald-600 hover:bg-emerald-700 text-white"
+                  }`}
                 title={checkedIn ? "Click to check out" : "Click to check in"}
               >
                 <ClockIcon size={14} />
@@ -768,13 +767,17 @@ export function CRMShell({ children, user, compactMobileChrome = false, fullBlee
               )}
             </div>
 
-            {/* Mobile Avatar Button */}
-            <div className="md:hidden">
+            {/* User Profile Avatar with Menu (Header - Desktop & Mobile) */}
+            <div className="relative">
               <button
                 type="button"
-                onClick={() => setProfileMenuOpen(true)}
-                className="flex rounded-full ring-2 ring-transparent transition hover:ring-[var(--accent)] active:scale-95 focus:outline-none"
-                aria-label="User profile"
+                onClick={() => {
+                  setProfileMenuPosition("header");
+                  setProfileMenuOpen((prev) => !prev);
+                  setNotificationsOpen(false);
+                }}
+                className="flex rounded-full ring-2 ring-transparent transition hover:ring-[var(--accent)] active:scale-95 focus:outline-none cursor-pointer"
+                aria-label="User profile and presence"
               >
                 <Avatar
                   name={user.name}
@@ -782,8 +785,19 @@ export function CRMShell({ children, user, compactMobileChrome = false, fullBlee
                   authProvider={user.authProvider}
                   size="sm"
                   status={currentStatus}
+                  statusTitle={`${user.name} (${currentStatus})${currentMessage ? ` - "${currentMessage}"` : ""}`}
                 />
               </button>
+
+              {/* Desktop Header Profile Popover */}
+              {profileMenuOpen && profileMenuPosition === "header" && (
+                <div
+                  className="hidden md:block absolute right-0 top-full mt-2 w-80 sm:w-88 rounded-2xl border border-[var(--border)] bg-[var(--surface-strong,#ffffff)] p-4 shadow-2xl z-50 animate-in fade-in zoom-in-95 duration-100"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  {renderProfileContent(false)}
+                </div>
+              )}
             </div>
           </div>
         </header>
@@ -906,6 +920,17 @@ export function CRMShell({ children, user, compactMobileChrome = false, fullBlee
           </div>
         )}
 
+        {/* ── DESKTOP BACKDROP TO DISMISS FLYOUTS ON CLICK OUTSIDE ───────────── */}
+        {(profileMenuOpen || notificationsOpen) && (
+          <div
+            className="hidden md:block fixed inset-0 z-40 bg-transparent"
+            onClick={() => {
+              setProfileMenuOpen(false);
+              setNotificationsOpen(false);
+            }}
+          />
+        )}
+
         {/* ── MOBILE USER PROFILE & PRESENCE BOTTOM SHEET ───────────────────────── */}
         {profileMenuOpen && (
           <div className="fixed inset-0 z-50 flex flex-col justify-end md:hidden animate-in fade-in duration-200">
@@ -965,11 +990,10 @@ export function CRMShell({ children, user, compactMobileChrome = false, fullBlee
                       type="button"
                       onClick={handleAttendanceToggle}
                       disabled={attendanceLoading}
-                      className={`rounded-lg px-3 py-1 text-xs font-bold transition shadow-xs ${
-                        checkedIn
-                          ? "bg-rose-600 text-white hover:bg-rose-700"
-                          : "bg-emerald-600 text-white hover:bg-emerald-700"
-                      }`}
+                      className={`rounded-lg px-3 py-1 text-xs font-bold transition shadow-xs ${checkedIn
+                        ? "bg-rose-600 text-white hover:bg-rose-700"
+                        : "bg-emerald-600 text-white hover:bg-emerald-700"
+                        }`}
                     >
                       {attendanceLoading ? "..." : checkedIn ? "Check Out" : "Check In"}
                     </button>
@@ -987,20 +1011,18 @@ export function CRMShell({ children, user, compactMobileChrome = false, fullBlee
                       key={item.href}
                       href={item.href}
                       onClick={() => setMobileMenuOpen(false)}
-                      className={`flex items-center justify-between rounded-xl px-3 py-2.5 text-xs font-semibold transition ${
-                        isActive
-                          ? "bg-[var(--accent)] text-white shadow-xs"
-                          : "text-[var(--text-main)] hover:bg-[var(--surface-soft)]"
-                      }`}
+                      className={`flex items-center justify-between rounded-xl px-3 py-2.5 text-xs font-semibold transition ${isActive
+                        ? "bg-[var(--accent)] text-white shadow-xs"
+                        : "text-[var(--text-main)] hover:bg-[var(--surface-soft)]"
+                        }`}
                     >
                       <div className="flex items-center gap-3">
                         <Icon size={18} />
                         <span>{item.label}</span>
                       </div>
                       {typeof item.badge === "number" && item.badge > 0 && (
-                        <span className={`rounded-full px-2 py-0.5 text-[10px] font-black ${
-                          isActive ? "bg-white text-[var(--accent)]" : "bg-rose-600 text-white"
-                        }`}>
+                        <span className={`rounded-full px-2 py-0.5 text-[10px] font-black ${isActive ? "bg-white text-[var(--accent)]" : "bg-rose-600 text-white"
+                          }`}>
                           {item.badge}
                         </span>
                       )}
@@ -1071,11 +1093,10 @@ export function CRMShell({ children, user, compactMobileChrome = false, fullBlee
               <Link
                 key={item.href}
                 href={item.href}
-                className={`relative flex flex-col items-center justify-center flex-1 py-1 transition-all ${
-                  isActive
-                    ? "text-[var(--accent)] font-bold scale-105"
-                    : "text-[var(--text-soft)] hover:text-[var(--text-main)]"
-                }`}
+                className={`relative flex flex-col items-center justify-center flex-1 py-1 transition-all ${isActive
+                  ? "text-[var(--accent)] font-bold scale-105"
+                  : "text-[var(--text-soft)] hover:text-[var(--text-main)]"
+                  }`}
               >
                 <div className="relative">
                   <Icon size={19} />
